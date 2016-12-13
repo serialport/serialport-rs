@@ -1,6 +1,8 @@
 use std::error::Error as StdError;
+use std::ffi::OsStr;
 use std::fmt;
 use std::io;
+use std::path::Path;
 use std::time::Duration;
 
 pub use BaudRate::*;
@@ -292,17 +294,27 @@ pub struct SerialPortInfo {
     pub port_name: String,
 }
 
-#[cfg(target_os = "linux")]
-pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-    posix::available_ports()
+pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
+    // This is written with explicit returns because of:
+    // https://github.com/rust-lang/rust/issues/38337
+
+    #[cfg(unix)]
+    return posix::TTYPort::open(Path::new(port));
+
+    #[cfg(windows)]
+    return posix::COMPort::open(Path::new(port));
+
+    #[cfg(not(any(unix, windows)))]
+    Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
 }
 
-#[cfg(target_os = "windows")]
-pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-    windows::available_ports()
-}
+pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+    #[cfg(unix)]
+    return posix::available_ports();
 
-#[cfg(not(any(target_os = "linux", target_os = "windows")))]
-pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
+    #[cfg(windows)]
+    return windows::available_ports();
+
+    #[cfg(not(any(unix, windows)))]
     Err(Error::new(ErrorKind::Unknown, "available_ports() not implemented for platform"))
 }

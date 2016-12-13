@@ -53,7 +53,7 @@ impl TTYPort {
     ///   already in use.
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
-    pub fn new(path: &Path) -> ::Result<Self> {
+    pub fn open(path: &Path) -> ::Result<Box<SerialPort>> {
         use self::libc::{O_RDWR,O_NONBLOCK,F_SETFL,EINVAL};
         use self::termios::{CREAD,CLOCAL}; // cflags
         use self::termios::{ICANON,ECHO,ECHOE,ECHOK,ECHONL,ISIG,IEXTEN}; // lflags
@@ -112,7 +112,7 @@ impl TTYPort {
             return Err(super::error::last_os_error());
         }
 
-        Ok(port)
+        Ok(Box::new(port))
     }
 
     fn set_pin(&mut self, pin: c_int, level: bool) -> ::Result<()> {
@@ -520,7 +520,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                 if let Some(devnode) = d.devnode() {
                     if let Some(path) = devnode.to_str() {
                         if let Some(driver) = p.driver() {
-                            if driver == "serial8250" && TTYPort::new(Path::new(devnode)).is_err() {
+                            if driver == "serial8250" && TTYPort::open(devnode).is_err() {
                                 continue;
                             }
                         }
