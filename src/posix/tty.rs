@@ -13,7 +13,7 @@ use std::os::unix::prelude::*;
 
 use self::libc::{c_int,c_void,size_t};
 
-use ::{SerialPort, SerialPortInfo};
+use ::{DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
 
 
 #[cfg(target_os = "linux")]
@@ -270,58 +270,58 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn char_size(&self) -> Option<::CharSize> {
+    fn data_bits(&self) -> Option<DataBits> {
         use self::termios::{CSIZE,CS5,CS6,CS7,CS8};
 
         match self.termios.c_cflag & CSIZE {
-            CS8 => Some(::Bits8),
-            CS7 => Some(::Bits7),
-            CS6 => Some(::Bits6),
-            CS5 => Some(::Bits5),
+            CS8 => Some(DataBits::Eight),
+            CS7 => Some(DataBits::Seven),
+            CS6 => Some(DataBits::Six),
+            CS5 => Some(DataBits::Five),
 
             _ => None
         }
     }
 
-    fn flow_control(&self) -> Option<::FlowControl> {
+    fn flow_control(&self) -> Option<FlowControl> {
         use self::termios::{IXON,IXOFF};
         use self::termios::os::target::{CRTSCTS};
 
         if self.termios.c_cflag & CRTSCTS != 0 {
-            Some(::FlowHardware)
+            Some(FlowControl::Hardware)
         }
         else if self.termios.c_iflag & (IXON | IXOFF) != 0 {
-            Some(::FlowSoftware)
+            Some(FlowControl::Software)
         }
         else {
-            Some(::FlowNone)
+            Some(FlowControl::None)
         }
     }
 
-    fn parity(&self) -> Option<::Parity> {
+    fn parity(&self) -> Option<Parity> {
         use self::termios::{PARENB,PARODD};
 
         if self.termios.c_cflag & PARENB != 0 {
             if self.termios.c_cflag & PARODD != 0 {
-                Some(::ParityOdd)
+                Some(Parity::Odd)
             }
             else {
-                Some(::ParityEven)
+                Some(Parity::Even)
             }
         }
         else {
-            Some(::ParityNone)
+            Some(Parity::None)
         }
     }
 
-    fn stop_bits(&self) -> Option<::StopBits> {
+    fn stop_bits(&self) -> Option<StopBits> {
         use self::termios::{CSTOPB};
 
         if self.termios.c_cflag & CSTOPB != 0 {
-            Some(::Stop2)
+            Some(StopBits::Two)
         }
         else {
-            Some(::Stop1)
+            Some(StopBits::One)
         }
     }
 
@@ -408,14 +408,14 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn set_char_size(&mut self, char_size: ::CharSize) -> ::Result<()>  {
+    fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()>  {
         use self::termios::{CSIZE,CS5,CS6,CS7,CS8};
 
-        let size = match char_size {
-            ::Bits5 => CS5,
-            ::Bits6 => CS6,
-            ::Bits7 => CS7,
-            ::Bits8 => CS8
+        let size = match data_bits {
+            DataBits::Five => CS5,
+            DataBits::Six => CS6,
+            DataBits::Seven => CS7,
+            DataBits::Eight => CS8
         };
 
         self.termios.c_cflag &= !CSIZE;
@@ -423,20 +423,20 @@ impl SerialPort for TTYPort {
         Ok(())
     }
 
-    fn set_flow_control(&mut self, flow_control: ::FlowControl) -> ::Result<()>  {
+    fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()>  {
         use self::termios::{IXON,IXOFF};
         use self::termios::os::target::{CRTSCTS};
 
         match flow_control {
-            ::FlowNone => {
+            FlowControl::None => {
                 self.termios.c_iflag &= !(IXON | IXOFF);
                 self.termios.c_cflag &= !CRTSCTS;
             },
-            ::FlowSoftware => {
+            FlowControl::Software => {
                 self.termios.c_iflag |= IXON | IXOFF;
                 self.termios.c_cflag &= !CRTSCTS;
             },
-            ::FlowHardware => {
+            FlowControl::Hardware => {
                 self.termios.c_iflag &= !(IXON | IXOFF);
                 self.termios.c_cflag |= CRTSCTS;
             }
@@ -444,21 +444,21 @@ impl SerialPort for TTYPort {
         Ok(())
     }
 
-    fn set_parity(&mut self, parity: ::Parity) -> ::Result<()>  {
+    fn set_parity(&mut self, parity: Parity) -> ::Result<()>  {
         use self::termios::{PARENB,PARODD,INPCK,IGNPAR};
 
         match parity {
-            ::ParityNone => {
+            Parity::None => {
                 self.termios.c_cflag &= !(PARENB | PARODD);
                 self.termios.c_iflag &= !INPCK;
                 self.termios.c_iflag |= IGNPAR;
             },
-            ::ParityOdd => {
+            Parity::Odd => {
                 self.termios.c_cflag |= PARENB | PARODD;
                 self.termios.c_iflag |= INPCK;
                 self.termios.c_iflag &= !IGNPAR;
             },
-            ::ParityEven => {
+            Parity::Even => {
                 self.termios.c_cflag &= !PARODD;
                 self.termios.c_cflag |= PARENB;
                 self.termios.c_iflag |= INPCK;
@@ -468,12 +468,12 @@ impl SerialPort for TTYPort {
         Ok(())
     }
 
-    fn set_stop_bits(&mut self, stop_bits: ::StopBits) -> ::Result<()>  {
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()>  {
         use self::termios::{CSTOPB};
 
         match stop_bits {
-            ::Stop1 => self.termios.c_cflag &= !CSTOPB,
-            ::Stop2 => self.termios.c_cflag |= CSTOPB
+            StopBits::Two => self.termios.c_cflag &= !CSTOPB,
+            StopBits::One => self.termios.c_cflag |= CSTOPB
         };
         Ok(())
     }

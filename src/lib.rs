@@ -6,10 +6,6 @@ use std::path::Path;
 use std::time::Duration;
 
 pub use BaudRate::*;
-pub use CharSize::*;
-pub use Parity::*;
-pub use StopBits::*;
-pub use FlowControl::*;
 
 /// A module that exports traits that are useful to have in scope.
 ///
@@ -19,7 +15,7 @@ pub use FlowControl::*;
 /// use serial::prelude::*;
 /// ```
 pub mod prelude {
-    pub use ::{SerialPort, SerialPortInfo};
+    pub use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
 }
 
 #[cfg(unix)]
@@ -204,11 +200,18 @@ impl BaudRate {
 
 /// Number of bits per character.
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
-pub enum CharSize {
-    /** 5 bits per character. */ Bits5,
-    /** 6 bits per character. */ Bits6,
-    /** 7 bits per character. */ Bits7,
-    /** 8 bits per character. */ Bits8
+pub enum DataBits {
+    // 5 bits per character
+    Five,
+
+    // 6 bits per character
+    Six,
+
+    // 7 bits per character
+    Seven,
+
+    // 8 bits per character
+    Eight
 }
 
 /// Parity checking modes.
@@ -223,13 +226,13 @@ pub enum CharSize {
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Parity {
     /// No parity bit.
-    ParityNone,
+    None,
 
     /// Parity bit sets odd number of 1 bits.
-    ParityOdd,
+    Odd,
 
     /// Parity bit sets even number of 1 bits.
-    ParityEven
+    Even
 }
 
 /// Number of stop bits.
@@ -238,23 +241,23 @@ pub enum Parity {
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum StopBits {
     /// One stop bit.
-    Stop1,
+    One,
 
     /// Two stop bits.
-    Stop2
+    Two
 }
 
 /// Flow control modes.
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum FlowControl {
     /// No flow control.
-    FlowNone,
+    None,
 
     /// Flow control using XON/XOFF bytes.
-    FlowSoftware,
+    Software,
 
     /// Flow control using RTS/CTS signals.
-    FlowHardware
+    Hardware
 }
 
 
@@ -262,7 +265,7 @@ pub trait SerialPort: io::Read+io::Write {
 
     // Port settings getters
     fn baud_rate(&self) -> Option<BaudRate>;
-    fn char_size(&self) -> Option<CharSize>;
+    fn data_bits(&self) -> Option<DataBits>;
     fn flow_control(&self) -> Option<FlowControl>;
     fn parity(&self) -> Option<Parity>;
     fn stop_bits(&self) -> Option<StopBits>;
@@ -270,7 +273,7 @@ pub trait SerialPort: io::Read+io::Write {
 
     // Port settings setters
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()>;
-    fn set_char_size(&mut self, char_size: CharSize) -> ::Result<()>;
+    fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()>;
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()>;
     fn set_parity(&mut self, parity: Parity) -> ::Result<()>;
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()>;
