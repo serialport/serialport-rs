@@ -322,3 +322,14 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     #[cfg(not(any(unix, windows)))]
     Err(Error::new(ErrorKind::Unknown, "available_ports() not implemented for platform"))
 }
+
+pub fn available_baud_rates() -> Vec<u32> {
+    #[cfg(unix)]
+    return posix::available_baud_rates();
+
+    #[cfg(windows)]
+    return windows::available_baud_rates();
+
+    #[cfg(not(any(unix, windows)))]
+    return Vec::new();
+}
