@@ -15,7 +15,8 @@ pub use BaudRate::*;
 /// use serial::prelude::*;
 /// ```
 pub mod prelude {
-    pub use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
+    pub use ::{BaudRate, DataBits, FlowControl, Parity, StopBits};
+    pub use ::{SerialPort, SerialPortInfo};
 }
 
 #[cfg(unix)]
