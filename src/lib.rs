@@ -288,7 +288,7 @@ pub trait SerialPort: io::Read+io::Write {
     fn read_clear_to_send(&mut self) -> ::Result<bool>;
     fn read_data_set_ready(&mut self) -> ::Result<bool>;
     fn read_ring_indicator(&mut self) -> ::Result<bool>;
-    fn read_carrier_data(&mut self) -> ::Result<bool>;
+    fn read_carrier_detect(&mut self) -> ::Result<bool>;
 }
 
 /// A device-independent implementation of serial port information.

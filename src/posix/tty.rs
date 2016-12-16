@@ -503,7 +503,7 @@ impl SerialPort for TTYPort {
         self.read_pin(ioctl::TIOCM_RI)
     }
 
-    fn read_carrier_data(&mut self) -> ::Result<bool> {
+    fn read_carrier_detect(&mut self) -> ::Result<bool> {
         self.read_pin(ioctl::TIOCM_CD)
     }
 }
