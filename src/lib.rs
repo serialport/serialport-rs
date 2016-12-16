@@ -306,7 +306,7 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
     return posix::TTYPort::open(Path::new(port));
 
     #[cfg(windows)]
-    return posix::COMPort::open(Path::new(port));
+    return windows::COMPort::open(Path::new(port));
 
     #[cfg(not(any(unix, windows)))]
     Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
