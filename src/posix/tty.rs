@@ -547,8 +547,6 @@ pub fn available_baud_rates() -> Vec<u32> {
     vec.push(57600);
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
     vec.push(76800);
-    vec.push(57600);
-    vec.push(76800);
     vec.push(115200);
     vec.push(230400);
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
