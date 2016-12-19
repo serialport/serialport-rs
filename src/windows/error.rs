@@ -3,7 +3,7 @@ extern crate libc;
 use std::io;
 use std::ptr;
 
-use self::libc::{c_void,c_int};
+use self::libc::{c_void, c_int};
 
 const ERROR_FILE_NOT_FOUND: c_int = 2;
 const ERROR_PATH_NOT_FOUND: c_int = 3;
@@ -13,8 +13,10 @@ pub fn last_os_error() -> ::Error {
     let errno = errno();
 
     let kind = match errno {
-        ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND | ERROR_ACCESS_DENIED => ::ErrorKind::NoDevice,
-        _ => ::ErrorKind::Io(io::ErrorKind::Other)
+        ERROR_FILE_NOT_FOUND |
+        ERROR_PATH_NOT_FOUND |
+        ERROR_ACCESS_DENIED => ::ErrorKind::NoDevice,
+        _ => ::ErrorKind::Io(io::ErrorKind::Other),
     };
 
     ::Error::new(kind, error_string(errno).trim())
@@ -23,15 +25,13 @@ pub fn last_os_error() -> ::Error {
 // the rest of this module is borrowed from libstd
 
 fn errno() -> i32 {
-    unsafe {
-        super::ffi::GetLastError() as i32
-    }
+    unsafe { super::ffi::GetLastError() as i32 }
 }
 
 fn error_string(errnum: i32) -> String {
     #![allow(non_snake_case)]
 
-    use super::ffi::{DWORD,LPWSTR,LPVOID,WCHAR};
+    use super::ffi::{DWORD, LPWSTR, LPVOID, WCHAR};
 
     #[link_name = "kernel32"]
     extern "system" {
@@ -55,8 +55,7 @@ fn error_string(errnum: i32) -> String {
     let mut buf = [0 as WCHAR; 2048];
 
     unsafe {
-        let res = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
-                                 FORMAT_MESSAGE_IGNORE_INSERTS,
+        let res = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                                  ptr::null_mut(),
                                  errnum as DWORD,
                                  langId,
@@ -67,15 +66,18 @@ fn error_string(errnum: i32) -> String {
             // Sometimes FormatMessageW can fail e.g. system doesn't like langId,
             let fm_err = errno();
             return format!("OS Error {} (FormatMessageW() returned error {})",
-                           errnum, fm_err);
+                           errnum,
+                           fm_err);
         }
 
         let b = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
         let msg = String::from_utf16(&buf[..b]);
         match msg {
             Ok(msg) => msg,
-            Err(..) => format!("OS Error {} (FormatMessageW() returned \
-                                invalid UTF-16)", errnum),
+            Err(..) => {
+                format!("OS Error {} (FormatMessageW() returned invalid UTF-16)",
+                        errnum)
+            }
         }
     }
 }
