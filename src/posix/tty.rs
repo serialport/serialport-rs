@@ -92,6 +92,8 @@ impl TTYPort {
             return Err(super::error::from_io_error(err));
         }
 
+        // TODO: Call tcgetattr() and confirm that all settings match
+
         if let Err(err) = tcflush(fd, TCIOFLUSH) {
             return Err(super::error::from_io_error(err));
         }
