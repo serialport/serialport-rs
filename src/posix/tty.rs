@@ -117,6 +117,20 @@ impl TTYPort {
         Ok(Box::new(port))
     }
 
+    fn write_settings(&self) -> ::Result<()> {
+        use self::termios::{tcsetattr, tcflush};
+        use self::termios::{TCSANOW, TCIOFLUSH};
+
+        if let Err(err) = tcsetattr(self.fd, TCSANOW, &self.termios) {
+            return Err(super::error::from_io_error(err));
+        }
+
+        if let Err(err) = tcflush(self.fd, TCIOFLUSH) {
+            return Err(super::error::from_io_error(err));
+        }
+        Ok(())
+    }
+
     fn set_pin(&mut self, pin: c_int, level: bool) -> ::Result<()> {
         let retval = if level {
             ioctl::tiocmbis(self.fd, pin)
@@ -417,7 +431,7 @@ impl SerialPort for TTYPort {
 
         self.termios.c_cflag &= !CSIZE;
         self.termios.c_cflag |= size;
-        Ok(())
+        self.write_settings()
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
@@ -438,7 +452,7 @@ impl SerialPort for TTYPort {
                 self.termios.c_cflag |= CRTSCTS;
             }
         };
-        Ok(())
+        self.write_settings()
     }
 
     fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
@@ -462,7 +476,7 @@ impl SerialPort for TTYPort {
                 self.termios.c_iflag &= !IGNPAR;
             }
         };
-        Ok(())
+        self.write_settings()
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
@@ -472,7 +486,7 @@ impl SerialPort for TTYPort {
             StopBits::Two => self.termios.c_cflag &= !CSTOPB,
             StopBits::One => self.termios.c_cflag |= CSTOPB,
         };
-        Ok(())
+        self.write_settings()
     }
 
     fn set_timeout(&mut self, timeout: Duration) -> ::Result<()> {
