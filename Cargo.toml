@@ -4,7 +4,7 @@ keywords = ["serial", "hardware", "system", "RS232"]
 license = "LGPLv-3.0+"
 name = "serialport"
 readme = "README.asciidoc"
-repository = "https://github.com/dcuddeback/serial-rs"
+repository = "https://gitlab.com/susurrus/serialport-rs"
 version = "0.1.0"
 
 [dev-dependencies]
