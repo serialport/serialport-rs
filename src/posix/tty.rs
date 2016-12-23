@@ -414,6 +414,7 @@ impl SerialPort for TTYPort {
         };
 
         cfsetspeed(&mut self.termios, baud)?;
+        self.write_settings()
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
