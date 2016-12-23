@@ -7,6 +7,9 @@ readme = "README.asciidoc"
 repository = "https://github.com/dcuddeback/serial-rs"
 version = "0.1.0"
 
+[dev-dependencies]
+argparse = "0.2"
+
 [dependencies]
 libc = "0.2.1"
 
