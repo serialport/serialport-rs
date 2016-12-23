@@ -13,7 +13,7 @@ use std::os::unix::prelude::*;
 
 use self::libc::{c_int, c_void, size_t};
 
-use ::{DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
+use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
 
 
 #[cfg(target_os = "linux")]
@@ -202,7 +202,7 @@ impl io::Write for TTYPort {
 }
 
 impl SerialPort for TTYPort {
-    fn baud_rate(&self) -> Option<::BaudRate> {
+    fn baud_rate(&self) -> Option<BaudRate> {
         use self::termios::{cfgetospeed, cfgetispeed};
         use self::termios::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400,
                             B4800, B9600, B19200, B38400};
@@ -229,56 +229,56 @@ impl SerialPort for TTYPort {
         }
 
         match ospeed {
-            B50 => Some(::BaudOther(50)),
-            B75 => Some(::BaudOther(75)),
-            B110 => Some(::Baud110),
-            B134 => Some(::BaudOther(134)),
-            B150 => Some(::BaudOther(150)),
-            B200 => Some(::BaudOther(200)),
-            B300 => Some(::Baud300),
-            B600 => Some(::Baud600),
-            B1200 => Some(::Baud1200),
-            B1800 => Some(::BaudOther(1800)),
-            B2400 => Some(::Baud2400),
-            B4800 => Some(::Baud4800),
+            B50 => Some(BaudRate::BaudOther(50)),
+            B75 => Some(BaudRate::BaudOther(75)),
+            B110 => Some(BaudRate::Baud110),
+            B134 => Some(BaudRate::BaudOther(134)),
+            B150 => Some(BaudRate::BaudOther(150)),
+            B200 => Some(BaudRate::BaudOther(200)),
+            B300 => Some(BaudRate::Baud300),
+            B600 => Some(BaudRate::Baud600),
+            B1200 => Some(BaudRate::Baud1200),
+            B1800 => Some(BaudRate::BaudOther(1800)),
+            B2400 => Some(BaudRate::Baud2400),
+            B4800 => Some(BaudRate::Baud4800),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B7200 => Some(::BaudOther(7200)),
-            B9600 => Some(::Baud9600),
+            B7200 => Some(BaudRate::BaudOther(7200)),
+            B9600 => Some(BaudRate::Baud9600),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B14400 => Some(::BaudOther(14400)),
-            B19200 => Some(::Baud19200),
+            B14400 => Some(BaudRate::BaudOther(14400)),
+            B19200 => Some(BaudRate::Baud19200),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B28800 => Some(::BaudOther(28800)),
-            B38400 => Some(::Baud38400),
-            B57600 => Some(::Baud57600),
+            B28800 => Some(BaudRate::BaudOther(28800)),
+            B38400 => Some(BaudRate::Baud38400),
+            B57600 => Some(BaudRate::Baud57600),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B76800 => Some(::BaudOther(76800)),
-            B115200 => Some(::Baud115200),
-            B230400 => Some(::BaudOther(230400)),
+            B76800 => Some(BaudRate::BaudOther(76800)),
+            B115200 => Some(BaudRate::Baud115200),
+            B230400 => Some(BaudRate::BaudOther(230400)),
             #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-            B460800 => Some(::BaudOther(460800)),
+            B460800 => Some(BaudRate::BaudOther(460800)),
             #[cfg(target_os = "linux")]
-            B500000 => Some(::BaudOther(500000)),
+            B500000 => Some(BaudRate::BaudOther(500000)),
             #[cfg(target_os = "linux")]
-            B576000 => Some(::BaudOther(576000)),
+            B576000 => Some(BaudRate::BaudOther(576000)),
             #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-            B921600 => Some(::BaudOther(921600)),
+            B921600 => Some(BaudRate::BaudOther(921600)),
             #[cfg(target_os = "linux")]
-            B1000000 => Some(::BaudOther(1000000)),
+            B1000000 => Some(BaudRate::BaudOther(1000000)),
             #[cfg(target_os = "linux")]
-            B1152000 => Some(::BaudOther(1152000)),
+            B1152000 => Some(BaudRate::BaudOther(1152000)),
             #[cfg(target_os = "linux")]
-            B1500000 => Some(::BaudOther(1500000)),
+            B1500000 => Some(BaudRate::BaudOther(1500000)),
             #[cfg(target_os = "linux")]
-            B2000000 => Some(::BaudOther(2000000)),
+            B2000000 => Some(BaudRate::BaudOther(2000000)),
             #[cfg(target_os = "linux")]
-            B2500000 => Some(::BaudOther(2500000)),
+            B2500000 => Some(BaudRate::BaudOther(2500000)),
             #[cfg(target_os = "linux")]
-            B3000000 => Some(::BaudOther(3000000)),
+            B3000000 => Some(BaudRate::BaudOther(3000000)),
             #[cfg(target_os = "linux")]
-            B3500000 => Some(::BaudOther(3500000)),
+            B3500000 => Some(BaudRate::BaudOther(3500000)),
             #[cfg(target_os = "linux")]
-            B4000000 => Some(::BaudOther(4000000)),
+            B4000000 => Some(BaudRate::BaudOther(4000000)),
 
             _ => None,
         }
@@ -338,7 +338,7 @@ impl SerialPort for TTYPort {
         self.timeout
     }
 
-    fn set_baud_rate(&mut self, baud_rate: ::BaudRate) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
         use self::libc::EINVAL;
         use self::termios::cfsetspeed;
         use self::termios::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400,
@@ -359,58 +359,58 @@ impl SerialPort for TTYPort {
         use self::termios::os::openbsd::{B7200, B14400, B28800, B76800};
 
         let baud = match baud_rate {
-            ::BaudOther(50) => B50,
-            ::BaudOther(75) => B75,
-            ::Baud110 => B110,
-            ::BaudOther(134) => B134,
-            ::BaudOther(150) => B150,
-            ::BaudOther(200) => B200,
-            ::Baud300 => B300,
-            ::Baud600 => B600,
-            ::Baud1200 => B1200,
-            ::BaudOther(1800) => B1800,
-            ::Baud2400 => B2400,
-            ::Baud4800 => B4800,
+            BaudRate::BaudOther(50) => B50,
+            BaudRate::BaudOther(75) => B75,
+            BaudRate::Baud110 => B110,
+            BaudRate::BaudOther(134) => B134,
+            BaudRate::BaudOther(150) => B150,
+            BaudRate::BaudOther(200) => B200,
+            BaudRate::Baud300 => B300,
+            BaudRate::Baud600 => B600,
+            BaudRate::Baud1200 => B1200,
+            BaudRate::BaudOther(1800) => B1800,
+            BaudRate::Baud2400 => B2400,
+            BaudRate::Baud4800 => B4800,
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            ::BaudOther(7200) => B7200,
-            ::Baud9600 => B9600,
+            BaudRate::BaudOther(7200) => B7200,
+            BaudRate::Baud9600 => B9600,
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            ::BaudOther(14400) => B14400,
-            ::Baud19200 => B19200,
+            BaudRate::BaudOther(14400) => B14400,
+            BaudRate::Baud19200 => B19200,
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            ::BaudOther(28800) => B28800,
-            ::Baud38400 => B38400,
-            ::Baud57600 => B57600,
+            BaudRate::BaudOther(28800) => B28800,
+            BaudRate::Baud38400 => B38400,
+            BaudRate::Baud57600 => B57600,
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            ::BaudOther(76800) => B76800,
-            ::Baud115200 => B115200,
-            ::BaudOther(230400) => B230400,
+            BaudRate::BaudOther(76800) => B76800,
+            BaudRate::Baud115200 => B115200,
+            BaudRate::BaudOther(230400) => B230400,
             #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-            ::BaudOther(460800) => B460800,
+            BaudRate::BaudOther(460800) => B460800,
             #[cfg(target_os = "linux")]
-            ::BaudOther(500000) => B500000,
+            BaudRate::BaudOther(500000) => B500000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(576000) => B576000,
+            BaudRate::BaudOther(576000) => B576000,
             #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-            ::BaudOther(921600) => B921600,
+            BaudRate::BaudOther(921600) => B921600,
             #[cfg(target_os = "linux")]
-            ::BaudOther(1000000) => B1000000,
+            BaudRate::BaudOther(1000000) => B1000000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(1152000) => B1152000,
+            BaudRate::BaudOther(1152000) => B1152000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(1500000) => B1500000,
+            BaudRate::BaudOther(1500000) => B1500000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(2000000) => B2000000,
+            BaudRate::BaudOther(2000000) => B2000000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(2500000) => B2500000,
+            BaudRate::BaudOther(2500000) => B2500000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(3000000) => B3000000,
+            BaudRate::BaudOther(3000000) => B3000000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(3500000) => B3500000,
+            BaudRate::BaudOther(3500000) => B3500000,
             #[cfg(target_os = "linux")]
-            ::BaudOther(4000000) => B4000000,
+            BaudRate::BaudOther(4000000) => B4000000,
 
-            ::BaudOther(_) => return Err(super::error::from_raw_os_error(EINVAL)),
+            BaudRate::BaudOther(_) => return Err(super::error::from_raw_os_error(EINVAL)),
         };
 
         cfsetspeed(&mut self.termios, baud)?;

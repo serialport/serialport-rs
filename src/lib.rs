@@ -5,8 +5,6 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
-pub use BaudRate::*;
-
 /// A module that exports traits that are useful to have in scope.
 ///
 /// It is intended to be glob imported:
@@ -275,7 +273,10 @@ pub enum FlowControl {
     Hardware,
 }
 
-
+/// A trait for serial port devices
+///
+/// This trait is all that's necessary to implement a new serial port driver
+/// for a new platform.
 pub trait SerialPort: io::Read + io::Write {
     // Port settings getters
 
@@ -469,7 +470,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                    "available_ports() not implemented for platform"))
 }
 
-/// Returns a list of avilable baud rates for this system.
+/// Returns a list of available baud rates for this system.
 ///
 /// Officially supported baud rates vary by system. This functions returns a
 /// of strings indicating their values. This is most useful for UI applications
