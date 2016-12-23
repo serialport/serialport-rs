@@ -413,10 +413,7 @@ impl SerialPort for TTYPort {
             ::BaudOther(_) => return Err(super::error::from_raw_os_error(EINVAL)),
         };
 
-        match cfsetspeed(&mut self.termios, baud) {
-            Ok(()) => Ok(()),
-            Err(err) => Err(super::error::from_io_error(err)),
-        }
+        cfsetspeed(&mut self.termios, baud)?;
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
