@@ -85,6 +85,13 @@ impl COMPort {
         }
     }
 
+    fn write_settings(&mut self) -> ::Result<()> {
+        match unsafe { SetCommState(self.handle, &self.inner) } {
+            0 => Err(super::error::last_os_error()),
+            _ => Ok(())
+        }
+    }
+
     fn escape_comm_function(&mut self, function: DWORD) -> ::Result<()> {
         match unsafe { EscapeCommFunction(self.handle, function) } {
             0 => Err(super::error::last_os_error()),
@@ -293,7 +300,7 @@ impl SerialPort for COMPort {
             BaudRate::BaudOther(n) => n as DWORD,
         };
 
-        Ok(())
+        self.write_settings()
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
@@ -303,7 +310,8 @@ impl SerialPort for COMPort {
             DataBits::Seven => 7,
             DataBits::Eight => 8,
         };
-        Ok(())
+
+        self.write_settings()
     }
 
     fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
@@ -312,7 +320,8 @@ impl SerialPort for COMPort {
             Parity::Odd => ODDPARITY,
             Parity::Even => EVENPARITY,
         };
-        Ok(())
+
+        self.write_settings()
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
@@ -320,7 +329,8 @@ impl SerialPort for COMPort {
             StopBits::One => ONESTOPBIT,
             StopBits::Two => TWOSTOPBITS,
         };
-        Ok(())
+
+        self.write_settings()
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
@@ -338,7 +348,8 @@ impl SerialPort for COMPort {
                 self.inner.fBits &= !(fOutX | fInX);
             }
         }
-        Ok(())
+
+        self.write_settings()
     }
 }
 
