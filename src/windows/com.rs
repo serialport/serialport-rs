@@ -219,24 +219,24 @@ impl SerialPort for COMPort {
         self.read_pin(MS_RLSD_ON)
     }
 
-    fn baud_rate(&self) -> Option<::BaudRate> {
+    fn baud_rate(&self) -> Option<BaudRate> {
         match self.inner.BaudRate {
-            CBR_110 => Some(::Baud110),
-            CBR_300 => Some(::Baud300),
-            CBR_600 => Some(::Baud600),
-            CBR_1200 => Some(::Baud1200),
-            CBR_2400 => Some(::Baud2400),
-            CBR_4800 => Some(::Baud4800),
-            CBR_9600 => Some(::Baud9600),
-            CBR_14400 => Some(::BaudOther(14400)),
-            CBR_19200 => Some(::Baud19200),
-            CBR_38400 => Some(::Baud38400),
-            CBR_56000 => Some(::BaudOther(56000)),
-            CBR_57600 => Some(::Baud57600),
-            CBR_115200 => Some(::Baud115200),
-            CBR_128000 => Some(::BaudOther(128000)),
-            CBR_256000 => Some(::BaudOther(256000)),
-            n => Some(::BaudOther(n as usize)),
+            CBR_110 => Some(BaudRate::Baud110),
+            CBR_300 => Some(BaudRate::Baud300),
+            CBR_600 => Some(BaudRate::Baud600),
+            CBR_1200 => Some(BaudRate::Baud1200),
+            CBR_2400 => Some(BaudRate::Baud2400),
+            CBR_4800 => Some(BaudRate::Baud4800),
+            CBR_9600 => Some(BaudRate::Baud9600),
+            CBR_14400 => Some(BaudRate::BaudOther(14400)),
+            CBR_19200 => Some(BaudRate::Baud19200),
+            CBR_38400 => Some(BaudRate::Baud38400),
+            CBR_56000 => Some(BaudRate::BaudOther(56000)),
+            CBR_57600 => Some(BaudRate::Baud57600),
+            CBR_115200 => Some(BaudRate::Baud115200),
+            CBR_128000 => Some(BaudRate::BaudOther(128000)),
+            CBR_256000 => Some(BaudRate::BaudOther(256000)),
+            n => Some(BaudRate::BaudOther(n as usize)),
         }
     }
 
@@ -279,18 +279,18 @@ impl SerialPort for COMPort {
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
         self.inner.BaudRate = match baud_rate {
-            ::Baud110 => CBR_110,
-            ::Baud300 => CBR_300,
-            ::Baud600 => CBR_600,
-            ::Baud1200 => CBR_1200,
-            ::Baud2400 => CBR_2400,
-            ::Baud4800 => CBR_4800,
-            ::Baud9600 => CBR_9600,
-            ::Baud19200 => CBR_19200,
-            ::Baud38400 => CBR_38400,
-            ::Baud57600 => CBR_57600,
-            ::Baud115200 => CBR_115200,
-            ::BaudOther(n) => n as DWORD,
+            BaudRate::Baud110 => CBR_110,
+            BaudRate::Baud300 => CBR_300,
+            BaudRate::Baud600 => CBR_600,
+            BaudRate::Baud1200 => CBR_1200,
+            BaudRate::Baud2400 => CBR_2400,
+            BaudRate::Baud4800 => CBR_4800,
+            BaudRate::Baud9600 => CBR_9600,
+            BaudRate::Baud19200 => CBR_19200,
+            BaudRate::Baud38400 => CBR_38400,
+            BaudRate::Baud57600 => CBR_57600,
+            BaudRate::Baud115200 => CBR_115200,
+            BaudRate::BaudOther(n) => n as DWORD,
         };
 
         Ok(())
