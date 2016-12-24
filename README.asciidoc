@@ -1,5 +1,14 @@
-serialport-rs is a general-purpose cross-platform serial port library for Rust. It provides a simple blocking I/O interface to low-level serial ports on POSIX and Windows systems. It reuses code from the https://github.com/dcuddeback/serial-rs[serial-rs] library and aims to provide a very similar interface to that of the https://doc.qt.io/qt-5/qserialport.html[QSerialPort] library.
+serialport-rs is a general-purpose cross-platform serial port library for Rust. It provides a
+simple blocking I/O interface to low-level serial ports on POSIX and Windows systems. It reuses
+code from the https://github.com/dcuddeback/serial-rs[serial-rs] library and aims to provide a
+very similar interface to that of the https://doc.qt.io/qt-5/qserialport.html[QSerialPort]
+library.
 
-This library was primarily created because I was more familiar with the QSerialPort library and the slow rate of development of the serial-rs library previously mentioned, as I was developing my https://gitlab.com/susurrus/gatii[Gattii] serial terminal emulator program.
+This library was primarily created because I was more familiar with the QSerialPort library and
+the slow rate of development of the serial-rs library previously mentioned, as I was developing
+my https://gitlab.com/susurrus/gatii[Gattii] serial terminal emulator program.
 
-This library is licensed under the LGPL version 3.0 or any later version.
+Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
+which this library heavily borrows from. As that library licensed as MIT, the portions of this
+library that were copied from that one are licensed as MIT. All other code is licensed as LGPL
+version 3.0 or any later version. Therefore the license for this library as a whole is LGPLv3+.
