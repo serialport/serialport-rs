@@ -13,7 +13,7 @@ use std::os::unix::prelude::*;
 
 use self::libc::{c_int, c_void, size_t};
 
-use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
+use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use ::{Error, ErrorKind};
 
 
@@ -211,6 +211,19 @@ impl io::Write for TTYPort {
 }
 
 impl SerialPort for TTYPort {
+
+    /// Returns a struct with all port settings
+    fn settings(&self) -> SerialPortSettings {
+        SerialPortSettings {
+            baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
+            data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
+            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
+            parity: self.parity().expect("Couldn't retrieve parity"),
+            stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
+            timeout: self.timeout
+        }
+    }
+
     fn baud_rate(&self) -> Option<BaudRate> {
         use self::termios::{cfgetospeed, cfgetispeed};
         use self::termios::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400,
@@ -345,6 +358,16 @@ impl SerialPort for TTYPort {
 
     fn timeout(&self) -> Duration {
         self.timeout
+    }
+
+    fn set_all(&mut self, settings: SerialPortSettings) -> ::Result<()> {
+        self.set_baud_rate(settings.baud_rate)?;
+        self.set_data_bits(settings.data_bits)?;
+        self.set_flow_control(settings.flow_control)?;
+        self.set_parity(settings.parity)?;
+        self.set_stop_bits(settings.stop_bits)?;
+        self.set_timeout(settings.timeout)?;
+        Ok(())
     }
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
