@@ -14,6 +14,7 @@ use std::os::unix::prelude::*;
 use self::libc::{c_int, c_void, size_t};
 
 use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
+use ::{Error, ErrorKind};
 
 
 #[cfg(target_os = "linux")]
@@ -60,7 +61,7 @@ impl TTYPort {
         use self::termios::OPOST; // oflags
         use self::termios::{INLCR, IGNCR, ICRNL, IGNBRK}; // iflags
         use self::termios::{VMIN, VTIME}; // c_cc indexes
-        use self::termios::{tcsetattr, tcflush};
+        use self::termios::{tcgetattr, tcsetattr, tcflush};
         use self::termios::{TCSANOW, TCIOFLUSH};
 
         let cstr = match CString::new(path.as_os_str().as_bytes()) {
@@ -92,7 +93,15 @@ impl TTYPort {
             return Err(super::error::from_io_error(err));
         }
 
-        // TODO: Call tcgetattr() and confirm that all settings match
+        // Read back settings from port and confirm they were applied correctly
+        // TODO: Switch this to an all-zeroed termios struct
+        let mut actual_termios = termios.clone();
+        if let Err(err) = tcgetattr(fd, &mut actual_termios) {
+            return Err(super::error::from_io_error(err));
+        }
+        if actual_termios != termios {
+            return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
+        }
 
         if let Err(err) = tcflush(fd, TCIOFLUSH) {
             return Err(super::error::from_io_error(err));
