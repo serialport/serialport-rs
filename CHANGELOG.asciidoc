@@ -1,0 +1,19 @@
+== Change log
+
+All notable changes to this project will be documented in this file.
+
+The format is based on http://keepachangelog.com/[Keep a Changelog]
+and this project adheres to http://semver.org/[Semantic Versioning].
+
+=== Unreleased
+
+
+=== [0.1.1] - 2016-12-23
+==== Changed
+* Fixed compilation on x86_64-pc-windows-gnu target
+* Added contributors to README
+* Clarified license terms in the README
+
+=== [0.1.0] - 2016-12-22
+==== Added
+* Initial release.
