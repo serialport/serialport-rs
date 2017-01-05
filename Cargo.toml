@@ -1,75 +1,79 @@
 [package]
+name = "serialport"
+version = "0.1.1"
 authors = ["Bryant Mairs <bryant@mai.rs>"]
 keywords = ["serial", "hardware", "system", "RS232"]
-license = "LGPLv-3.0+"
-name = "serialport"
+license = "LGPL-3.0"
 readme = "README.asciidoc"
-repository = "https://github.com/dcuddeback/serial-rs"
-version = "0.1.0"
+repository = "https://gitlab.com/susurrus/serialport-rs"
+description = "A cross-platform low-level serial port library"
+
+[dev-dependencies]
+argparse = "0.2"
 
 [dependencies]
 libc = "0.2.1"
 
 [target.aarch64-unknown-linux-gnu.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.arm-unknown-linux-gnueabi.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.arm-unknown-linux-gnueabihf.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.armv7-unknown-linux-gnueabihf.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.i686-apple-darwin.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.i686-unknown-linux-gnu.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
 libudev = "0.2.0"
+termios = "0.2.2"
 
 [target.mips-unknown-linux-gnu.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
 libudev = "0.2.0"
+termios = "0.2.2"
 
 [target.mipsel-unknown-linux-gnu.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
 libudev = "0.2.0"
+termios = "0.2.2"
 
 [target.powerpc-unknown-linux-gnu.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
 libudev = "0.2.0"
+termios = "0.2.2"
 
 [target.x86_64-apple-darwin.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.x86_64-unknown-dragonfly.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.x86_64-unknown-freebsd.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.x86_64-unknown-linux-gnu.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
 libudev = "0.2.0"
+termios = "0.2.2"
 
 [target.x86_64-unknown-openbsd.dependencies]
-termios = "0.2.2"
 ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.i686-pc-windows-msvc.dependencies]
 winreg = "0.3"
