@@ -217,12 +217,12 @@ pub enum DataBits {
 
 /// Parity checking modes.
 ///
-/// When parity checking is enabled (`ParityOdd` or `ParityEven`) an extra bit is transmitted with
+/// When parity checking is enabled (`Odd` or `Even`) an extra bit is transmitted with
 /// each character. The value of the parity bit is arranged so that the number of 1 bits in the
-/// character (including the parity bit) is an even number (`ParityEven`) or an odd number
-/// (`ParityOdd`).
+/// character (including the parity bit) is an even number (`Even`) or an odd number
+/// (`Odd`).
 ///
-/// Parity checking is disabled by setting `ParityNone`, in which case parity bits are not
+/// Parity checking is disabled by setting `None`, in which case parity bits are not
 /// transmitted.
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Parity {
