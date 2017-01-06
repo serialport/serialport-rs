@@ -57,8 +57,8 @@ pub enum ErrorKind {
 /// An error type for serial port operations.
 #[derive(Debug)]
 pub struct Error {
-    kind: ErrorKind,
-    description: String,
+    pub kind: ErrorKind,
+    pub description: String,
 }
 
 impl Error {
