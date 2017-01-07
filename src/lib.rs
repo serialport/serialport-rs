@@ -57,8 +57,8 @@ pub enum ErrorKind {
 /// An error type for serial port operations.
 #[derive(Debug)]
 pub struct Error {
-    kind: ErrorKind,
-    description: String,
+    pub kind: ErrorKind,
+    pub description: String,
 }
 
 impl Error {
@@ -273,12 +273,26 @@ pub enum FlowControl {
     Hardware,
 }
 
+/// A struct containing all serial port settings
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+pub struct SerialPortSettings {
+    baud_rate: BaudRate,
+    data_bits: DataBits,
+    flow_control: FlowControl,
+    parity: Parity,
+    stop_bits: StopBits,
+    timeout: Duration
+}
+
 /// A trait for serial port devices
 ///
 /// This trait is all that's necessary to implement a new serial port driver
 /// for a new platform.
 pub trait SerialPort: io::Read + io::Write {
     // Port settings getters
+
+    /// Returns a struct with the current port settings
+    fn settings(&self) -> SerialPortSettings;
 
     /// Returns the current baud rate.
     ///
@@ -322,6 +336,11 @@ pub trait SerialPort: io::Read + io::Write {
     fn timeout(&self) -> Duration;
 
     // Port settings setters
+
+    /// Applies all settings for a struct. This isn't guaranteed to involve only
+    /// a single call into the driver, though that may be done on some
+    /// platforms.
+    fn set_all(&mut self, SerialPortSettings) -> ::Result<()>;
 
     /// Sets the baud rate.
     ///

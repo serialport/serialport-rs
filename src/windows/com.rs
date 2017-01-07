@@ -14,7 +14,7 @@ use self::winreg::enums::*;
 use self::libc::c_void;
 
 use super::ffi::*;
-use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits};
+use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 
 
 /// A serial port implementation for Windows COM ports.
@@ -175,6 +175,18 @@ impl SerialPort for COMPort {
         self.timeout
     }
 
+    /// Returns a struct with all port settings
+    fn settings(&self) -> SerialPortSettings {
+        SerialPortSettings {
+            baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
+            data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
+            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
+            parity: self.parity().expect("Couldn't retrieve parity"),
+            stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
+            timeout: self.timeout
+        }
+    }
+
     fn set_timeout(&mut self, timeout: Duration) -> ::Result<()> {
         let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
 
@@ -282,6 +294,16 @@ impl SerialPort for COMPort {
         } else {
             Some(FlowControl::None)
         }
+    }
+
+    fn set_all(&mut self, settings: SerialPortSettings) -> ::Result<()> {
+        self.set_baud_rate(settings.baud_rate)?;
+        self.set_data_bits(settings.data_bits)?;
+        self.set_flow_control(settings.flow_control)?;
+        self.set_parity(settings.parity)?;
+        self.set_stop_bits(settings.stop_bits)?;
+        self.set_timeout(settings.timeout)?;
+        Ok(())
     }
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
