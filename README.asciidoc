@@ -6,7 +6,7 @@ library.
 
 This library was primarily created because I was more familiar with the QSerialPort library and
 the slow rate of development of the serial-rs library previously mentioned, as I was developing
-my https://gitlab.com/susurrus/gatii[Gattii] serial terminal emulator program.
+my https://gitlab.com/susurrus/gattii[Gattii] serial terminal emulator program.
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from. As that library licensed as MIT, the portions of this
