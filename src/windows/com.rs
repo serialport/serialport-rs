@@ -33,9 +33,8 @@ impl COMPort {
     ///
     /// `port` should be the name of a COM port, e.g., `COM1`.
     ///
-    /// ```no_run
-    /// serial::windows::COMPort::open("COM1").unwrap();
-    /// ```
+    /// This struct should not be instantiated directly, instead use
+    /// `serialport::open()`.
     ///
     /// ## Errors
     ///

@@ -42,11 +42,9 @@ impl TTYPort {
     ///
     /// `path` should be the path to a TTY device, e.g., `/dev/ttyS0`.
     ///
-    /// ```no_run
-    /// use std::path::Path;
+    /// This struct should not be instantiated directly, instead use
+    /// `serialport::open()`.
     ///
-    /// serial::posix::TTYPort::open(Path::new("/dev/ttyS0")).unwrap();
-    /// ```
     ///
     /// ## Errors
     ///
