@@ -1,8 +1,9 @@
 == serialport-rs
 
+image:https://ci.appveyor.com/api/projects/status/gv9v4b78ywa4bn2g/branch/master?svg=true
+
 image:https://img.shields.io/crates/v/serialport.svg[link="https://crates.io/crates/serialport"]
 image:https://docs.rs/serialport/badge.svg[link="https://docs.rs/crate/serialport"]
-
 
 serialport-rs is a general-purpose cross-platform serial port library for Rust. It provides a
 simple blocking I/O interface to low-level serial ports on POSIX and Windows systems. It reuses
