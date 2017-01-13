@@ -15,19 +15,19 @@ before_script:
 test:1.13:
     image: "scorpil/rust:1.13"
     script:
-    - cargo build --verbose
+    - cargo test --verbose
 
 test:stable:
     image: "scorpil/rust:stable"
     script:
-    - cargo build --verbose
+    - cargo test --verbose
 
 test:beta:
     image: "scorpil/rust:beta"
     script:
-    - cargo build --verbose
+    - cargo test --verbose
 
 test:nightly:
     image: "scorpil/rust:nightly"
     script:
-    - cargo build --verbose
+    - cargo test --verbose
