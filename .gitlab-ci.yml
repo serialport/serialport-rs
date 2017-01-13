@@ -10,7 +10,7 @@ cache:
 
 before_script:
     - mkdir -pv $APT_CACHE_DIR
-    - apt-get -qq update && apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev libudev-dev
+    - apt-get -qq update && apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev-dev
 
 test:1.13:
     image: "scorpil/rust:1.13"
