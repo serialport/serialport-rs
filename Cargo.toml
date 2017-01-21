@@ -1,6 +1,6 @@
 [package]
 name = "serialport"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Bryant Mairs <bryant@mai.rs>"]
 categories = ["hardware-support"]
 keywords = ["serial", "hardware", "system", "RS232"]
