@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
+=== [0.2.3] - 2017-01-21
+==== Added
+* Specify AppVeyor build status badge for crates.io
+
 === [0.2.2] - 2017-01-21
 * No changes, purely a version increment to push new crate metadata to crates.io
 
