@@ -93,7 +93,7 @@ impl TTYPort {
 
         // Read back settings from port and confirm they were applied correctly
         // TODO: Switch this to an all-zeroed termios struct
-        let mut actual_termios = termios.clone();
+        let mut actual_termios = termios;
         if let Err(err) = tcgetattr(fd, &mut actual_termios) {
             return Err(super::error::from_io_error(err));
         }
