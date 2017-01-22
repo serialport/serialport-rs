@@ -27,7 +27,7 @@ fn main() {
         println!("Receiving data on {} at 9600 baud:", &port_name);
         loop {
             if let Ok(t) = port.read(serial_buf.as_mut_slice()) {
-                io::stdout().write(&serial_buf[..t]).unwrap();
+                io::stdout().write_all(&serial_buf[..t]).unwrap();
             }
         }
     } else {
