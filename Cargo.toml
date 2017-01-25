@@ -19,8 +19,8 @@ argparse = "0.2"
 libc = "0.2.1"
 
 [target."cfg(unix)".dependencies]
-ioctl-rs = { path = "../ioctl-rs" }
-termios = { path = "../termios-rs" }
+ioctl-rs = "0.1.5"
+termios = "0.2.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libudev = "0.2.0"
