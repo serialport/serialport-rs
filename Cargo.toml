@@ -18,75 +18,12 @@ argparse = "0.2"
 [dependencies]
 libc = "0.2.1"
 
-[target.aarch64-unknown-linux-gnu.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
+[target."cfg(unix)".dependencies]
+ioctl-rs = { path = "../ioctl-rs" }
+termios = { path = "../termios-rs" }
 
-[target.arm-unknown-linux-gnueabi.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.arm-unknown-linux-gnueabihf.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.armv7-unknown-linux-gnueabihf.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.i686-apple-darwin.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.i686-unknown-linux-gnu.dependencies]
-ioctl-rs = "0.1.5"
+[target.'cfg(target_os = "linux")'.dependencies]
 libudev = "0.2.0"
-termios = "0.2.2"
 
-[target.mips-unknown-linux-gnu.dependencies]
-ioctl-rs = "0.1.5"
-libudev = "0.2.0"
-termios = "0.2.2"
-
-[target.mipsel-unknown-linux-gnu.dependencies]
-ioctl-rs = "0.1.5"
-libudev = "0.2.0"
-termios = "0.2.2"
-
-[target.powerpc-unknown-linux-gnu.dependencies]
-ioctl-rs = "0.1.5"
-libudev = "0.2.0"
-termios = "0.2.2"
-
-[target.x86_64-apple-darwin.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.x86_64-unknown-dragonfly.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.x86_64-unknown-freebsd.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.x86_64-unknown-linux-gnu.dependencies]
-ioctl-rs = "0.1.5"
-libudev = "0.2.0"
-termios = "0.2.2"
-
-[target.x86_64-unknown-openbsd.dependencies]
-ioctl-rs = "0.1.5"
-termios = "0.2.2"
-
-[target.i686-pc-windows-msvc.dependencies]
-winreg = "0.3"
-
-[target.x86_64-pc-windows-msvc.dependencies]
-winreg = "0.3"
-
-[target.i686-pc-windows-gnu.dependencies]
-winreg = "0.3"
-
-[target.x86_64-pc-windows-gnu.dependencies]
+[target."cfg(windows)".dependencies]
 winreg = "0.3"
