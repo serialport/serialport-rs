@@ -572,6 +572,11 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     Ok(vec)
 }
 
+#[cfg(not(target_os = "linux"))]
+pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+    Err(Error::new(ErrorKind::Unknown, "Not implemented for this OS"))
+}
+
 pub fn available_baud_rates() -> Vec<u32> {
     let mut vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800];
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
