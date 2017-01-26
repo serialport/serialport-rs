@@ -1,6 +1,6 @@
 [package]
 name = "serialport"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Bryant Mairs <bryant@mai.rs>"]
 categories = ["hardware-support"]
 keywords = ["serial", "hardware", "system", "RS232"]
@@ -10,7 +10,7 @@ repository = "https://gitlab.com/susurrus/serialport-rs"
 description = "A cross-platform low-level serial port library"
 
 [badges]
-appveyor = { repository = "Susurrus/serialport-rs" }
+appveyor = { repository = "Susurrus/serialport-rs", service = "gitlab" }
 
 [dev-dependencies]
 argparse = "0.2"

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
+=== [0.2.4] - 2017-01-26
+==== Added
+* Report an Unimplemented error for unsupported unix targets
+
+==== Changed
+* Minor changes suggested by Clippy
+* Reworked Cargo.toml to more easily support additional targets
+
+==== Fixed
+* AppVeyor badge should now be properly displayed
+
 === [0.2.3] - 2017-01-21
 ==== Added
 * Specify AppVeyor build status badge for crates.io
