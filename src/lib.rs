@@ -14,7 +14,7 @@ use std::time::Duration;
 /// ```
 pub mod prelude {
     pub use ::{BaudRate, DataBits, FlowControl, Parity, StopBits};
-    pub use ::{SerialPort, SerialPortInfo};
+    pub use ::{SerialPort, SerialPortInfo, SerialPortSettings};
 }
 
 #[cfg(unix)]
@@ -277,12 +277,25 @@ pub enum FlowControl {
 /// A struct containing all serial port settings
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct SerialPortSettings {
-    baud_rate: BaudRate,
-    data_bits: DataBits,
-    flow_control: FlowControl,
-    parity: Parity,
-    stop_bits: StopBits,
-    timeout: Duration
+    pub baud_rate: BaudRate,
+    pub data_bits: DataBits,
+    pub flow_control: FlowControl,
+    pub parity: Parity,
+    pub stop_bits: StopBits,
+    pub timeout: Duration
+}
+
+impl Default for SerialPortSettings {
+    fn default() -> SerialPortSettings {
+        SerialPortSettings {
+            baud_rate: BaudRate::Baud9600,
+            data_bits: DataBits::Eight,
+            flow_control: FlowControl::None,
+            parity: Parity::None,
+            stop_bits: StopBits::One,
+            timeout: Duration::from_millis(1),
+        }
+    }
 }
 
 /// A trait for serial port devices
@@ -457,7 +470,10 @@ pub struct SerialPortInfo {
     pub port_name: String,
 }
 
-/// Opens the serial port indicated by the given device path
+/// Opens the serial port specified by the device path using default settings.
+///
+/// The default settings are OS-specific. If you don't care using this is fine,
+/// otherwise use open_with_settings.
 ///
 /// This is the canonical way to open a new serial port.
 ///
@@ -476,6 +492,33 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 
     #[cfg(not(any(unix, windows)))]
     Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
+}
+
+/// Opens the serial port specified by the device path with the given settings.
+///
+/// ```
+/// let s = SerialPortSettings {
+///     baud_rate: BaudRate::Baud9600,
+///     data_bits: DataBits::Eight,
+///     flow_control: FlowControl::None,
+///     parity: Parity::None,
+///     stop_bits: StopBits::One,
+///     timeout: Duration::from_millis(1),
+/// };
+/// serialport::open_with_settings("/dev/ttyUSB0", &s);
+/// ```
+pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T, settings: &SerialPortSettings) -> ::Result<Box<SerialPort>> {
+    // This is written with explicit returns because of:
+    // https://github.com/rust-lang/rust/issues/38337
+
+    #[cfg(unix)]
+    return posix::TTYPort::open_with_settings(Path::new(port), settings);
+
+    #[cfg(windows)]
+    return windows::COMPort::open_with_settings(Path::new(port), settings);
+
+    #[cfg(not(any(unix, windows)))]
+    Err(Error::new(ErrorKind::Unknown, "open_with_settings() not implemented for platform"))
 }
 
 /// Returns a list of all serial ports on system
