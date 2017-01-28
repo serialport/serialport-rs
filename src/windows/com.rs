@@ -295,7 +295,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn set_all(&mut self, settings: SerialPortSettings) -> ::Result<()> {
+    fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
         self.set_baud_rate(settings.baud_rate)?;
         self.set_data_bits(settings.data_bits)?;
         self.set_flow_control(settings.flow_control)?;
