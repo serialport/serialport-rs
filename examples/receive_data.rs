@@ -4,7 +4,6 @@ extern crate serialport;
 use std::io::{self, Write};
 
 use argparse::{ArgumentParser, Store};
-use serialport::prelude::*;
 
 fn main() {
     let mut port_name = "".to_string();
@@ -18,11 +17,6 @@ fn main() {
     }
 
     if let Ok(mut port) = serialport::open(&port_name) {
-        port.set_baud_rate(BaudRate::Baud9600).unwrap();
-        port.set_stop_bits(StopBits::One).unwrap();
-        port.set_parity(Parity::None).unwrap();
-        port.set_data_bits(DataBits::Eight).unwrap();
-        port.set_flow_control(FlowControl::None).unwrap();
         let mut serial_buf: Vec<u8> = vec![0; 1000];
         println!("Receiving data on {} at 9600 baud:", &port_name);
         loop {
