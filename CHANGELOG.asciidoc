@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
+=== [0.3.0] - 2017-01-28
+==== Added
+* `open_with_settings()` supports initializing the port to custom settings
+* Default impl on `SerialPortSettings`
+* `SerialPortSettings` is now publically usable being exported in the prelude,
+  having all public and commented fields.
+
+==== Changed
+* `TTYPort/COMPort::open()` now take a `SerialPortSettings` argument and return
+  concrete types
+* `serialport::open()` now initializes the port to reasonable defaults
+* Removed all instances of `try!()` for `?`
+* `SerialPort::set_all()` now borrows `SerialPortSettings`
+
 === [0.2.4] - 2017-01-26
 ==== Added
 * Report an Unimplemented error for unsupported unix targets

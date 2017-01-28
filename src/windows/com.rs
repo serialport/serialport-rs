@@ -377,8 +377,8 @@ impl SerialPort for COMPort {
 
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     let mut vec = Vec::new();
-    let system = try!(RegKey::predef(HKEY_LOCAL_MACHINE)
-        .open_subkey_with_flags("HARDWARE\\DEVICEMAP\\SERIALCOMM", KEY_READ));
+    let system = RegKey::predef(HKEY_LOCAL_MACHINE)
+        .open_subkey_with_flags("HARDWARE\\DEVICEMAP\\SERIALCOMM", KEY_READ)?;
     for reg_val in system.enum_values() {
         if let Ok((_, value)) = reg_val {
             if let Ok(val_str) = FromRegValue::from_reg_value(&value) {

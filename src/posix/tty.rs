@@ -180,7 +180,7 @@ impl AsRawFd for TTYPort {
 
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        try!(super::poll::wait_read_fd(self.fd, self.timeout));
+        super::poll::wait_read_fd(self.fd, self.timeout)?;
 
         let len = unsafe { libc::read(self.fd, buf.as_ptr() as *mut c_void, buf.len() as size_t) };
 
@@ -194,7 +194,7 @@ impl io::Read for TTYPort {
 
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        try!(super::poll::wait_write_fd(self.fd, self.timeout));
+        super::poll::wait_write_fd(self.fd, self.timeout)?;
 
         let len = unsafe { libc::write(self.fd, buf.as_ptr() as *mut c_void, buf.len() as size_t) };
 
@@ -553,9 +553,9 @@ impl SerialPort for TTYPort {
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     let mut vec = Vec::new();
     if let Ok(context) = libudev::Context::new() {
-        let mut enumerator = try!(libudev::Enumerator::new(&context));
-        try!(enumerator.match_subsystem("tty"));
-        let devices = try!(enumerator.scan_devices());
+        let mut enumerator = libudev::Enumerator::new(&context)?;
+        enumerator.match_subsystem("tty")?;
+        let devices = enumerator.scan_devices()?;
         for d in devices {
             if let Some(p) = d.parent() {
                 if let Some(devnode) = d.devnode() {
