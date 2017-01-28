@@ -5,7 +5,7 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
-/// A module that exports traits that are useful to have in scope.
+/// A module that exports types that are useful to have in scope.
 ///
 /// It is intended to be glob imported:
 ///
@@ -277,11 +277,17 @@ pub enum FlowControl {
 /// A struct containing all serial port settings
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct SerialPortSettings {
+    /// The baud rate in symbols-per-second
     pub baud_rate: BaudRate,
+    /// Number of bits used to represent a character sent on the line
     pub data_bits: DataBits,
+    /// The type of signalling to use for controlling data transfer
     pub flow_control: FlowControl,
+    /// The type of parity to use for error checking
     pub parity: Parity,
+    /// Number of bits to use to signal the end of a character
     pub stop_bits: StopBits,
+    /// Amount of time to wait to receive data before timing out
     pub timeout: Duration
 }
 
@@ -560,9 +566,10 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 
 /// Returns a list of available baud rates for this system.
 ///
-/// Officially supported baud rates vary by system. This functions returns a
-/// of strings indicating their values. This is most useful for UI applications
-/// that want to expose them to a user through text.
+/// Officially supported baud rates vary by system so this function may not
+/// return the same results across all platforms. Also note that this list may
+/// be incomplete and it's likely that the underlying platform and hardware can
+/// support more baud rates than returned by this function.
 pub fn available_baud_rates() -> Vec<u32> {
     #[cfg(unix)]
     return posix::available_baud_rates();
