@@ -7,10 +7,9 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [0.3.0] - 2017-01-28
 ==== Added
-* `open_with_settings()` supports initializing the port to custom settings
-* Default impl on `SerialPortSettings`
+* `open_with_settings()` to support initializing the port with custom settings
 * `SerialPortSettings` is now publically usable being exported in the prelude,
-  having all public and commented fields.
+  having all public and commented fields, and a `Default` impl.
 
 ==== Changed
 * `TTYPort/COMPort::open()` now take a `SerialPortSettings` argument and return
