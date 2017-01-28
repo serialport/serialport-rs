@@ -29,7 +29,10 @@ const O_NOCTTY: c_int = 0;
 
 /// A TTY-based serial port implementation.
 ///
-/// The port will be closed when the value is dropped.
+/// The port will be closed when the value is dropped. However, this struct
+/// should not be instantiated directly by using `TTYPort::open()`, instead use
+/// the cross-platform `serialport::open()` or
+/// `serialport::open_with_settings()`.
 #[derive(Debug)]
 pub struct TTYPort {
     fd: RawFd,
@@ -38,21 +41,18 @@ pub struct TTYPort {
 }
 
 impl TTYPort {
+
     /// Opens a TTY device as a serial port.
     ///
     /// `path` should be the path to a TTY device, e.g., `/dev/ttyS0`.
     ///
-    /// This struct should not be instantiated directly, instead use
-    /// `serialport::open()`.
-    ///
-    ///
     /// ## Errors
     ///
-    /// * `NoDevice` if the device could not be opened. This could indicate that the device is
-    ///   already in use.
+    /// * `NoDevice` if the device could not be opened. This could indicate that
+    ///    the device is already in use.
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
-    pub fn open(path: &Path) -> ::Result<Box<SerialPort>> {
+    pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
         use self::libc::{O_RDWR, O_NONBLOCK, F_SETFL, EINVAL};
         use self::termios::{CREAD, CLOCAL}; // cflags
         use self::termios::{ICANON, ECHO, ECHOE, ECHOK, ECHONL, ISIG, IEXTEN}; // lflags
@@ -105,7 +105,7 @@ impl TTYPort {
             return Err(super::error::from_io_error(err));
         }
 
-        let port = TTYPort {
+        let mut port = TTYPort {
             fd: fd,
             termios: termios,
             timeout: Duration::from_millis(100),
@@ -121,7 +121,9 @@ impl TTYPort {
             return Err(super::error::last_os_error());
         }
 
-        Ok(Box::new(port))
+        port.set_all(settings)?;
+
+        Ok(port)
     }
 
     fn write_settings(&self) -> ::Result<()> {
@@ -559,7 +561,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                 if let Some(devnode) = d.devnode() {
                     if let Some(path) = devnode.to_str() {
                         if let Some(driver) = p.driver() {
-                            if driver == "serial8250" && TTYPort::open(devnode).is_err() {
+                            if driver == "serial8250" && TTYPort::open(devnode, &Default::default()).is_err() {
                                 continue;
                             }
                         }

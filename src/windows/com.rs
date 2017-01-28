@@ -19,7 +19,10 @@ use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, Seri
 
 /// A serial port implementation for Windows COM ports.
 ///
-/// The port will be closed when the value is dropped.
+/// The port will be closed when the value is dropped. However, this struct
+/// should not be instantiated directly by using `COMPort::open()`, instead use
+/// the cross-platform `serialport::open()` or
+/// `serialport::open_with_settings()`.
 pub struct COMPort {
     handle: HANDLE,
     inner: DCB,
@@ -33,16 +36,13 @@ impl COMPort {
     ///
     /// `port` should be the name of a COM port, e.g., `COM1`.
     ///
-    /// This struct should not be instantiated directly, instead use
-    /// `serialport::open()`.
-    ///
     /// ## Errors
     ///
-    /// * `NoDevice` if the device could not be opened. This could indicate that the device is
-    ///   already in use.
+    /// * `NoDevice` if the device could not be opened. This could indicate that
+    ///    the device is already in use.
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other I/O error while opening or initializing the device.
-    pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
+    pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T,  settings: &SerialPortSettings) -> ::Result<COMPort>> {
         let mut name = Vec::<u16>::new();
 
         name.extend(OsStr::new("\\\\.\\").encode_wide());
@@ -77,8 +77,9 @@ impl COMPort {
                 timeout: timeout,
             };
 
-            try!(port.set_timeout(timeout));
-            Ok(Box::new(port))
+            port.set_all(settings)?;
+
+            Ok(port)
         } else {
             Err(super::error::last_os_error())
         }

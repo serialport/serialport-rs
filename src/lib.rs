@@ -472,8 +472,14 @@ pub struct SerialPortInfo {
 
 /// Opens the serial port specified by the device path using default settings.
 ///
-/// The default settings are OS-specific. If you don't care using this is fine,
-/// otherwise use open_with_settings.
+/// The default settings are:
+///
+/// * Baud: 9600
+/// * Data bits: 8
+/// * Flow control: None
+/// * Parity: None
+/// * Stop bits: 1
+/// * Timeout: 1ms
 ///
 /// This is the canonical way to open a new serial port.
 ///
@@ -485,10 +491,16 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
     // https://github.com/rust-lang/rust/issues/38337
 
     #[cfg(unix)]
-    return posix::TTYPort::open(Path::new(port));
+    return match posix::TTYPort::open(Path::new(port), &Default::default()) {
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e)
+    };
 
     #[cfg(windows)]
-    return windows::COMPort::open(Path::new(port));
+    return match windows::COMPort::open(Path::new(port), &Default::default()) {
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e)
+    };
 
     #[cfg(not(any(unix, windows)))]
     Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
@@ -497,6 +509,9 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 /// Opens the serial port specified by the device path with the given settings.
 ///
 /// ```
+/// use serialport::prelude::*;
+/// use std::time::Duration;
+///
 /// let s = SerialPortSettings {
 ///     baud_rate: BaudRate::Baud9600,
 ///     data_bits: DataBits::Eight,
@@ -512,13 +527,19 @@ pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T, settings: &SerialP
     // https://github.com/rust-lang/rust/issues/38337
 
     #[cfg(unix)]
-    return posix::TTYPort::open_with_settings(Path::new(port), settings);
+    return match posix::TTYPort::open(Path::new(port), settings) {
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e)
+    };
 
     #[cfg(windows)]
-    return windows::COMPort::open_with_settings(Path::new(port), settings);
+    return match windows::COMPort::open(Path::new(port), settings) {
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e)
+    };
 
     #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown, "open_with_settings() not implemented for platform"))
+    Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
 }
 
 /// Returns a list of all serial ports on system
