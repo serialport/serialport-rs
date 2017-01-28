@@ -1,3 +1,7 @@
+// Don't worry about needing to `unwrap()` or otherwise handle some results in
+// doc tests.
+#![doc(test(attr(allow(unused_must_use))))]
+
 use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt;
@@ -10,6 +14,7 @@ use std::time::Duration;
 /// It is intended to be glob imported:
 ///
 /// ```
+/// # #[allow(unused_imports)]
 /// use serialport::prelude::*;
 /// ```
 pub mod prelude {
