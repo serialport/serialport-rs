@@ -27,6 +27,7 @@ pub struct COMPort {
     handle: HANDLE,
     inner: DCB,
     timeout: Duration,
+    port_name: Option<String>,
 }
 
 unsafe impl Send for COMPort {}
@@ -75,6 +76,7 @@ impl COMPort {
                 handle: handle,
                 inner: dcb,
                 timeout: timeout,
+                port_name: Some(port.into()),
             };
 
             port.set_all(settings)?;
@@ -171,6 +173,11 @@ impl io::Write for COMPort {
 }
 
 impl SerialPort for COMPort {
+
+    fn port_name(&self) -> Option<String> {
+        self.port_name.clone()
+    }
+
     fn timeout(&self) -> Duration {
         self.timeout
     }

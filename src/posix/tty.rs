@@ -39,6 +39,7 @@ pub struct TTYPort {
     termios: termios::Termios,
     timeout: Duration,
     exclusive: bool,
+    port_name: Option<String>,
 }
 
 impl TTYPort {
@@ -114,6 +115,7 @@ impl TTYPort {
             termios: termios,
             timeout: Duration::from_millis(100),
             exclusive: true, // This is guaranteed by the following `ioctl::tiocexcl()` call
+            port_name: path.to_str().map(|s| s.to_string()),
         };
 
         // get exclusive access to device
@@ -248,6 +250,10 @@ impl io::Write for TTYPort {
 }
 
 impl SerialPort for TTYPort {
+
+    fn port_name(&self) -> Option<String> {
+        self.port_name.clone()
+    }
 
     /// Returns a struct with all port settings
     fn settings(&self) -> SerialPortSettings {

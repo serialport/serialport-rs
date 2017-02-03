@@ -316,6 +316,12 @@ impl Default for SerialPortSettings {
 pub trait SerialPort: io::Read + io::Write {
     // Port settings getters
 
+    /// Returns the name of this port if it exists.
+    ///
+    /// This name may not be the canonical device name and instead be shorthand.
+    /// Additionally it may not exist for virtual ports.
+    fn port_name(&self) -> Option<String>;
+
     /// Returns a struct with the current port settings
     fn settings(&self) -> SerialPortSettings;
 
