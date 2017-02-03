@@ -550,7 +550,7 @@ pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T, settings: &SerialP
     };
 
     #[cfg(windows)]
-    return match windows::COMPort::open(Path::new(port), settings) {
+    return match windows::COMPort::open(port, settings) {
         Ok(p) => Ok(Box::new(p)),
         Err(e) => Err(e)
     };
