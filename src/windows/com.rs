@@ -76,7 +76,7 @@ impl COMPort {
                 handle: handle,
                 inner: dcb,
                 timeout: timeout,
-                port_name: Some(port.into()),
+                port_name: port.as_ref().to_str().map(|s| s.to_string()),
             };
 
             port.set_all(settings)?;
