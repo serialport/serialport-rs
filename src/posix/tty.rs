@@ -38,6 +38,7 @@ pub struct TTYPort {
     fd: RawFd,
     termios: termios::Termios,
     timeout: Duration,
+    exclusive: bool,
 }
 
 impl TTYPort {
@@ -46,11 +47,14 @@ impl TTYPort {
     ///
     /// `path` should be the path to a TTY device, e.g., `/dev/ttyS0`.
     ///
+    /// Ports are opened in exclusive mode by default. If this is undesireable
+    /// behavior, use `TTYPort::set_exclusive(false)`.
+    ///
     /// ## Errors
     ///
     /// * `NoDevice` if the device could not be opened. This could indicate that
     ///    the device is already in use.
-    /// * `InvalidInput` if `port` is not a valid device name.
+    /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
         use self::libc::{O_RDWR, O_NONBLOCK, F_SETFL, EINVAL};
@@ -109,6 +113,7 @@ impl TTYPort {
             fd: fd,
             termios: termios,
             timeout: Duration::from_millis(100),
+            exclusive: true, // This is guaranteed by the following `ioctl::tiocexcl()` call
         };
 
         // get exclusive access to device
@@ -124,6 +129,38 @@ impl TTYPort {
         port.set_all(settings)?;
 
         Ok(port)
+    }
+
+    /// Returns the exclusivity of the port
+    ///
+    /// If a port is exclusive, then trying to open the same device path again
+    /// will fail.
+    pub fn exclusive(&self) -> bool {
+        self.exclusive
+    }
+
+    /// Sets the exclusivity of the port
+    ///
+    /// If a port is exclusive, then trying to open the same device path again
+    /// will fail.
+    ///
+    /// See the man pages for the tiocexcl and tiocnxcl ioctl's for more details.
+    ///
+    /// ## Errors
+    ///
+    /// * `Io` for any error while setting exclusivity for the port.
+    pub fn set_exclusive(&mut self, exclusive: bool) -> ::Result<()> {
+        let setting_result = match exclusive {
+            true => ioctl::tiocexcl(self.fd),
+            false => ioctl::tiocnxcl(self.fd),
+        };
+
+        if let Err(err) = setting_result {
+            Err(super::error::from_io_error(err))
+        } else {
+            self.exclusive = exclusive;
+            Ok(())
+        }
     }
 
     fn write_settings(&self) -> ::Result<()> {
