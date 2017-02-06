@@ -217,6 +217,41 @@ impl AsRawFd for TTYPort {
     }
 }
 
+impl IntoRawFd for TTYPort {
+    fn into_raw_fd(self) -> RawFd {
+        // Pull just the file descriptor out.  Let the
+        // rest of the member fields drop.
+        let TTYPort { fd, .. } = self;
+        fd
+    }
+}
+
+impl FromRawFd for TTYPort {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+
+        let termios = termios::Termios::from_fd(fd).expect("Unable to retrieve termios settings.");
+
+        // Try to set exclusive, as is the default setting.  Catch errors.. this method MUST
+        // return a TTYPort so we'll just indicate non-exclusive on an error here.
+        let exclusive = match ioctl::tiocexcl(fd) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+
+        // It is not trivial to get the file path corresponding to a file descriptor.
+        // We'll punt and set it None here.
+
+        TTYPort {
+            fd: fd,
+            termios: termios,
+            timeout: Duration::from_millis(100),
+            exclusive: exclusive,
+            port_name: None,
+
+        }
+    }
+}
+
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         super::poll::wait_read_fd(self.fd, self.timeout)?;
