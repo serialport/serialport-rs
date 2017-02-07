@@ -44,7 +44,6 @@ pub struct TTYPort {
 }
 
 impl TTYPort {
-
     /// Opens a TTY device as a serial port.
     ///
     /// `path` should be the path to a TTY device, e.g., `/dev/ttyS0`.
@@ -248,7 +247,6 @@ impl FromRawFd for TTYPort {
             timeout: Duration::from_millis(100),
             exclusive: exclusive,
             port_name: None,
-
         }
     }
 }
@@ -286,7 +284,6 @@ impl io::Write for TTYPort {
 }
 
 impl SerialPort for TTYPort {
-
     fn port_name(&self) -> Option<String> {
         self.port_name.clone()
     }

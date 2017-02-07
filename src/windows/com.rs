@@ -176,7 +176,6 @@ impl io::Write for COMPort {
 }
 
 impl SerialPort for COMPort {
-
     fn port_name(&self) -> Option<String> {
         self.port_name.clone()
     }
