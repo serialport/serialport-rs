@@ -13,7 +13,8 @@ use std::os::unix::prelude::*;
 
 use self::libc::{c_int, c_void, size_t};
 
-use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
+use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
+       StopBits};
 use ::{Error, ErrorKind};
 
 
