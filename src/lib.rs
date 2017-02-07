@@ -293,7 +293,7 @@ pub struct SerialPortSettings {
     /// Number of bits to use to signal the end of a character
     pub stop_bits: StopBits,
     /// Amount of time to wait to receive data before timing out
-    pub timeout: Duration
+    pub timeout: Duration,
 }
 
 impl Default for SerialPortSettings {

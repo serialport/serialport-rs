@@ -90,7 +90,7 @@ impl COMPort {
     fn write_settings(&mut self) -> ::Result<()> {
         match unsafe { SetCommState(self.handle, &self.inner) } {
             0 => Err(super::error::last_os_error()),
-            _ => Ok(())
+            _ => Ok(()),
         }
     }
 
@@ -190,7 +190,7 @@ impl SerialPort for COMPort {
             flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
-            timeout: self.timeout
+            timeout: self.timeout,
         }
     }
 

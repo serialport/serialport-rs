@@ -298,7 +298,7 @@ impl SerialPort for TTYPort {
             flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
-            timeout: self.timeout
+            timeout: self.timeout,
         }
     }
 
