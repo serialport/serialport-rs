@@ -510,13 +510,13 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
     #[cfg(unix)]
     return match posix::TTYPort::open(Path::new(port), &Default::default()) {
         Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     };
 
     #[cfg(windows)]
     return match windows::COMPort::open(Path::new(port), &Default::default()) {
         Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     };
 
     #[cfg(not(any(unix, windows)))]
@@ -546,13 +546,13 @@ pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T, settings: &SerialP
     #[cfg(unix)]
     return match posix::TTYPort::open(Path::new(port), settings) {
         Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     };
 
     #[cfg(windows)]
     return match windows::COMPort::open(port, settings) {
         Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     };
 
     #[cfg(not(any(unix, windows)))]
