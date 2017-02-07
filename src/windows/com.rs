@@ -44,7 +44,9 @@ impl COMPort {
     ///    the device is already in use.
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other I/O error while opening or initializing the device.
-    pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T,  settings: &SerialPortSettings) -> ::Result<COMPort> {
+    pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T,
+                                          settings: &SerialPortSettings)
+                                          -> ::Result<COMPort> {
         let mut name = Vec::<u16>::new();
 
         name.extend(OsStr::new("\\\\.\\").encode_wide());

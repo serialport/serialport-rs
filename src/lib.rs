@@ -539,7 +539,9 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 /// };
 /// serialport::open_with_settings("/dev/ttyUSB0", &s);
 /// ```
-pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T, settings: &SerialPortSettings) -> ::Result<Box<SerialPort>> {
+pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T,
+                                                    settings: &SerialPortSettings)
+                                                    -> ::Result<Box<SerialPort>> {
     // This is written with explicit returns because of:
     // https://github.com/rust-lang/rust/issues/38337
 

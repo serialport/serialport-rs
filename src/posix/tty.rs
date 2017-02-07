@@ -640,7 +640,8 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                 if let Some(devnode) = d.devnode() {
                     if let Some(path) = devnode.to_str() {
                         if let Some(driver) = p.driver() {
-                            if driver == "serial8250" && TTYPort::open(devnode, &Default::default()).is_err() {
+                            if driver == "serial8250" &&
+                               TTYPort::open(devnode, &Default::default()).is_err() {
                                 continue;
                             }
                         }
