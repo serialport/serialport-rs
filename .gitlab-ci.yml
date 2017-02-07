@@ -26,11 +26,6 @@ test:stable:
     - cargo install rustfmt || true
     - cargo fmt -- --write-mode=diff
 
-test:beta:
-    image: "scorpil/rust:beta"
-    script:
-    - cargo test --verbose
-
 test:nightly:
     image: "scorpil/rust:nightly"
     script:
