@@ -152,9 +152,10 @@ impl TTYPort {
     ///
     /// * `Io` for any error while setting exclusivity for the port.
     pub fn set_exclusive(&mut self, exclusive: bool) -> ::Result<()> {
-        let setting_result = match exclusive {
-            true => ioctl::tiocexcl(self.fd),
-            false => ioctl::tiocnxcl(self.fd),
+        let setting_result = if exclusive {
+            ioctl::tiocexcl(self.fd)
+        } else {
+            ioctl::tiocnxcl(self.fd)
         };
 
         if let Err(err) = setting_result {
