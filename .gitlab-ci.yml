@@ -30,3 +30,7 @@ test:nightly:
     image: "scorpil/rust:nightly"
     script:
     - cargo test --verbose
+    # Also run clippy checks on nightly
+    - export PATH=$PATH:~/.cargo/bin
+    - cargo install clippy
+    - cargo clippy
