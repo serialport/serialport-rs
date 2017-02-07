@@ -18,8 +18,8 @@ use std::time::Duration;
 /// use serialport::prelude::*;
 /// ```
 pub mod prelude {
-    pub use ::{BaudRate, DataBits, FlowControl, Parity, StopBits};
-    pub use ::{SerialPort, SerialPortInfo, SerialPortSettings};
+    pub use {BaudRate, DataBits, FlowControl, Parity, StopBits};
+    pub use {SerialPort, SerialPortInfo, SerialPortSettings};
 }
 
 #[cfg(unix)]

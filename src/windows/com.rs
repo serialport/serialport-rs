@@ -14,8 +14,8 @@ use self::winreg::enums::*;
 use self::libc::c_void;
 
 use super::ffi::*;
-use ::{BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
-       StopBits};
+use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
+     StopBits};
 
 
 /// A serial port implementation for Windows COM ports.
