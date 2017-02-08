@@ -28,6 +28,7 @@ test:stable:
 
 test:nightly:
     image: "scorpil/rust:nightly"
+    allow_failure: true
     script:
     - cargo test --verbose
     # Also run clippy checks on nightly
