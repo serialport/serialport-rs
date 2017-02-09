@@ -11,6 +11,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * `exclusive()` and `set_exclusive()` for `TTYPort`
 * `port_name()` for `SerialPort`
 * `impl FromRawFd` and `impl IntoRawFd` for `TTYPort`
+* `pair()` for `TTYPort`
 
 === [0.3.0] - 2017-01-28
 ==== Added
