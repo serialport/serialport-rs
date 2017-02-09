@@ -10,6 +10,7 @@ repository = "https://gitlab.com/susurrus/serialport-rs"
 description = "A cross-platform low-level serial port library"
 
 [badges]
+gitlab = { repository = "susurrus/serialport-rs" }
 appveyor = { repository = "Susurrus/serialport-rs", service = "gitlab" }
 
 [dev-dependencies]
