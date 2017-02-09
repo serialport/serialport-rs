@@ -24,6 +24,7 @@ use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, Serial
 /// should not be instantiated directly by using `COMPort::open()`, instead use
 /// the cross-platform `serialport::open()` or
 /// `serialport::open_with_settings()`.
+#[derive(Debug)]
 pub struct COMPort {
     handle: HANDLE,
     inner: DCB,
