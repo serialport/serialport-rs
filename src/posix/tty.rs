@@ -4,7 +4,7 @@ extern crate libudev;
 extern crate termios;
 extern crate ioctl_rs as ioctl;
 
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 use std::io;
 use std::path::Path;
 use std::time::Duration;
@@ -198,6 +198,66 @@ impl TTYPort {
             Ok(pins) => Ok(pins & pin != 0),
             Err(err) => Err(super::error::from_io_error(err)),
         }
+    }
+
+    /// Create a pair of pseudo serial terminals
+    ///
+    /// ## Returns
+    /// Two connected `TTYPort` objects: `(master, slave)`
+    ///
+    /// ## Errors
+    /// Attempting any IO or parameter settings on the slave tty after the master
+    /// tty is closed will return errors.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use serialport::posix::TTYPort;
+    ///
+    /// let (master, slave) = TTYPort::pair().unwrap();
+    /// ```
+    pub fn pair() -> ::Result<(Self, Self)> {
+
+        // Open the next free pty.
+        let next_pty_fd = unsafe { libc::posix_openpt(libc::O_RDWR) };
+        if next_pty_fd < 0 {
+            return Err(super::error::last_os_error());
+        }
+
+        // Grant access to the associated slave pty
+        if unsafe { libc::grantpt(next_pty_fd) } < 0 {
+            unsafe { libc::close(next_pty_fd) };
+            return Err(super::error::last_os_error());
+        }
+
+        // Unlock the slave pty
+        if unsafe { libc::unlockpt(next_pty_fd) } < 0 {
+            unsafe { libc::close(next_pty_fd) };
+            return Err(super::error::last_os_error());
+        }
+
+        // Get the path of the attached slave ptty
+        let ptty_name_ptr = unsafe { libc::ptsname(next_pty_fd) };
+        if ptty_name_ptr.is_null() {
+            unsafe { libc::close(next_pty_fd) };
+            return Err(super::error::last_os_error());
+        }
+
+        let ptty_name_cstr = unsafe { CStr::from_ptr(ptty_name_ptr) };
+        let ptty_name = match ptty_name_cstr.to_str() {
+            Ok(s) => s,
+            Err(_) => {
+                unsafe { libc::close(next_pty_fd) };
+                return Err(super::error::last_os_error());
+            }
+        };
+
+        // Make TTYPort structs for both master and slave pty's
+        let master_tty = unsafe { TTYPort::from_raw_fd(next_pty_fd) };
+        let settings = master_tty.settings();
+        let slave_tty = TTYPort::open(Path::new(ptty_name), &settings)?;
+
+        Ok((master_tty, slave_tty))
     }
 }
 
