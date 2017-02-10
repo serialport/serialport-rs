@@ -1,7 +1,9 @@
 //! Pseudo terminal example.
+
+extern crate serialport;
+
 #[cfg(unix)]
 fn main() {
-	extern crate serialport;
 
 	use std::io::{Write, Read};
 	use std::os::unix::prelude::*;

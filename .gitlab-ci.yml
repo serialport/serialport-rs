@@ -23,7 +23,7 @@ test:stable:
     - cargo test --verbose
     # Also run rustfmt checks on stable
     - export PATH=$PATH:~/.cargo/bin
-    - cargo install rustfmt || true
+    - cargo install rustfmt
     - cargo fmt -- --write-mode=diff
 
 test:nightly:
