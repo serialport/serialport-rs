@@ -1,18 +1,17 @@
 //! Pseudo terminal example.
-#![cfg(unix)]
-extern crate serialport;
-
-use std::io::{Write, Read};
-use std::os::unix::prelude::*;
-use std::time;
-use std::thread;
-use std::str;
-
-use serialport::SerialPort;
-use serialport::posix::TTYPort;
-
-
+#[cfg(unix)]
 fn main() {
+	extern crate serialport;
+
+	use std::io::{Write, Read};
+	use std::os::unix::prelude::*;
+	use std::time;
+	use std::thread;
+	use std::str;
+
+	use serialport::SerialPort;
+	use serialport::posix::TTYPort;
+
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create pseudo-terminal pair");
 
     // Master ptty has no associated path on the filesystem.
@@ -47,3 +46,6 @@ fn main() {
     }
 
 }
+
+#[cfg(not(unix))]
+fn main() {}
