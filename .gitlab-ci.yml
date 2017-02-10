@@ -38,6 +38,7 @@ test:stable_i686:
     - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
     - tar -xzf $RUST_ARCHIVE --strip-components=1
     - ./install.sh
+    - ls -hal
     - cargo test --verbose
 
 test:nightly:
