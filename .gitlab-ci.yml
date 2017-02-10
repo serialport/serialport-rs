@@ -38,7 +38,7 @@ test:stable_i686:
     - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
     - tar -xzf $RUST_ARCHIVE --strip-components=1
     - ./install.sh
-    - cargo build --verbose
+    - cargo test --verbose
 
 test:nightly:
     image: "scorpil/rust:nightly"
