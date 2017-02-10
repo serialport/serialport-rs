@@ -10,7 +10,8 @@ cache:
 
 before_script:
     - mkdir -pv $APT_CACHE_DIR
-    - apt-get -qq update && apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev-dev pkg-config
+    - apt-get -qq update
+    - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev-dev pkg-config
 
 test:1.13:
     image: "scorpil/rust:1.13"
@@ -29,12 +30,14 @@ test:stable:
 test:stable_i686:
     image: "debian:testing"
     script:
+    - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install curl
     - export RUST_ARCHIVE=`curl https://static.rust-lang.org/dist/channel-rust-stable | grep i686-unknown-linux-gnu`
     - export RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
     - curl -fsOSL $RUST_DOWNLOAD_URL
     - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
     - tar -xzf $RUST_ARCHIVE --strip-components=1
     - ./install.sh
+    - export PATH="~/.cargo/bin:$PATH"
     - cargo build --verbose
 
 test:nightly:
