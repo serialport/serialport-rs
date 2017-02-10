@@ -5,14 +5,14 @@ extern crate serialport;
 #[cfg(unix)]
 fn main() {
 
-	use std::io::{Write, Read};
-	use std::os::unix::prelude::*;
-	use std::time;
-	use std::thread;
-	use std::str;
+    use std::io::{Write, Read};
+    use std::os::unix::prelude::*;
+    use std::time;
+    use std::thread;
+    use std::str;
 
-	use serialport::SerialPort;
-	use serialport::posix::TTYPort;
+    use serialport::SerialPort;
+    use serialport::posix::TTYPort;
 
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create pseudo-terminal pair");
 
