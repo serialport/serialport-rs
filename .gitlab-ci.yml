@@ -12,6 +12,7 @@ before_script:
     - mkdir -pv $APT_CACHE_DIR
     - apt-get -qq update
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev-dev pkg-config
+    - export PATH="~/.cargo/bin:$PATH"
 
 test:1.13:
     image: "scorpil/rust:1.13"
@@ -37,7 +38,6 @@ test:stable_i686:
     - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
     - tar -xzf $RUST_ARCHIVE --strip-components=1
     - ./install.sh
-    - export PATH="~/.cargo/bin:$PATH"
     - cargo build --verbose
 
 test:nightly:
