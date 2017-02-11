@@ -30,7 +30,7 @@ test:stable:
 test:stable_i686:
     image: "debian:testing"
     script:
-    - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install curl
+    - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install curl file
     - curl -sSf https://static.rust-lang.org/rustup.sh | sh
     - cargo test --verbose
 
