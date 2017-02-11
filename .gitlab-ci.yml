@@ -24,7 +24,6 @@ test:stable:
     script:
     - cargo test --verbose
     # Also run rustfmt checks on stable
-    - export PATH=$PATH:~/.cargo/bin
     - cargo install rustfmt
     - cargo fmt -- --write-mode=diff
 
@@ -47,6 +46,5 @@ test:nightly:
     script:
     - cargo test --verbose
     # Also run clippy checks on nightly
-    - export PATH=$PATH:~/.cargo/bin
     - cargo install clippy
     - cargo clippy
