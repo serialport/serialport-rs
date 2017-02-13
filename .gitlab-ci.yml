@@ -25,6 +25,8 @@ test:stable:
     - cargo test --verbose
     # Also run rustfmt checks on stable
     - cargo install rustfmt
+    - export PATH="/root/.cargo/bin:$PATH"
+    - echo $PATH
     - cargo fmt -- --write-mode=diff
 
 test:nightly:
