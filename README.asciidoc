@@ -1,9 +1,14 @@
-== serialport-rs
+image:https://gitlab.com/susurrus/serialport-rs/badges/master/build.svg
+    [link="https://gitlab.com/susurrus/serialport-rs/pipelines"]
+image:https://ci.appveyor.com/api/projects/status/gitlab/Susurrus/serialport-rs?svg=true&branch=master
+    [link="https://ci.appveyor.com/project/Susurrus/serialport-rs"]
 
-image:https://ci.appveyor.com/api/projects/status/gv9v4b78ywa4bn2g/branch/master?svg=true[]
+image:https://img.shields.io/crates/v/serialport.svg
+    [link="https://crates.io/crates/serialport"]
+image:https://docs.rs/serialport/badge.svg
+    [link="https://docs.rs/crate/serialport"]
 
-image:https://img.shields.io/crates/v/serialport.svg[link="https://crates.io/crates/serialport"]
-image:https://docs.rs/serialport/badge.svg[link="https://docs.rs/crate/serialport"]
+== Overview
 
 serialport-rs is a general-purpose cross-platform serial port library for Rust. It provides a
 simple blocking I/O interface to low-level serial ports on POSIX and Windows systems. It reuses
@@ -11,11 +16,51 @@ code from the https://github.com/dcuddeback/serial-rs[serial-rs] library and aim
 very similar interface to that of the https://doc.qt.io/qt-5/qserialport.html[QSerialPort]
 library.
 
+== Feature Overview
 
-This library was primarily created because I was more familiar with the QSerialPort library and
-the slow rate of development of the serial-rs library previously mentioned, as I was developing
-my https://gitlab.com/susurrus/gattii[Gattii] serial terminal emulator program.
+The library has been organized such that there is a high-level `SerialPort` trait that provides
+a cross-platform API for accessing serial ports. This is the preferred method of interacting
+with ports and as such is part of the `prelude`. The `open*()` and `list_port()` functions in
+the root provide  cross-platform functionality.
 
+For platform-specific functionaly, this crate is split into a `posix` and `windows` API and their
+corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait). Using
+the platform-specific `open*()` functions will return the platform-specific port object which
+allows access to platform-specific functionality.
+
+== Rationale
+
+This library is effectively a fork of the https://github.com/dcuddeback/serial-rs[serial-rs]
+library and was created as that library was slow to include enumeration support. I had also
+previously used the QSerialPort library and preferred that API to the one provided by serial-rs.
+
+== Dependencies
+
+Rust versions 1.13 and higher are supported.
+
+== Platform Support
+
+Operating system support is as follows:
+
+Tier 1:
+
+  * Linux, i686 & x86_64
+
+Tier 2:
+
+  * Windows 7+, i686 & x86_64
+
+Tier 3:
+
+  * Mac OS X
+
+Tier 1 supports means this library is build and run tested and is regularly used so this should
+be pretty bug-free. Tier 2 means it's only build and run tested, but no developer uses this as
+their primary development environment. Tier 3 means that the code is there to support that
+platform, but there's no build or run testing and no developer has this as their primary
+development environment.
+
+== Acknowledgements
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from. As that library licensed as MIT, the portions of this
