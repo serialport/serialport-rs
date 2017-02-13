@@ -19,7 +19,7 @@ a cross-platform API for accessing serial ports. This is the preferred method of
 with ports and as such is part of the `prelude`. The `open*()` and `list_port()` functions in
 the root provide  cross-platform functionality.
 
-For platform-specific functionaly, this crate is split into a `posix` and `windows` API and their
+For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
 corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait). Using
 the platform-specific `open*()` functions will return the platform-specific port object which
 allows access to platform-specific functionality.
