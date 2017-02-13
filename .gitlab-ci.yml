@@ -12,7 +12,7 @@ before_script:
     - mkdir -pv $APT_CACHE_DIR
     - apt-get -qq update
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev-dev pkg-config
-    - export PATH="~/.cargo/bin:$PATH"
+    - export PATH="/root/.cargo/bin:$PATH"
 
 test:1.13:
     image: "scorpil/rust:1.13"
@@ -25,8 +25,6 @@ test:stable:
     - cargo test --verbose
     # Also run rustfmt checks on stable
     - cargo install rustfmt
-    - export PATH="/root/.cargo/bin:$PATH"
-    - echo $PATH
     - cargo fmt -- --write-mode=diff
 
 test:nightly:
