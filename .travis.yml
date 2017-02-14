@@ -1,0 +1,16 @@
+language: rust
+
+os: osx
+
+rust:
+  - 1.13.0
+  - nightly
+  - stable
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - rust: nightly
+
+script:
+  - cargo test --verbose
