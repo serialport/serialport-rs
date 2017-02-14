@@ -56,6 +56,16 @@ their primary development environment. Tier 3 means that the code is there to su
 platform, but there's no build or run testing and no developer has this as their primary
 development environment.
 
+== Licensing
+
+Licensed under the https://opensource.org/licenses/LGPL-3.0[GNU Lesser Public License, version 3.0 or newer (LGPLv3+)].
+
+== Contributing
+
+Please open an issue and merge request on Gitlab to contibute. Code contributions will submitted
+for including in the work by you, as defined in the LGPLv3 license or newer, shall be licensed
+as the above, without any additional terms or conditions.
+
 == Acknowledgements
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
