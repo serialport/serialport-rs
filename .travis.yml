@@ -14,4 +14,4 @@ matrix:
 
 script:
   - cargo build --verbose
-  - cargo test --verbose
+  - RUST_BACKTRACE=1 cargo test --verbose
