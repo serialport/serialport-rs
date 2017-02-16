@@ -1,9 +1,7 @@
-extern crate libc;
-
 use std::io;
 use std::ptr;
 
-use self::libc::{c_void, c_int};
+use libc::{c_void, c_int};
 
 const ERROR_FILE_NOT_FOUND: c_int = 2;
 const ERROR_PATH_NOT_FOUND: c_int = 3;

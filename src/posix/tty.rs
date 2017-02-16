@@ -1,17 +1,13 @@
-extern crate libc;
-#[cfg(target_os = "linux")]
-extern crate libudev;
-extern crate termios;
-extern crate ioctl_rs as ioctl;
-
 use std::ffi::{CString, CStr};
 use std::io;
+use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
 
-use std::os::unix::prelude::*;
-
-use self::libc::{c_int, c_void, size_t};
+use ioctl;
+use libc::{self, c_int, c_void, size_t};
+use libudev;
+use termios;
 
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
      StopBits};
@@ -58,7 +54,7 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
-        use self::libc::{O_RDWR, O_NONBLOCK, F_SETFL, EINVAL};
+        use libc::{O_RDWR, O_NONBLOCK, F_SETFL, EINVAL};
         use self::termios::{CREAD, CLOCAL}; // cflags
         use self::termios::{ICANON, ECHO, ECHOE, ECHOK, ECHONL, ISIG, IEXTEN}; // lflags
         use self::termios::OPOST; // oflags
@@ -508,7 +504,7 @@ impl SerialPort for TTYPort {
     }
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
-        use self::libc::EINVAL;
+        use libc::EINVAL;
         use self::termios::cfsetspeed;
         use self::termios::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400,
                             B4800, B9600, B19200, B38400};

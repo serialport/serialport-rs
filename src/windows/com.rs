@@ -1,6 +1,3 @@
-extern crate libc;
-extern crate winreg;
-
 use std::ffi::OsStr;
 use std::io;
 use std::mem;
@@ -8,10 +5,10 @@ use std::os::windows::prelude::*;
 use std::ptr;
 use std::time::Duration;
 
-use self::winreg::RegKey;
-use self::winreg::types::FromRegValue;
-use self::winreg::enums::*;
-use self::libc::c_void;
+use libc::c_void;
+use winreg::RegKey;
+use winreg::types::FromRegValue;
+use winreg::enums::*;
 
 use super::ffi::*;
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,

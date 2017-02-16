@@ -1,10 +1,8 @@
 #![allow(non_snake_case,non_camel_case_types,non_upper_case_globals,dead_code)]
 
-extern crate libc;
-
 use std::mem;
 
-use self::libc::{c_void, c_char, c_int, c_ulong, wchar_t};
+use libc::{c_void, c_char, c_int, c_ulong, wchar_t};
 
 pub type BYTE = u8;
 pub type WORD = u16;

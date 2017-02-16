@@ -2,6 +2,16 @@
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
+extern crate libc;
+#[cfg(target_os = "linux")]
+extern crate libudev;
+#[cfg(unix)]
+extern crate ioctl_rs as ioctl;
+#[cfg(unix)]
+extern crate termios;
+#[cfg(windows)]
+extern crate winreg;
+
 use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt;

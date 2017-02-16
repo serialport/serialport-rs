@@ -1,11 +1,10 @@
 #![allow(non_camel_case_types,dead_code)]
 
-extern crate libc;
-
 use std::io;
+use std::ptr;
 use std::time::Duration;
 
-use self::libc::{c_int, c_short};
+use libc::{self, c_int, c_long, c_short, c_void, time_t};
 
 #[cfg(target_os = "linux")]
 type nfds_t = libc::c_ulong;
@@ -38,7 +37,7 @@ pub fn wait_write_fd(fd: c_int, timeout: Duration) -> io::Result<()> {
 }
 
 fn wait_fd(fd: c_int, events: c_short, timeout: Duration) -> io::Result<()> {
-    use self::libc::{EINTR, EPIPE, EIO};
+    use libc::{EINTR, EPIPE, EIO};
 
     let mut fds = vec![PollFd {
                            fd: fd,
@@ -77,9 +76,6 @@ fn wait_fd(fd: c_int, events: c_short, timeout: Duration) -> io::Result<()> {
 #[cfg(target_os = "linux")]
 #[inline]
 fn do_poll(fds: &mut Vec<PollFd>, timeout: Duration) -> c_int {
-    use std::ptr;
-
-    use self::libc::c_void;
 
     #[repr(C)]
     struct sigset_t {
@@ -89,14 +85,14 @@ fn do_poll(fds: &mut Vec<PollFd>, timeout: Duration) -> c_int {
     extern "C" {
         fn ppoll(fds: *mut PollFd,
                  nfds: nfds_t,
-                 timeout_ts: *mut self::libc::timespec,
+                 timeout_ts: *mut libc::timespec,
                  sigmask: *const sigset_t)
                  -> c_int;
     }
 
-    let mut timeout_ts = self::libc::timespec {
-        tv_sec: timeout.as_secs() as libc::time_t,
-        tv_nsec: timeout.subsec_nanos() as libc::c_long,
+    let mut timeout_ts = libc::timespec {
+        tv_sec: timeout.as_secs() as time_t,
+        tv_nsec: timeout.subsec_nanos() as c_long,
     };
 
     unsafe {

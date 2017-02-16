@@ -1,21 +1,18 @@
-extern crate libc;
-#[cfg(target_os = "linux")]
-extern crate libudev;
-
 use std::error::Error;
 use std::ffi::CStr;
 use std::io;
 use std::str;
 
-use self::libc::{c_int, c_char, size_t};
+use libc::{c_int, c_char, size_t};
+use libudev;
 
 pub fn last_os_error() -> ::Error {
     from_raw_os_error(errno())
 }
 
 pub fn from_raw_os_error(errno: i32) -> ::Error {
-    use self::libc::{EBUSY, EISDIR, ELOOP, ENOTDIR, ENOENT, ENODEV, ENXIO, EACCES, EINVAL,
-                     ENAMETOOLONG, EINTR, EWOULDBLOCK};
+    use libc::{EBUSY, EISDIR, ELOOP, ENOTDIR, ENOENT, ENODEV, ENXIO, EACCES, EINVAL, ENAMETOOLONG,
+               EINTR, EWOULDBLOCK};
 
     let kind = match errno {
         EBUSY | EISDIR | ELOOP | ENOTDIR | ENOENT | ENODEV | ENXIO | EACCES => {
