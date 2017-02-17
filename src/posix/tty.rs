@@ -1,4 +1,4 @@
-use std::ffi::{CString, CStr};
+use std::ffi::{CString, CStr, OsStr};
 use std::io;
 use std::os::unix::prelude::*;
 use std::path::Path;
@@ -678,6 +678,51 @@ impl SerialPort for TTYPort {
     }
 }
 
+/// Retrieves the udev property value named by `key`. If the value exists, then it will be
+/// converted to a String, otherwise None will be returned.
+#[cfg(target_os = "linux")]
+fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
+    if let Some(s) = d.property_value(key).and_then(OsStr::to_str) {
+        Some(s.to_string())
+    } else {
+        None
+    }
+}
+
+/// Retrieves the udev property value named by `key`. This function assumes that the retrieved
+/// string is comprised of hex digits and the integer value of this will be returned as  a u16.
+/// If the property value doesn't exist or doesn't contain valid hex digits, then an error
+/// will be returned.
+#[cfg(target_os = "linux")]
+fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
+    if let Some(hex_str) = d.property_value(key).and_then(OsStr::to_str) {
+        if let Ok(num) = u16::from_str_radix(hex_str, 16) {
+            Ok(num)
+        } else {
+            Err(Error::new(ErrorKind::Unknown, "value not hex string"))
+        }
+    } else {
+        Err(Error::new(ErrorKind::Unknown, "key not found"))
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
+    match d.property_value("ID_BUS").and_then(OsStr::to_str) {
+        Some("usb") => {
+            Ok(::SerialPortType::UsbPort(::UsbPortInfo {
+                vid: udev_hex_property_as_u16(&d, "ID_VENDOR_ID")?,
+                pid: udev_hex_property_as_u16(&d, "ID_MODEL_ID")?,
+                serial_number: udev_property_as_string(&d, "ID_SERIAL_SHORT"),
+                manufacturer: udev_property_as_string(&d, "ID_VENDOR"),
+                product: udev_property_as_string(&d, "ID_MODEL"),
+            }))
+        }
+        Some("pci") => Ok(::SerialPortType::PciPort),
+        _ => Ok(::SerialPortType::Unknown),
+    }
+}
+
 #[cfg(target_os = "linux")]
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     let mut vec = Vec::new();
@@ -695,7 +740,12 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                                 continue;
                             }
                         }
-                        vec.push(SerialPortInfo { port_name: String::from(path) });
+                        if let Ok(pt) = port_type(&d) {
+                            vec.push(SerialPortInfo {
+                                port_name: String::from(path),
+                                port_type: pt,
+                            });
+                        }
                     }
                 }
             }

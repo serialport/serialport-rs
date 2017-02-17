@@ -389,7 +389,10 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     for reg_val in system.enum_values() {
         if let Ok((_, value)) = reg_val {
             if let Ok(val_str) = FromRegValue::from_reg_value(&value) {
-                vec.push(SerialPortInfo { port_name: val_str });
+                vec.push(SerialPortInfo {
+                    port_name: val_str,
+                    port_type: ::SerialPortType::Unknown,
+                });
             }
         }
     }
