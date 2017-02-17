@@ -494,11 +494,28 @@ pub trait SerialPort: io::Read + io::Write {
     fn read_carrier_detect(&mut self) -> ::Result<bool>;
 }
 
+#[derive(Debug,Clone,PartialEq,Eq)]
+pub struct UsbPortInfo {
+    pub vid: u16,
+    pub pid: u16,
+    pub serial_number: Option<String>,
+    pub manufacturer: Option<String>,
+    pub product: Option<String>,
+}
+
+#[derive(Debug,Clone,PartialEq,Eq)]
+pub enum SerialPortType {
+    UsbPort(UsbPortInfo),
+    PciPort,
+    Unknown,
+}
+
 /// A device-independent implementation of serial port information.
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
+    pub port_type: SerialPortType,
 }
 
 /// Opens the serial port specified by the device path using default settings.
