@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use ioctl;
 use libc::{self, c_int, c_void, size_t};
+#[cfg(target_os = "linux")]
 use libudev;
 use termios;
 

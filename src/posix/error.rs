@@ -4,6 +4,7 @@ use std::io;
 use std::str;
 
 use libc::{c_int, c_char, size_t};
+#[cfg(target_os = "linux")]
 use libudev;
 
 pub fn last_os_error() -> ::Error {
