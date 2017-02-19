@@ -56,11 +56,7 @@ impl TTYPort {
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
         use libc::{O_RDWR, O_NONBLOCK, F_SETFL, EINVAL};
         use termios::{CREAD, CLOCAL}; // cflags
-        use termios::{ICANON, ECHO, ECHOE, ECHOK, ECHONL, ISIG, IEXTEN}; // lflags
-        use termios::OPOST; // oflags
-        use termios::{INLCR, IGNCR, ICRNL, IGNBRK}; // iflags
-        use termios::{VMIN, VTIME}; // c_cc indexes
-        use termios::{tcgetattr, tcsetattr, tcflush};
+        use termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
         use termios::{TCSANOW, TCIOFLUSH};
 
         let cstr = match CString::new(path.as_os_str().as_bytes()) {
@@ -79,13 +75,12 @@ impl TTYPort {
         };
 
         // setup TTY for binary serial port access
+        // Enable reading from the port and ignore all modem control lines
         termios.c_cflag |= CREAD | CLOCAL;
-        termios.c_lflag &= !(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN);
-        termios.c_oflag &= !OPOST;
-        termios.c_iflag &= !(INLCR | IGNCR | ICRNL | IGNBRK);
-
-        termios.c_cc[VMIN] = 0;
-        termios.c_cc[VTIME] = 0;
+        // Enable raw mode with disables any implicit processing of the input or output data streams
+        // This also sets no timeout period and a read will block until at least one character is
+        // available.
+        cfmakeraw(&mut termios);
 
         // write settings to TTY
         if let Err(err) = tcsetattr(fd, TCSANOW, &termios) {
