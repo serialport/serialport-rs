@@ -4,7 +4,7 @@ use std::io;
 use std::ptr;
 use std::time::Duration;
 
-use libc::{self, c_int, c_long, c_short, c_void, time_t};
+use libc::{self, c_int, c_short};
 
 #[cfg(target_os = "linux")]
 type nfds_t = libc::c_ulong;
@@ -76,6 +76,8 @@ fn wait_fd(fd: c_int, events: c_short, timeout: Duration) -> io::Result<()> {
 #[cfg(target_os = "linux")]
 #[inline]
 fn do_poll(fds: &mut Vec<PollFd>, timeout: Duration) -> c_int {
+
+    use libc::{c_long, c_void, time_t};
 
     #[repr(C)]
     struct sigset_t {
