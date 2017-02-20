@@ -27,4 +27,4 @@ termios = "0.2.2"
 libudev = "0.2.0"
 
 [target."cfg(windows)".dependencies]
-winreg = "0.3"
+winreg = "0.4"
