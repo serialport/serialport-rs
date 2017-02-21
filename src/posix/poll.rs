@@ -1,7 +1,6 @@
 #![allow(non_camel_case_types,dead_code)]
 
 use std::io;
-use std::ptr;
 use std::time::Duration;
 
 use libc::{self, c_int, c_short};
@@ -78,6 +77,7 @@ fn wait_fd(fd: c_int, events: c_short, timeout: Duration) -> io::Result<()> {
 fn do_poll(fds: &mut Vec<PollFd>, timeout: Duration) -> c_int {
 
     use libc::{c_long, c_void, time_t};
+    use std::ptr;
 
     #[repr(C)]
     struct sigset_t {
