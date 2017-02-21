@@ -23,7 +23,10 @@ test:stable:
     image: "scorpil/rust:stable"
     script:
     - cargo test --verbose
-    # Also run rustfmt checks on stable
+
+test:rustfmt:
+    image: "scorpil/rust:stable"
+    script:
     - cargo install rustfmt
     - cargo fmt -- --write-mode=diff
 
@@ -32,6 +35,11 @@ test:nightly:
     allow_failure: true
     script:
     - cargo test --verbose
+
+test:nightly:
+    image: "scorpil/rust:nightly"
+    allow_failure: true
+    script:
     # Also run clippy checks on nightly
     - cargo install clippy
     - cargo clippy
