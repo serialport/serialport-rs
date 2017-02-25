@@ -1,14 +1,15 @@
 use std::ffi::OsStr;
 use std::io;
 use std::mem;
+use std::os::raw::c_void;
 use std::os::windows::prelude::*;
 use std::ptr;
 use std::time::Duration;
 
-use libc::c_void;
+use kernel32::*;
+use winapi::*;
 use winreg::RegKey;
 use winreg::types::FromRegValue;
-use winreg::enums::*;
 
 use super::ffi::*;
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
@@ -65,7 +66,7 @@ impl COMPort {
 
             let timeout = Duration::from_millis(100);
 
-            let mut dcb = DCB::new();
+            let mut dcb : DCB = unsafe { mem::uninitialized() };
 
             match unsafe { GetCommState(handle, &mut dcb) } {
                 0 => return Err(super::error::last_os_error()),
@@ -89,7 +90,9 @@ impl COMPort {
     }
 
     fn write_settings(&mut self) -> ::Result<()> {
-        match unsafe { SetCommState(self.handle, &self.inner) } {
+		// Remove mut from &mut self.inner once the follow is resolved:
+		// https://github.com/retep998/winapi-rs/issues/383
+        match unsafe { SetCommState(self.handle, &mut self.inner) } {
             0 => Err(super::error::last_os_error()),
             _ => Ok(()),
         }
@@ -197,7 +200,7 @@ impl SerialPort for COMPort {
     fn set_timeout(&mut self, timeout: Duration) -> ::Result<()> {
         let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
 
-        let timeouts = COMMTIMEOUTS {
+        let mut timeouts = COMMTIMEOUTS {
             ReadIntervalTimeout: 0,
             ReadTotalTimeoutMultiplier: 0,
             ReadTotalTimeoutConstant: milliseconds as DWORD,
@@ -205,7 +208,9 @@ impl SerialPort for COMPort {
             WriteTotalTimeoutConstant: 0,
         };
 
-        if unsafe { SetCommTimeouts(self.handle, &timeouts) } == 0 {
+		// Remove mut from &mut self.inner once the follow is resolved:
+		// https://github.com/retep998/winapi-rs/issues/383
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
             return Err(super::error::last_os_error());
         }
 
@@ -277,7 +282,8 @@ impl SerialPort for COMPort {
     }
 
     fn parity(&self) -> Option<Parity> {
-        match self.inner.Parity {
+        let parity : u32 = self.inner.Parity as u32;
+        match parity {
             ODDPARITY => Some(Parity::Odd),
             EVENPARITY => Some(Parity::Even),
             NOPARITY => Some(Parity::None),
@@ -286,7 +292,8 @@ impl SerialPort for COMPort {
     }
 
     fn stop_bits(&self) -> Option<StopBits> {
-        match self.inner.StopBits {
+        let stop_bits : u32 = self.inner.StopBits as u32;
+        match stop_bits {
             TWOSTOPBITS => Some(StopBits::Two),
             ONESTOPBIT => Some(StopBits::One),
             _ => None,
@@ -294,9 +301,9 @@ impl SerialPort for COMPort {
     }
 
     fn flow_control(&self) -> Option<FlowControl> {
-        if self.inner.fBits & (fOutxCtsFlow | fRtsControl) != 0 {
+        if self.inner.fOutxCtsFlow() != 0 || self.inner.fRtsControl() != 0 {
             Some(FlowControl::Hardware)
-        } else if self.inner.fBits & (fOutX | fInX) != 0 {
+        } else if self.inner.fOutX() != 0 || self.inner.fInX() != 0 {
             Some(FlowControl::Software)
         } else {
             Some(FlowControl::None)
@@ -345,9 +352,9 @@ impl SerialPort for COMPort {
 
     fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
         self.inner.Parity = match parity {
-            Parity::None => NOPARITY,
-            Parity::Odd => ODDPARITY,
-            Parity::Even => EVENPARITY,
+            Parity::None => NOPARITY as u8,
+            Parity::Odd => ODDPARITY as u8,
+            Parity::Even => EVENPARITY as u8,
         };
 
         self.write_settings()
@@ -355,8 +362,8 @@ impl SerialPort for COMPort {
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
         self.inner.StopBits = match stop_bits {
-            StopBits::One => ONESTOPBIT,
-            StopBits::Two => TWOSTOPBITS,
+            StopBits::One => ONESTOPBIT as u8,
+            StopBits::Two => TWOSTOPBITS as u8,
         };
 
         self.write_settings()
@@ -365,16 +372,22 @@ impl SerialPort for COMPort {
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
         match flow_control {
             FlowControl::None => {
-                self.inner.fBits &= !(fOutxCtsFlow | fRtsControl);
-                self.inner.fBits &= !(fOutX | fInX);
+                self.inner.set_fOutxCtsFlow(0);
+                self.inner.set_fRtsControl(0);
+                self.inner.set_fOutX(0);
+                self.inner.set_fInX(0);
             }
             FlowControl::Software => {
-                self.inner.fBits &= !(fOutxCtsFlow | fRtsControl);
-                self.inner.fBits |= fOutX | fInX;
+                self.inner.set_fOutxCtsFlow(0);
+                self.inner.set_fRtsControl(0);
+                self.inner.set_fOutX(1);
+                self.inner.set_fInX(1);
             }
             FlowControl::Hardware => {
-                self.inner.fBits |= fOutxCtsFlow | fRtsControl;
-                self.inner.fBits &= !(fOutX | fInX);
+                self.inner.set_fOutxCtsFlow(1);
+                self.inner.set_fRtsControl(1);
+                self.inner.set_fOutX(0);
+                self.inner.set_fInX(0);
             }
         }
 
