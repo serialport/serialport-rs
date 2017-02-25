@@ -1,4 +1,4 @@
-use winapi::{DWORD};
+use winapi::DWORD;
 
 // BaudRate values
 // To be removed by adding these constants to winapi, see:

@@ -66,7 +66,7 @@ impl COMPort {
 
             let timeout = Duration::from_millis(100);
 
-            let mut dcb : DCB = unsafe { mem::uninitialized() };
+            let mut dcb: DCB = unsafe { mem::uninitialized() };
 
             match unsafe { GetCommState(handle, &mut dcb) } {
                 0 => return Err(super::error::last_os_error()),
@@ -90,8 +90,8 @@ impl COMPort {
     }
 
     fn write_settings(&mut self) -> ::Result<()> {
-		// Remove mut from &mut self.inner once the follow is resolved:
-		// https://github.com/retep998/winapi-rs/issues/383
+        // Remove mut from &mut self.inner once the follow is resolved:
+        // https://github.com/retep998/winapi-rs/issues/383
         match unsafe { SetCommState(self.handle, &mut self.inner) } {
             0 => Err(super::error::last_os_error()),
             _ => Ok(()),
@@ -208,8 +208,8 @@ impl SerialPort for COMPort {
             WriteTotalTimeoutConstant: 0,
         };
 
-		// Remove mut from &mut self.inner once the follow is resolved:
-		// https://github.com/retep998/winapi-rs/issues/383
+        // Remove mut from &mut self.inner once the follow is resolved:
+        // https://github.com/retep998/winapi-rs/issues/383
         if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
             return Err(super::error::last_os_error());
         }
@@ -282,7 +282,7 @@ impl SerialPort for COMPort {
     }
 
     fn parity(&self) -> Option<Parity> {
-        let parity : u32 = self.inner.Parity as u32;
+        let parity: u32 = self.inner.Parity as u32;
         match parity {
             ODDPARITY => Some(Parity::Odd),
             EVENPARITY => Some(Parity::Even),
@@ -292,7 +292,7 @@ impl SerialPort for COMPort {
     }
 
     fn stop_bits(&self) -> Option<StopBits> {
-        let stop_bits : u32 = self.inner.StopBits as u32;
+        let stop_bits: u32 = self.inner.StopBits as u32;
         match stop_bits {
             TWOSTOPBITS => Some(StopBits::Two),
             ONESTOPBIT => Some(StopBits::One),
