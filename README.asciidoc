@@ -16,7 +16,7 @@ library.
 
 The library has been organized such that there is a high-level `SerialPort` trait that provides
 a cross-platform API for accessing serial ports. This is the preferred method of interacting
-with ports and as such is part of the `prelude`. The `open*()` and `list_port()` functions in
+with ports and as such is part of the `prelude`. The `open*()` and `available_ports()` functions in
 the root provide  cross-platform functionality.
 
 For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
