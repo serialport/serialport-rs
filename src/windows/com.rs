@@ -1,7 +1,6 @@
 use std::ffi::OsStr;
 use std::io;
 use std::mem;
-use std::os::raw::c_void;
 use std::os::windows::prelude::*;
 use std::ptr;
 use std::time::Duration;
