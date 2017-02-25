@@ -3,13 +3,12 @@ use std::ffi::CStr;
 use std::io;
 use std::str;
 
-use libc::{self, c_int, c_char, size_t};
+use libc::{c_int, c_char, size_t};
 #[cfg(target_os = "linux")]
 use libudev;
-use nix;
 
 pub fn last_os_error() -> ::Error {
-    from_raw_os_error(nix::errno::errno())
+    from_raw_os_error(errno())
 }
 
 pub fn from_raw_os_error(errno: i32) -> ::Error {
@@ -56,15 +55,71 @@ impl From<libudev::Error> for ::Error {
 }
 
 // the rest of this module is borrowed from libstd
+
 const TMPBUF_SZ: usize = 128;
 
+pub fn errno() -> i32 {
+    #[cfg(any(target_os = "macos",
+              target_os = "ios",
+              target_os = "freebsd"))]
+    unsafe fn errno_location() -> *const c_int {
+        extern "C" {
+            fn __error() -> *const c_int;
+        }
+        __error()
+    }
+
+    #[cfg(target_os = "bitrig")]
+    fn errno_location() -> *const c_int {
+        extern "C" {
+            fn __errno() -> *const c_int;
+        }
+        unsafe { __errno() }
+    }
+
+    #[cfg(target_os = "dragonfly")]
+    unsafe fn errno_location() -> *const c_int {
+        extern "C" {
+            fn __dfly_error() -> *const c_int;
+        }
+        __dfly_error()
+    }
+
+    #[cfg(target_os = "openbsd")]
+    unsafe fn errno_location() -> *const c_int {
+        extern "C" {
+            fn __errno() -> *const c_int;
+        }
+        __errno()
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    unsafe fn errno_location() -> *const c_int {
+        extern "C" {
+            fn __errno_location() -> *const c_int;
+        }
+        __errno_location()
+    }
+
+    unsafe { (*errno_location()) as i32 }
+}
+
 pub fn error_string(errno: i32) -> String {
+    #[cfg(target_os = "linux")]
+    extern "C" {
+        #[link_name = "__xpg_strerror_r"]
+        fn strerror_r(errnum: c_int, buf: *mut c_char, buflen: size_t) -> c_int;
+    }
+    #[cfg(not(target_os = "linux"))]
+    extern "C" {
+        fn strerror_r(errnum: c_int, buf: *mut c_char, buflen: size_t) -> c_int;
+    }
 
     let mut buf = [0 as c_char; TMPBUF_SZ];
 
     let p = buf.as_mut_ptr();
     unsafe {
-        if libc::strerror_r(errno as c_int, p, buf.len() as size_t) < 0 {
+        if strerror_r(errno as c_int, p, buf.len() as size_t) < 0 {
             panic!("strerror_r failure");
         }
 

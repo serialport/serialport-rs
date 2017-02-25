@@ -3,59 +3,120 @@
 use std::io;
 use std::time::Duration;
 
-use libc;
-use nix;
-use nix::poll::{EventFlags, POLLHUP, POLLIN, POLLNVAL, POLLOUT, PollFd};
-use nix::sys::signal::SigSet;
-use nix::sys::time::{TimeSpec, TimeValLike};
+use libc::{self, c_int, c_short};
 
-pub fn wait_read_fd(fd: libc::c_int, timeout: Duration) -> io::Result<()> {
+#[cfg(target_os = "linux")]
+type nfds_t = libc::c_ulong;
+
+#[cfg(not(target_os = "linux"))]
+type nfds_t = libc::c_uint;
+
+#[derive(Debug)]
+#[repr(C)]
+struct PollFd {
+    fd: c_int,
+    events: c_short,
+    revents: c_short,
+}
+
+const POLLIN: c_short = 0x0001;
+const POLLPRI: c_short = 0x0002;
+const POLLOUT: c_short = 0x0004;
+
+const POLLERR: c_short = 0x0008;
+const POLLHUP: c_short = 0x0010;
+const POLLNVAL: c_short = 0x0020;
+
+pub fn wait_read_fd(fd: c_int, timeout: Duration) -> io::Result<()> {
     wait_fd(fd, POLLIN, timeout)
 }
 
-pub fn wait_write_fd(fd: libc::c_int, timeout: Duration) -> io::Result<()> {
+pub fn wait_write_fd(fd: c_int, timeout: Duration) -> io::Result<()> {
     wait_fd(fd, POLLOUT, timeout)
 }
 
-fn wait_fd(fd: libc::c_int, events: EventFlags, timeout: Duration) -> io::Result<()> {
+fn wait_fd(fd: c_int, events: c_short, timeout: Duration) -> io::Result<()> {
     use libc::{EINTR, EPIPE, EIO};
 
-    let mut fds = vec![PollFd::new(fd, events, EventFlags::empty())];
+    let mut fds = vec![PollFd {
+                           fd: fd,
+                           events: events,
+                           revents: 0,
+                       }];
 
+    let wait = do_poll(&mut fds, timeout);
 
-    let milliseconds = timeout.as_secs() as i64 * 1000 + timeout.subsec_nanos() as i64 / 1_000_000;
-    let timespec = TimeSpec::milliseconds(milliseconds);
-    #[cfg(target_os = "linux")]
-    let wait = nix::poll::ppoll(fds.as_mut_slice(), timespec, SigSet::empty())?;
-    #[cfg(not(target_os = "linux"))]
-    let wait = nix::poll::poll(fds.as_mut_slice(), milliseconds)?;
+    if wait < 0 {
+        let errno = super::error::errno();
 
-    // Check for any errors that occurred during polling
-    match wait {
-        // If it's less than 0,
-        i if i < 0 => {
-            let errno = nix::errno::errno();
+        let kind = match errno {
+            EINTR => io::ErrorKind::Interrupted,
+            _ => io::ErrorKind::Other,
+        };
 
-            let kind = match errno {
-                EINTR => io::ErrorKind::Interrupted,
-                _ => io::ErrorKind::Other,
-            };
-            return Err(io::Error::new(kind, super::error::error_string(errno)));
-        }
-        0 => return Err(io::Error::new(io::ErrorKind::TimedOut, "Operation timed out")),
-        _ => (),
+        return Err(io::Error::new(kind, super::error::error_string(errno)));
     }
 
-    // Check the result of ppoll() by looking at the revents field
-    match fds[0].revents() {
-        Some(e) if e == events => return Ok(()),
-        // If there was a hangout or invalid request
-        Some(e) if e.contains(POLLHUP) || e.contains(POLLNVAL) => {
-            return Err(io::Error::new(io::ErrorKind::BrokenPipe,
-                                      super::error::error_string(EPIPE)));
-        }
-        Some(_) | None => (),
+    if wait == 0 {
+        return Err(io::Error::new(io::ErrorKind::TimedOut, "Operation timed out"));
+    }
+
+    if fds[0].revents & events != 0 {
+        return Ok(());
+    }
+
+    if fds[0].revents & (POLLHUP | POLLNVAL) != 0 {
+        return Err(io::Error::new(io::ErrorKind::BrokenPipe, super::error::error_string(EPIPE)));
     }
 
     Err(io::Error::new(io::ErrorKind::Other, super::error::error_string(EIO)))
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+fn do_poll(fds: &mut Vec<PollFd>, timeout: Duration) -> c_int {
+
+    use libc::{c_long, c_void, time_t};
+    use std::ptr;
+
+    #[repr(C)]
+    struct sigset_t {
+        __private: c_void,
+    }
+
+    extern "C" {
+        fn ppoll(fds: *mut PollFd,
+                 nfds: nfds_t,
+                 timeout_ts: *mut libc::timespec,
+                 sigmask: *const sigset_t)
+                 -> c_int;
+    }
+
+    let mut timeout_ts = libc::timespec {
+        tv_sec: timeout.as_secs() as time_t,
+        tv_nsec: timeout.subsec_nanos() as c_long,
+    };
+
+    unsafe {
+        ppoll((&mut fds[..]).as_mut_ptr(),
+              fds.len() as nfds_t,
+              &mut timeout_ts,
+              ptr::null())
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+#[inline]
+fn do_poll(fds: &mut Vec<PollFd>, timeout: Duration) -> c_int {
+    extern "C" {
+        fn poll(fds: *mut PollFd, nfds: nfds_t, timeout: c_int) -> c_int;
+    }
+
+    let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
+
+    unsafe {
+        poll((&mut fds[..]).as_mut_ptr(),
+             fds.len() as nfds_t,
+             milliseconds as c_int)
+    }
 }
