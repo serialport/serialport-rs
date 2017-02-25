@@ -713,11 +713,11 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             Ok(::SerialPortType::UsbPort(::UsbPortInfo {
-                vid: udev_hex_property_as_u16(&d, "ID_VENDOR_ID")?,
-                pid: udev_hex_property_as_u16(&d, "ID_MODEL_ID")?,
-                serial_number: udev_property_as_string(&d, "ID_SERIAL_SHORT"),
-                manufacturer: udev_property_as_string(&d, "ID_VENDOR"),
-                product: udev_property_as_string(&d, "ID_MODEL"),
+                vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
+                pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
+                serial_number: udev_property_as_string(d, "ID_SERIAL_SHORT"),
+                manufacturer: udev_property_as_string(d, "ID_VENDOR"),
+                product: udev_property_as_string(d, "ID_MODEL"),
             }))
         }
         Some("pci") => Ok(::SerialPortType::PciPort),
