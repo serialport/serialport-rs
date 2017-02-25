@@ -726,6 +726,9 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
 }
 
 #[cfg(target_os = "linux")]
+/// Scans the system for serial ports and returns a list of them.
+/// The `SerialPortInfo` struct contains the name of the port
+/// which can be used for opening it.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     let mut vec = Vec::new();
     if let Ok(context) = libudev::Context::new() {
@@ -757,10 +760,13 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 }
 
 #[cfg(not(target_os = "linux"))]
+/// Enumerating serial ports on non-Linux POSIX platforms is not yet supported
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     Err(Error::new(ErrorKind::Unknown, "Not implemented for this OS"))
 }
 
+/// Returns a list of baud rates officially supported by this platform. It's likely more are
+/// actually supported by the hardware however.
 pub fn available_baud_rates() -> Vec<u32> {
     let mut vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800];
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]

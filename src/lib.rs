@@ -1,3 +1,27 @@
+//! serialport-rs is a cross-platform serial port library.
+//!
+//! The goal of this library is to expose a cross-platform and platform-specific API for enumerating
+//! and using blocking I/O with serial ports. This library exposes a similar API to that provided
+//! by [Qt's QSerialPort library](https://doc.qt.io/qt-5/qserialport.html).
+//!
+//! # Feature Overview
+//!
+//! The library has been organized such that there is a high-level `SerialPort` trait that provides
+//! a cross-platform API for accessing serial ports. This is the preferred method of interacting
+//! with ports and as such is part of the `prelude`. The `open*()` and `available_ports()` functions
+//! in the root provide cross-platform functionality.
+//!
+//! For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
+//! corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait).
+//! Using the platform-specific `open*()` functions will return the platform-specific port object
+//! which allows access to platform-specific functionality.
+
+#![deny(missing_docs,
+        missing_debug_implementations,
+        missing_copy_implementations,
+        unused_import_braces,
+        unused_allocation,
+        unused_qualifications)]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
@@ -76,11 +100,14 @@ pub enum ErrorKind {
 /// An error type for serial port operations.
 #[derive(Debug)]
 pub struct Error {
+    /// The kind of error this is
     pub kind: ErrorKind,
+    /// A description of the error suitable for end-users
     pub description: String,
 }
 
 impl Error {
+    /// Instantiates a new error
     pub fn new<T: Into<String>>(kind: ErrorKind, description: T) -> Self {
         Error {
             kind: kind,
@@ -234,16 +261,16 @@ impl BaudRate {
 /// Number of bits per character.
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum DataBits {
-    // 5 bits per character
+    /// 5 bits per character
     Five,
 
-    // 6 bits per character
+    /// 6 bits per character
     Six,
 
-    // 7 bits per character
+    /// 7 bits per character
     Seven,
 
-    // 8 bits per character
+    /// 8 bits per character
     Eight,
 }
 
@@ -495,18 +522,28 @@ pub trait SerialPort: io::Read + io::Write {
 }
 
 #[derive(Debug,Clone,PartialEq,Eq)]
+/// Contains all possible USB information about a `SerialPort`
 pub struct UsbPortInfo {
+    /// Vender ID
     pub vid: u16,
+    /// Product ID
     pub pid: u16,
+    /// Serial number (arbitrary string)
     pub serial_number: Option<String>,
+    /// Manufacturer (arbitrary string)
     pub manufacturer: Option<String>,
+    /// Product name (arbitrary string)
     pub product: Option<String>,
 }
 
 #[derive(Debug,Clone,PartialEq,Eq)]
+/// The physical type of a `SerialPort`
 pub enum SerialPortType {
+    /// The serial port is connected via USB
     UsbPort(UsbPortInfo),
+    /// The serial port is connected via PCI (permanent port)
     PciPort,
+    /// It can't be determined how the serial port is connected
     Unknown,
 }
 
@@ -515,6 +552,7 @@ pub enum SerialPortType {
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
+    /// The hardware device type that exposes this port
     pub port_type: SerialPortType,
 }
 

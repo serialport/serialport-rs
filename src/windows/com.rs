@@ -394,6 +394,7 @@ impl SerialPort for COMPort {
     }
 }
 
+/// List available serial ports on the system.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     let mut vec = Vec::new();
     let system = RegKey::predef(HKEY_LOCAL_MACHINE)
@@ -411,6 +412,8 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     Ok(vec)
 }
 
+/// Return a list of offically-supported baud rates. It is likely that the hardware supports
+/// more baud rates than this (many support arbitrary baud rates).
 pub fn available_baud_rates() -> Vec<u32> {
     vec![110u32, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
 }
