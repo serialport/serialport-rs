@@ -10,6 +10,10 @@ extern crate ioctl_rs as ioctl;
 #[cfg(unix)]
 extern crate termios;
 #[cfg(windows)]
+extern crate kernel32;
+#[cfg(windows)]
+extern crate winapi;
+#[cfg(windows)]
 extern crate winreg;
 
 use std::error::Error as StdError;

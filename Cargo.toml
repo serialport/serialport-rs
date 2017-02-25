@@ -27,4 +27,6 @@ termios = "0.2.2"
 libudev = "0.2.0"
 
 [target."cfg(windows)".dependencies]
+kernel32-sys = "0.2"
+winapi = "0.2"
 winreg = "0.4"
