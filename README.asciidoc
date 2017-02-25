@@ -58,17 +58,15 @@ development environment.
 
 == Licensing
 
-Licensed under the https://opensource.org/licenses/LGPL-3.0[GNU Lesser Public License, version 3.0 or newer (LGPLv3+)].
+Licensed under the https://www.mozilla.org/en-US/MPL/2.0/[Mozilla Public License, version 2.0].
 
 == Contributing
 
-Please open an issue and merge request on Gitlab to contibute. Code contributions will submitted
-for including in the work by you, as defined in the LGPLv3 license or newer, shall be licensed
-as the above, without any additional terms or conditions.
+Please open an issue or merge request on GitLab to contibute. Code contributions submitted for
+inclusion in the work by you, as defined in the MPL2.0 license, shall be licensed as the above
+without any additional terms or conditions.
 
 == Acknowledgements
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
-which this library heavily borrows from. As that library licensed as MIT, the portions of this
-library that were copied from that one are licensed as MIT. All other code is licensed as LGPL
-version 3.0 or any later version. Therefore the license for this library as a whole is LGPLv3+.
+which this library heavily borrows from.

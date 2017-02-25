@@ -8,6 +8,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 === Unreleased
 ==== Changed
 * USB device information is now returned in calls to `available_ports()`
+* Software license has changed from LGPLv3+ to MPL-2.0. This make it
+  possible to use this library in any Rust project if it's unmodified.
 
 === [1.0.1] - 2017-02-20
 ==== Fixed
