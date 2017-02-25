@@ -8,38 +8,52 @@ cache:
     - cargo/
     - target/
 
+stages:
+  - build
+  - test
+
 before_script:
     - mkdir -pv $APT_CACHE_DIR
     - apt-get -qq update
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install libudev-dev pkg-config
     - export PATH="/root/.cargo/bin:$PATH"
 
-test:1.13:
+build:1.13:
     image: "scorpil/rust:1.13"
+    stage: build
     script:
-    - cargo test --verbose
+    - cargo build --verbose
+
+build:stable:
+    image: "scorpil/rust:stable"
+    stage: build
+    script:
+    - cargo build --verbose
+
+build:nightly:
+    image: "scorpil/rust:nightly"
+    stage: build
+    allow_failure: true
+    script:
+    - cargo build --verbose
 
 test:stable:
     image: "scorpil/rust:stable"
+    stage: test
     script:
     - cargo test --verbose
 
 test:rustfmt:
     image: "scorpil/rust:stable"
+    stage: test
     script:
     - cargo install rustfmt
     - cargo fmt -- --write-mode=diff
 
-test:nightly:
+test:clippy:
     image: "scorpil/rust:nightly"
+    stage: test
     allow_failure: true
     script:
-    - cargo test --verbose
-
-test:nightly:
-    image: "scorpil/rust:nightly"
-    allow_failure: true
-    script:
-    # Also run clippy checks on nightly
     - cargo install clippy
     - cargo clippy
