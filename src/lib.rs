@@ -2,7 +2,7 @@
 //!
 //! The goal of this library is to expose a cross-platform and platform-specific API for enumerating
 //! and using blocking I/O with serial ports. This library exposes a similar API to that provided
-//! by [Qt's QSerialPort library](https://doc.qt.io/qt-5/qserialport.html).
+//! by [Qt's `QSerialPort` library](https://doc.qt.io/qt-5/qserialport.html).
 //!
 //! # Feature Overview
 //!
