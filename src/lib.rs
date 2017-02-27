@@ -30,6 +30,8 @@ extern crate libc;
 #[cfg(target_os = "linux")]
 extern crate libudev;
 #[cfg(unix)]
+extern crate nix;
+#[cfg(unix)]
 extern crate ioctl_rs as ioctl;
 #[cfg(unix)]
 extern crate termios;
