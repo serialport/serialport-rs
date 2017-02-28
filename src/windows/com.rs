@@ -1,4 +1,4 @@
-use std::ffi::OsStr;
+use std::ffi::{CStr, CString, OsStr};
 use std::io;
 use std::mem;
 use std::os::windows::prelude::*;
@@ -6,14 +6,44 @@ use std::ptr;
 use std::time::Duration;
 
 use libc::c_void;
-use winreg::RegKey;
-use winreg::types::FromRegValue;
-use winreg::enums::*;
+
+use advapi32::RegCloseKey;
+use advapi32::RegQueryValueExA;
+
+use kernel32::GetLastError;
+
+use setupapi::SetupDiClassGuidsFromNameA;
+use setupapi::SetupDiDestroyDeviceInfoList;
+use setupapi::SetupDiEnumDeviceInfo;
+use setupapi::SetupDiGetClassDevsA;
+use setupapi::SetupDiGetDeviceInstanceIdA;
+use setupapi::SetupDiGetDeviceRegistryPropertyA;
+use setupapi::SetupDiOpenDevRegKey;
+
+use ::winapi;
+use winapi::{GUID, FALSE, DWORD, CHAR, PBYTE, HDEVINFO, PSP_DEVINFO_DATA};
+use winapi::DIGCF_PRESENT;
+use winapi::DICS_FLAG_GLOBAL;
+use winapi::DIREG_DEV;
+use winapi::ERROR_INSUFFICIENT_BUFFER;
+use winapi::KEY_READ;
+use winapi::MAX_PATH;
+use winapi::SP_DEVINFO_DATA;
+use winapi::SPDRP_HARDWAREID;
+use winapi::SPDRP_FRIENDLYNAME;
+use winapi::SPDRP_MFG;
 
 use super::ffi::*;
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
      StopBits};
+use {Error, ErrorKind};
 
+const GUID_NULL: GUID = GUID {
+    Data1: 0,
+    Data2: 0,
+    Data3: 0,
+    Data4: [0; 8],
+};
 
 /// A serial port implementation for Windows COM ports.
 ///
@@ -382,19 +412,184 @@ impl SerialPort for COMPort {
     }
 }
 
-pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    let mut vec = Vec::new();
-    let system = RegKey::predef(HKEY_LOCAL_MACHINE)
-        .open_subkey_with_flags("HARDWARE\\DEVICEMAP\\SERIALCOMM", KEY_READ)?;
-    for reg_val in system.enum_values() {
-        if let Ok((_, value)) = reg_val {
-            if let Ok(val_str) = FromRegValue::from_reg_value(&value) {
-                vec.push(SerialPortInfo {
-                    port_name: val_str,
-                    port_type: ::SerialPortType::Unknown,
-                });
+/// Parses a DeviceInstanceId string `s` looking for `prefix` followed by 4 hex digits. The
+/// strings that this function are passed will typically look something like the following:
+///     USB\VID_F055&PID_9802\385435603432
+/// If successful, then the value of the 4 hex digits is returned.
+fn extract_id(s: &str, prefix: &str) -> ::Result<u16> {
+    if let Some(x) = s.split(prefix).nth(1) {
+        if let Ok(num) = u16::from_str_radix(&x[0..4], 16) {
+            Ok(num)
+        } else {
+            Err(Error::new(ErrorKind::Unknown, "value not hex string"))
+        }
+    } else {
+        Err(Error::new(ErrorKind::Unknown, "prefix not found"))
+    }
+}
+
+/// Parses a DeviceInstanceId string 's', looking for a serial number. The strings that contain
+/// serial numbers are expected to be one of the following forms:
+///     USB\VID_F055&PID_9802\385435603432
+///     FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
+/// Returns the serial number, if found, or None.
+fn extract_serial(s: &str) -> Option<String> {
+    if let Some(x) = s.split("PID_").nth(1) {
+        if let Some(c) = x.chars().nth(4) {
+            if c == '\\' || c == '+' {
+                let remainder = String::from(&x[5..]);
+                let mut serial = String::new();
+                for ch in remainder.chars() {
+                    if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') {
+                        break;
+                    }
+                    serial.push(ch);
+                }
+                return Some(serial);
             }
         }
+    }
+    None
+}
+
+/// Helper function which calls SetupDiGetDeviceRegistryPropertyA and if successful converts
+/// the result into a String, otherwise None is returned.
+fn registry_property(hdi: HDEVINFO,
+                     devinfo_data: PSP_DEVINFO_DATA,
+                     property: DWORD)
+                     -> Option<String> {
+    let mut result_buf: [CHAR; MAX_PATH] = [0; MAX_PATH];
+    if unsafe {
+        SetupDiGetDeviceRegistryPropertyA(hdi,
+                                          devinfo_data,
+                                          property,
+                                          ptr::null_mut(),
+                                          result_buf.as_mut_ptr() as PBYTE,
+                                          (result_buf.len() - 1) as DWORD,
+                                          ptr::null_mut())
+    } == FALSE {
+        if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
+            return None;
+        }
+    }
+    let end_of_buffer = result_buf.len() - 1;
+    result_buf[end_of_buffer] = 0;
+    Some(unsafe { CStr::from_ptr(result_buf.as_ptr()).to_string_lossy().into_owned() })
+}
+
+/// Helper function which calls SetupDiGetDeviceInstanceIdA and if successful converts
+/// the result into a String, otherwise None is returned.
+fn device_instance_id(hdi: HDEVINFO, devinfo_data: PSP_DEVINFO_DATA) -> Option<String> {
+    let mut result_buf: [CHAR; MAX_PATH] = [0; MAX_PATH];
+    if unsafe {
+        SetupDiGetDeviceInstanceIdA(hdi,
+                                    devinfo_data,
+                                    result_buf.as_mut_ptr(),
+                                    (result_buf.len() - 1) as DWORD,
+                                    ptr::null_mut())
+    } == FALSE {
+        None
+    } else {
+        let end_of_buffer = result_buf.len() - 1;
+        result_buf[end_of_buffer] = 0;
+        Some(unsafe { CStr::from_ptr(result_buf.as_ptr()).to_string_lossy().into_owned() })
+    }
+}
+
+pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+    let mut vec = Vec::new();
+
+    // 8 is kind of arbitray and comes from the pyserial code. I've never seen
+    // SetupDiClassGuidsFromName return more than one GUID.
+    let mut guids: [winapi::GUID; 8] = [GUID_NULL; 8];
+
+    let mut num_guids: winapi::DWORD = 0;
+    if unsafe {
+        SetupDiClassGuidsFromNameA(CString::new("Ports").unwrap().as_ptr(),
+                                   guids.as_mut_ptr(),
+                                   guids.len() as u32,
+                                   &mut num_guids)
+    } == FALSE {
+        return Err(Error::new(ErrorKind::Unknown, "Unable to lookup Ports GUID"));
+    }
+
+    for guid_idx in 0..num_guids as usize {
+        let hdi = unsafe {
+            SetupDiGetClassDevsA(&guids[guid_idx],
+                                 ptr::null(),
+                                 ptr::null_mut(),
+                                 DIGCF_PRESENT)
+        };
+        let mut devinfo_data: SP_DEVINFO_DATA = SP_DEVINFO_DATA {
+            cbSize: 0,
+            ClassGuid: GUID_NULL,
+            DevInst: 0,
+            Reserved: 0,
+        };
+        devinfo_data.cbSize = mem::size_of_val(&devinfo_data) as DWORD;
+        let mut info_idx: DWORD = 0;
+        while unsafe { SetupDiEnumDeviceInfo(hdi, info_idx, &mut devinfo_data) } != FALSE {
+            info_idx += 1;
+
+            // Get the real COM port name
+            let hkey = unsafe {
+                SetupDiOpenDevRegKey(hdi,
+                                     &mut devinfo_data,
+                                     DICS_FLAG_GLOBAL,
+                                     0,
+                                     DIREG_DEV,
+                                     KEY_READ)
+            };
+            let mut port_name_buffer: [u8; MAX_PATH] = [0; MAX_PATH];
+            let mut port_name_len: DWORD = port_name_buffer.len() as DWORD;
+            unsafe {
+                RegQueryValueExA(hkey,
+                                 CString::new("PortName").unwrap().as_ptr(),
+                                 ptr::null_mut(),
+                                 ptr::null_mut(),
+                                 port_name_buffer.as_mut_ptr(),
+                                 &mut port_name_len)
+            };
+            unsafe { RegCloseKey(hkey) };
+            let port_name: String =
+                String::from_utf8_lossy(&port_name_buffer[0..port_name_len as usize]).into_owned();
+
+            // This technique also returns parallel ports, so we filter these out.
+            if port_name.starts_with("LPT") {
+                continue;
+            }
+
+            // Try to get info that includes the serial number
+            if let Some(hardware_id) = device_instance_id(hdi, &mut devinfo_data)
+                .or(registry_property(hdi, &mut devinfo_data, SPDRP_HARDWAREID)) {
+
+                if let Ok(vid) = extract_id(&hardware_id, "VID_") {
+                    if let Ok(pid) = extract_id(&hardware_id, "PID_") {
+                        vec.push(SerialPortInfo {
+                            port_name: port_name,
+                            port_type: ::SerialPortType::UsbPort(::UsbPortInfo {
+                                vid: vid,
+                                pid: pid,
+                                serial_number: extract_serial(&hardware_id),
+                                manufacturer: registry_property(hdi, &mut devinfo_data, SPDRP_MFG),
+                                product: registry_property(hdi,
+                                                           &mut devinfo_data,
+                                                           SPDRP_FRIENDLYNAME),
+                            }),
+                        });
+                        continue;
+                    }
+                }
+            }
+
+            // It doesn't look like a USB port, so we'll just call it Unknown since
+            // we don't have any additional information to use.
+            vec.push(::SerialPortInfo {
+                port_name: port_name,
+                port_type: ::SerialPortType::Unknown,
+            });
+        }
+        unsafe { SetupDiDestroyDeviceInfoList(hdi) };
     }
     Ok(vec)
 }

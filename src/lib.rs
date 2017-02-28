@@ -9,8 +9,15 @@ extern crate libudev;
 extern crate ioctl_rs as ioctl;
 #[cfg(unix)]
 extern crate termios;
+
 #[cfg(windows)]
-extern crate winreg;
+extern crate winapi;
+#[cfg(windows)]
+extern crate advapi32;
+#[cfg(windows)]
+extern crate kernel32;
+#[cfg(windows)]
+extern crate setupapi;
 
 use std::error::Error as StdError;
 use std::ffi::OsStr;

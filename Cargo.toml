@@ -27,4 +27,8 @@ termios = "0.2.2"
 libudev = "0.2.0"
 
 [target."cfg(windows)".dependencies]
-winreg = "0.4"
+advapi32-sys = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
+kernel32-sys = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
+setupapi-sys = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
+winapi = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
+#winreg = "0.4"
