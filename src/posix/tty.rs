@@ -764,10 +764,10 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 /// Scans the system for serial ports and returns a list of them.
 /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-	use IOKit_sys::*;
-	use cf::*;
-	use mach::port::{mach_port_t, MACH_PORT_NULL};
-	use mach::kern_return::KERN_SUCCESS;
+    use IOKit_sys::*;
+    use cf::*;
+    use mach::port::{mach_port_t, MACH_PORT_NULL};
+    use mach::kern_return::KERN_SUCCESS;
 
     let mut vec = Vec::new();
     unsafe {
@@ -779,14 +779,16 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         }
 
         // build key
-        let key = CFStringCreateWithCString(kCFAllocatorDefault, kIOSerialBSDTypeKey(),
+        let key = CFStringCreateWithCString(kCFAllocatorDefault,
+                                            kIOSerialBSDTypeKey(),
                                             kCFStringEncodingUTF8);
         if key.is_null() {
             panic!("failed to allocate key string");
         }
 
         // build value
-        let val = CFStringCreateWithCString(kCFAllocatorDefault, kIOSerialBSDRS232Type(),
+        let val = CFStringCreateWithCString(kCFAllocatorDefault,
+                                            kIOSerialBSDRS232Type(),
                                             kCFStringEncodingUTF8);
         if val.is_null() {
             panic!("failed to allocate value string");
@@ -802,7 +804,8 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 
         let mut matching_services: io_iterator_t = mem::uninitialized();
 
-        kern_result = IOServiceGetMatchingServices(kIOMasterPortDefault, classes_to_match,
+        kern_result = IOServiceGetMatchingServices(kIOMasterPortDefault,
+                                                   classes_to_match,
                                                    &mut matching_services);
         if kern_result != KERN_SUCCESS {
             panic!("ERROR: {}", kern_result);
@@ -817,26 +820,31 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 
             let mut props = mem::uninitialized();
 
-            let result = IORegistryEntryCreateCFProperties(modem_service, &mut props,
-                                                           kCFAllocatorDefault, 0);
+            let result = IORegistryEntryCreateCFProperties(modem_service,
+                                                           &mut props,
+                                                           kCFAllocatorDefault,
+                                                           0);
             if result == KERN_SUCCESS {
                 let key = CString::new("IODialinDevice").unwrap();
-                let key_cfstring = CFStringCreateWithCString(kCFAllocatorDefault, key.as_ptr(),
+                let key_cfstring = CFStringCreateWithCString(kCFAllocatorDefault,
+                                                             key.as_ptr(),
                                                              kCFStringEncodingUTF8);
                 let value = CFDictionaryGetValue(props, key_cfstring as *const c_void);
 
-				let type_id = CFGetTypeID(value);
-				if type_id == CFStringGetTypeID() {
-					let mut buf = Vec::<libc::c_char>::with_capacity(256);
+                let type_id = CFGetTypeID(value);
+                if type_id == CFStringGetTypeID() {
+                    let mut buf = Vec::<libc::c_char>::with_capacity(256);
 
-					CFStringGetCString(value as CFStringRef, buf.as_mut_ptr(), 256,
-					                   kCFStringEncodingUTF8);
-					let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
-					vec.push(SerialPortInfo {
-						port_name: path.to_string(),
-						port_type: ::SerialPortType::Unknown,
-					});
-				}
+                    CFStringGetCString(value as CFStringRef,
+                                       buf.as_mut_ptr(),
+                                       256,
+                                       kCFStringEncodingUTF8);
+                    let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
+                    vec.push(SerialPortInfo {
+                        port_name: path.to_string(),
+                        port_type: ::SerialPortType::Unknown,
+                    });
+                }
             }
 
             IOObjectRelease(modem_service);
@@ -855,17 +863,21 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 /// actually supported by the hardware however.
 pub fn available_baud_rates() -> Vec<u32> {
     let mut vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800];
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
     vec.push(7200);
     vec.push(9600);
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
     vec.push(14400);
     vec.push(19200);
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
     vec.push(28800);
     vec.push(38400);
     vec.push(57600);
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
     vec.push(76800);
     vec.push(115200);
     vec.push(230400);
