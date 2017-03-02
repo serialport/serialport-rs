@@ -769,43 +769,43 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 /// actually supported by the hardware however.
 pub fn available_baud_rates() -> Vec<u32> {
     let mut vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800];
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
     vec.push(7200);
     vec.push(9600);
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
     vec.push(14400);
     vec.push(19200);
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
     vec.push(28800);
     vec.push(38400);
     vec.push(57600);
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
     vec.push(76800);
     vec.push(115200);
     vec.push(230400);
-    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
     vec.push(460800);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(500000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(576000);
-    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
     vec.push(921600);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(1000000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(1152000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(1500000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(2000000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(2500000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(3000000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(3500000);
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(4000000);
     vec
 }
