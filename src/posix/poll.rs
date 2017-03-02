@@ -6,7 +6,9 @@ use std::time::Duration;
 use libc;
 use nix;
 use nix::poll::{EventFlags, POLLHUP, POLLIN, POLLNVAL, POLLOUT, PollFd};
+#[cfg(target_os = "linux")]
 use nix::sys::signal::SigSet;
+#[cfg(target_os = "linux")]
 use nix::sys::time::{TimeSpec, TimeValLike};
 
 pub fn wait_read_fd(fd: libc::c_int, timeout: Duration) -> io::Result<()> {
@@ -24,11 +26,12 @@ fn wait_fd(fd: libc::c_int, events: EventFlags, timeout: Duration) -> io::Result
 
 
     let milliseconds = timeout.as_secs() as i64 * 1000 + timeout.subsec_nanos() as i64 / 1_000_000;
+    #[cfg(target_os = "linux")]
     let timespec = TimeSpec::milliseconds(milliseconds);
     #[cfg(target_os = "linux")]
     let wait = nix::poll::ppoll(fds.as_mut_slice(), timespec, SigSet::empty())?;
     #[cfg(not(target_os = "linux"))]
-    let wait = nix::poll::poll(fds.as_mut_slice(), milliseconds)?;
+    let wait = nix::poll::poll(fds.as_mut_slice(), milliseconds as libc::c_int)?;
 
     // Check for any errors that occurred during polling
     match wait {
