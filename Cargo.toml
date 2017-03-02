@@ -31,3 +31,8 @@ libudev = "0.2.0"
 kernel32-sys = "0.2"
 winapi = "0.2"
 winreg = "0.4"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+IOKit-sys = "0.1"
+mach = "0.0.5"
+CoreFoundation-sys = "0.1.3"

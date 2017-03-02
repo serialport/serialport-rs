@@ -33,6 +33,12 @@ extern crate libudev;
 extern crate nix;
 #[cfg(unix)]
 extern crate ioctl_rs as ioctl;
+#[cfg(target_os = "macos")]
+extern crate IOKit_sys;
+#[cfg(target_os = "macos")]
+extern crate CoreFoundation_sys as cf;
+#[cfg(target_os = "macos")]
+extern crate mach;
 #[cfg(unix)]
 extern crate termios;
 #[cfg(windows)]
