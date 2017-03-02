@@ -771,60 +771,63 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 
     let mut vec = Vec::new();
     unsafe {
-        let mut master_port: mach_port_t = MACH_PORT_NULL;
 
+        // Create a dictionary for specifying the search terms against the IOService
         let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue());
         if classes_to_match.is_null() {
-            panic!("IOServiceMatching returned a NULL dictionary.");
+            return Err(Error::new(ErrorKind::Unknown,
+                                  "IOServiceMatching returned a NULL dictionary."));
         }
 
-        // build key
+        // Populate the search dictionary with a single key/value pair indicating that we're
+        // searching for serial devices matching the RS232 device type.
         let key = CFStringCreateWithCString(kCFAllocatorDefault,
                                             kIOSerialBSDTypeKey(),
                                             kCFStringEncodingUTF8);
         if key.is_null() {
-            panic!("failed to allocate key string");
+            return Err(Error::new(ErrorKind::Unknown, "Failed to allocate key string."));
         }
-
-        // build value
-        let val = CFStringCreateWithCString(kCFAllocatorDefault,
-                                            kIOSerialBSDRS232Type(),
-                                            kCFStringEncodingUTF8);
-        if val.is_null() {
-            panic!("failed to allocate value string");
+        let value = CFStringCreateWithCString(kCFAllocatorDefault,
+                                              kIOSerialBSDRS232Type(),
+                                              kCFStringEncodingUTF8);
+        if value.is_null() {
+            return Err(Error::new(ErrorKind::Unknown, "Failed to allocate value string."));
         }
+        CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
 
-        // set value in dictionary
-        CFDictionarySetValue(classes_to_match, key as CFTypeRef, val as CFTypeRef);
-
+        // Get an interface to IOKit
+        let mut master_port: mach_port_t = MACH_PORT_NULL;
         let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
         if kern_result != KERN_SUCCESS {
-            panic!("ERROR: {}", kern_result);
+            return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", kern_result)));
         }
 
+        // Run the search.
         let mut matching_services: io_iterator_t = mem::uninitialized();
-
         kern_result = IOServiceGetMatchingServices(kIOMasterPortDefault,
                                                    classes_to_match,
                                                    &mut matching_services);
         if kern_result != KERN_SUCCESS {
-            panic!("ERROR: {}", kern_result);
+            return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", kern_result)));
         }
 
         loop {
+            // Grab the next result.
             let modem_service = IOIteratorNext(matching_services);
 
+            // Break out if we've reached the end of the iterator
             if modem_service == MACH_PORT_NULL {
                 break;
             }
 
+            // Fetch all properties of the current search result item.
             let mut props = mem::uninitialized();
-
             let result = IORegistryEntryCreateCFProperties(modem_service,
                                                            &mut props,
                                                            kCFAllocatorDefault,
                                                            0);
             if result == KERN_SUCCESS {
+                // We only care about the IODialinDevice, which is the device path for this port.
                 let key = CString::new("IODialinDevice").unwrap();
                 let key_cfstring = CFStringCreateWithCString(kCFAllocatorDefault,
                                                              key.as_ptr(),
@@ -844,9 +847,14 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                         port_name: path.to_string(),
                         port_type: ::SerialPortType::Unknown,
                     });
+                } else {
+                    return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
                 }
+            } else {
+                return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
             }
 
+            // Clean up after we're done processing htis result
             IOObjectRelease(modem_service);
         }
     }
