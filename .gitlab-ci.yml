@@ -63,4 +63,5 @@ test:clippy:
     - ./install.sh
     - cargo build --verbose
     - cargo install clippy
-    - cargo clippy
+# Turn all warnings into errors
+    - cargo clippy -- -D warnings
