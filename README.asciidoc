@@ -1,5 +1,6 @@
 image:https://gitlab.com/susurrus/serialport-rs/badges/master/build.svg[link="https://gitlab.com/susurrus/serialport-rs/pipelines"]
 image:https://ci.appveyor.com/api/projects/status/gitlab/Susurrus/serialport-rs?svg=true&branch=master[link="https://ci.appveyor.com/project/Susurrus/serialport-rs"]
+image:https://travis-ci.org/Susurrus/serialport-rs.svg?branch=master[link="https://travis-ci.org/Susurrus/gattii"]
 
 image:https://img.shields.io/crates/v/serialport.svg[link="https://crates.io/crates/serialport"]
 image:https://docs.rs/serialport/badge.svg[link="https://docs.rs/crate/serialport"]

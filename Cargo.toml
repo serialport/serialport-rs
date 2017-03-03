@@ -10,8 +10,9 @@ repository = "https://gitlab.com/susurrus/serialport-rs"
 description = "A cross-platform low-level serial port library"
 
 [badges]
-gitlab = { repository = "susurrus/serialport-rs" }
 appveyor = { repository = "Susurrus/serialport-rs", service = "gitlab" }
+gitlab = { repository = "susurrus/serialport-rs" }
+travis = { repository = "Susurrus/serialport-rs" }
 
 [dev-dependencies]
 argparse = "0.2"
