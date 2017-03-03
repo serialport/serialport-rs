@@ -2,7 +2,6 @@ use std::ffi::{CString, CStr};
 #[cfg(target_os = "linux")]
 use std::ffi::OsStr;
 use std::io;
-use std::mem;
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
@@ -204,6 +203,9 @@ impl TTYPort {
     /// Attempting any IO or parameter settings on the slave tty after the master
     /// tty is closed will return errors.
     ///
+    /// On some platforms manipulating the master port will fail and only
+    /// modifying the slave port is possible.
+    ///
     /// ## Examples
     ///
     /// ```
@@ -247,10 +249,20 @@ impl TTYPort {
             }
         };
 
-        // Make TTYPort structs for both master and slave pty's
-        let master_tty = unsafe { TTYPort::from_raw_fd(next_pty_fd) };
-        let settings = master_tty.settings();
-        let slave_tty = TTYPort::open(Path::new(ptty_name), &settings)?;
+        // Open the slave port using default settings
+        let slave_tty = TTYPort::open(Path::new(ptty_name),
+                                      &Default::default())?;
+
+        // Manually construct the master port here because the
+        // `Termios::from_fd()` doesn't work on Mac, Solaris, and maybe other
+        // BSDs because `tcgetattr` will fail when used on the master port.
+        let master_tty = TTYPort {
+            fd: next_pty_fd,
+            termios: slave_tty.termios.clone(),
+            timeout: Duration::from_millis(100),
+            exclusive: true,
+            port_name: None,
+        };
 
         Ok((master_tty, slave_tty))
     }
