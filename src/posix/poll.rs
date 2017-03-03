@@ -22,7 +22,7 @@ pub fn wait_write_fd(fd: libc::c_int, timeout: Duration) -> io::Result<()> {
 fn wait_fd(fd: libc::c_int, events: EventFlags, timeout: Duration) -> io::Result<()> {
     use libc::{EINTR, EPIPE, EIO};
 
-    let mut fds = vec![PollFd::new(fd, events, EventFlags::empty())];
+    let mut fds = vec![PollFd::new(fd, events)];
 
 
     let milliseconds = timeout.as_secs() as i64 * 1000 + timeout.subsec_nanos() as i64 / 1_000_000;
