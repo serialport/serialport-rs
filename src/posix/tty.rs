@@ -252,8 +252,7 @@ impl TTYPort {
         };
 
         // Open the slave port using default settings
-        let slave_tty = TTYPort::open(Path::new(ptty_name),
-                                      &Default::default())?;
+        let slave_tty = TTYPort::open(Path::new(ptty_name), &Default::default())?;
 
         // Manually construct the master port here because the
         // `Termios::from_fd()` doesn't work on Mac, Solaris, and maybe other
