@@ -2,6 +2,8 @@ use std::ffi::{CString, CStr};
 #[cfg(target_os = "linux")]
 use std::ffi::OsStr;
 use std::io;
+#[cfg(target_os = "macos")]
+use std::mem;
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
