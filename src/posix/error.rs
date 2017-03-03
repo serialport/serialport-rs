@@ -30,7 +30,7 @@ pub fn from_raw_os_error(errno: i32) -> ::Error {
     ::Error::new(kind, error_string(errno))
 }
 
-pub fn from_io_error(io_error: io::Error) -> ::Error {
+pub fn from_io_error(io_error: &io::Error) -> ::Error {
     match io_error.raw_os_error() {
         Some(errno) => from_raw_os_error(errno),
         None => {

@@ -76,7 +76,7 @@ impl TTYPort {
 
         let mut termios = match termios::Termios::from_fd(fd) {
             Ok(t) => t,
-            Err(e) => return Err(super::error::from_io_error(e)),
+            Err(e) => return Err(super::error::from_io_error(&e)),
         };
 
         // setup TTY for binary serial port access
@@ -89,21 +89,21 @@ impl TTYPort {
 
         // write settings to TTY
         if let Err(err) = tcsetattr(fd, TCSANOW, &termios) {
-            return Err(super::error::from_io_error(err));
+            return Err(super::error::from_io_error(&err));
         }
 
         // Read back settings from port and confirm they were applied correctly
         // TODO: Switch this to an all-zeroed termios struct
         let mut actual_termios = termios;
         if let Err(err) = tcgetattr(fd, &mut actual_termios) {
-            return Err(super::error::from_io_error(err));
+            return Err(super::error::from_io_error(&err));
         }
         if actual_termios != termios {
             return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
         }
 
         if let Err(err) = tcflush(fd, TCIOFLUSH) {
-            return Err(super::error::from_io_error(err));
+            return Err(super::error::from_io_error(&err));
         }
 
         let mut port = TTYPort {
@@ -116,7 +116,7 @@ impl TTYPort {
 
         // get exclusive access to device
         if let Err(err) = ioctl::tiocexcl(port.fd) {
-            return Err(super::error::from_io_error(err));
+            return Err(super::error::from_io_error(&err));
         }
 
         // clear O_NONBLOCK flag
@@ -155,7 +155,7 @@ impl TTYPort {
         };
 
         if let Err(err) = setting_result {
-            Err(super::error::from_io_error(err))
+            Err(super::error::from_io_error(&err))
         } else {
             self.exclusive = exclusive;
             Ok(())
@@ -167,11 +167,11 @@ impl TTYPort {
         use termios::{TCSANOW, TCIOFLUSH};
 
         if let Err(err) = tcsetattr(self.fd, TCSANOW, &self.termios) {
-            return Err(super::error::from_io_error(err));
+            return Err(super::error::from_io_error(&err));
         }
 
         if let Err(err) = tcflush(self.fd, TCIOFLUSH) {
-            return Err(super::error::from_io_error(err));
+            return Err(super::error::from_io_error(&err));
         }
         Ok(())
     }
@@ -185,14 +185,14 @@ impl TTYPort {
 
         match retval {
             Ok(()) => Ok(()),
-            Err(err) => Err(super::error::from_io_error(err)),
+            Err(err) => Err(super::error::from_io_error(&err)),
         }
     }
 
     fn read_pin(&mut self, pin: c_int) -> ::Result<bool> {
         match ioctl::tiocmget(self.fd) {
             Ok(pins) => Ok(pins & pin != 0),
-            Err(err) => Err(super::error::from_io_error(err)),
+            Err(err) => Err(super::error::from_io_error(&err)),
         }
     }
 
