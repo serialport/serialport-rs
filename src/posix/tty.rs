@@ -259,7 +259,7 @@ impl TTYPort {
         // BSDs because `tcgetattr` will fail when used on the master port.
         let master_tty = TTYPort {
             fd: next_pty_fd,
-            termios: slave_tty.termios.clone(),
+            termios: slave_tty.termios,
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: None,
