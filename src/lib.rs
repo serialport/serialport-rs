@@ -41,12 +41,17 @@ extern crate CoreFoundation_sys as cf;
 extern crate mach;
 #[cfg(unix)]
 extern crate termios;
+
+#[cfg(windows)]
+extern crate advapi32;
 #[cfg(windows)]
 extern crate kernel32;
 #[cfg(windows)]
-extern crate winapi;
+extern crate regex;
 #[cfg(windows)]
-extern crate winreg;
+extern crate setupapi;
+#[cfg(windows)]
+extern crate winapi;
 
 use std::error::Error as StdError;
 use std::ffi::OsStr;
