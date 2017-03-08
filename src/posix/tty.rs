@@ -849,7 +849,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 
                 let type_id = CFGetTypeID(value);
                 if type_id == CFStringGetTypeID() {
-                    let mut buf = Vec::<libc::c_char>::with_capacity(256);
+                    let mut buf = Vec::with_capacity(256);
 
                     CFStringGetCString(value as CFStringRef,
                                        buf.as_mut_ptr(),
