@@ -733,12 +733,13 @@ fn port_type(d: &libudev::Device) -> ::Result<SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             Ok(SerialPortType::UsbPort(UsbPortInfo {
-                vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
-                pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
-                serial_number: udev_property_as_string(d, "ID_SERIAL_SHORT"),
-                manufacturer: udev_property_as_string(d, "ID_VENDOR"),
-                product: udev_property_as_string(d, "ID_MODEL"),
-            }))
+                                           vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
+                                           pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
+                                           serial_number: udev_property_as_string(d,
+                                                                                  "ID_SERIAL_SHORT"),
+                                           manufacturer: udev_property_as_string(d, "ID_VENDOR"),
+                                           product: udev_property_as_string(d, "ID_MODEL"),
+                                       }))
         }
         Some("pci") => Ok(SerialPortType::PciPort),
         _ => Ok(SerialPortType::Unknown),
@@ -769,9 +770,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                         // skipped instead of causing no ports to be returned.
                         if let Ok(pt) = port_type(&d) {
                             vec.push(SerialPortInfo {
-                                port_name: String::from(path),
-                                port_type: pt,
-                            });
+                                         port_name: String::from(path),
+                                         port_type: pt,
+                                     });
                         }
                     }
                 }
@@ -797,8 +798,8 @@ fn get_parent_device_by_type(device: io_object_t,
         }
         let mut parent: io_registry_entry_t = unsafe { mem::uninitialized() };
         if unsafe {
-            IORegistryEntryGetParentEntry(device, kIOServiceClass(), &mut parent) != KERN_SUCCESS
-        } {
+               IORegistryEntryGetParentEntry(device, kIOServiceClass(), &mut parent) != KERN_SUCCESS
+           } {
             return None;
         }
         device = parent;
@@ -875,12 +876,20 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
     if let Some(usb_device) = get_parent_device_by_type(service, kIOUSBDeviceClassName()) {
         SerialPortType::UsbPort(UsbPortInfo {
-            vid: get_int_property(usb_device, "idVendor", kCFNumberSInt16Type) as u16,
-            pid: get_int_property(usb_device, "idProduct", kCFNumberSInt16Type) as u16,
-            serial_number: get_string_property(usb_device, "USB Serial Number"),
-            manufacturer: get_string_property(usb_device, "USB Vendor Name"),
-            product: get_string_property(usb_device, "USB Product Name"),
-        })
+                                    vid: get_int_property(usb_device,
+                                                          "idVendor",
+                                                          kCFNumberSInt16Type) as
+                                         u16,
+                                    pid: get_int_property(usb_device,
+                                                          "idProduct",
+                                                          kCFNumberSInt16Type) as
+                                         u16,
+                                    serial_number: get_string_property(usb_device,
+                                                                       "USB Serial Number"),
+                                    manufacturer: get_string_property(usb_device,
+                                                                      "USB Vendor Name"),
+                                    product: get_string_property(usb_device, "USB Product Name"),
+                                })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
         SerialPortType::BluetoothPort
     } else {
@@ -972,9 +981,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                                        kCFStringEncodingUTF8);
                     let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
                     vec.push(SerialPortInfo {
-                        port_name: String::from(path),
-                        port_type: port_type(modem_service),
-                    });
+                                 port_name: String::from(path),
+                                 port_type: port_type(modem_service),
+                             });
                 } else {
                     return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
                 }
