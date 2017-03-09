@@ -770,7 +770,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                         // skipped instead of causing no ports to be returned.
                         if let Ok(pt) = port_type(&d) {
                             vec.push(SerialPortInfo {
-                                         port_name: String::from(path),
+                                         port_name: path.to_string(),
                                          port_type: pt,
                                      });
                         }
