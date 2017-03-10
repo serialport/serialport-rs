@@ -144,12 +144,12 @@ impl io::Read for COMPort {
         let mut len: DWORD = 0;
 
         match unsafe {
-            ReadFile(self.handle,
-                     buf.as_mut_ptr() as LPVOID,
-                     buf.len() as DWORD,
-                     &mut len,
-                     ptr::null_mut())
-        } {
+                  ReadFile(self.handle,
+                           buf.as_mut_ptr() as LPVOID,
+                           buf.len() as DWORD,
+                           &mut len,
+                           ptr::null_mut())
+              } {
             0 => Err(io::Error::last_os_error()),
             _ => {
                 if len != 0 {
@@ -167,12 +167,12 @@ impl io::Write for COMPort {
         let mut len: DWORD = 0;
 
         match unsafe {
-            WriteFile(self.handle,
-                      buf.as_ptr() as LPVOID,
-                      buf.len() as DWORD,
-                      &mut len,
-                      ptr::null_mut())
-        } {
+                  WriteFile(self.handle,
+                            buf.as_ptr() as LPVOID,
+                            buf.len() as DWORD,
+                            &mut len,
+                            ptr::null_mut())
+              } {
             0 => Err(io::Error::last_os_error()),
             _ => Ok(len as usize),
         }
@@ -585,7 +585,7 @@ impl PortDevice {
             let re = Regex::new(concat!(r"VID_(?P<vid>[[:xdigit:]]{4})",
                                         r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
                                         r"([\\+](?P<serial>\w+))?"))
-                .unwrap();
+                    .unwrap();
             if let Some(caps) = re.captures(&hardware_id) {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
@@ -641,9 +641,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
             }
 
             ports.push(::SerialPortInfo {
-                port_name: port_name,
-                port_type: port_device.port_type(),
-            });
+                           port_name: port_name,
+                           port_type: port_device.port_type(),
+                       });
         }
     }
     Ok(ports)

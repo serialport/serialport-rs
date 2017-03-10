@@ -12,9 +12,7 @@ fn main() {
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Read from the given serial port at 9600 baud");
-        ap.refer(&mut port_name)
-            .add_argument("port", Store, "Port name")
-            .required();
+        ap.refer(&mut port_name).add_argument("port", Store, "Port name").required();
         ap.parse_args_or_exit();
     }
 

@@ -726,13 +726,14 @@ fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
 fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
+            let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
             Ok(::SerialPortType::UsbPort(::UsbPortInfo {
-                vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
-                pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
-                serial_number: udev_property_as_string(d, "ID_SERIAL_SHORT"),
-                manufacturer: udev_property_as_string(d, "ID_VENDOR"),
-                product: udev_property_as_string(d, "ID_MODEL"),
-            }))
+                                           vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
+                                           pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
+                                           serial_number: serial_number,
+                                           manufacturer: udev_property_as_string(d, "ID_VENDOR"),
+                                           product: udev_property_as_string(d, "ID_MODEL"),
+                                       }))
         }
         Some("pci") => Ok(::SerialPortType::PciPort),
         _ => Ok(::SerialPortType::Unknown),
@@ -761,9 +762,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                         }
                         if let Ok(pt) = port_type(&d) {
                             vec.push(SerialPortInfo {
-                                port_name: String::from(path),
-                                port_type: pt,
-                            });
+                                         port_name: String::from(path),
+                                         port_type: pt,
+                                     });
                         }
                     }
                 }
@@ -857,9 +858,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                                        kCFStringEncodingUTF8);
                     let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
                     vec.push(SerialPortInfo {
-                        port_name: path.to_string(),
-                        port_type: ::SerialPortType::Unknown,
-                    });
+                                 port_name: path.to_string(),
+                                 port_type: ::SerialPortType::Unknown,
+                             });
                 } else {
                     return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
                 }
