@@ -556,6 +556,8 @@ pub enum SerialPortType {
     UsbPort(UsbPortInfo),
     /// The serial port is connected via PCI (permanent port)
     PciPort,
+    /// The serial port is connected via Bluetooth
+    BluetoothPort,
     /// It can't be determined how the serial port is connected
     Unknown,
 }
