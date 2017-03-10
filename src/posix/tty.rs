@@ -8,8 +8,14 @@ use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
 
+#[cfg(target_os = "macos")]
+use cf::*;
+#[cfg(target_os = "macos")]
+use IOKit_sys::*;
 use ioctl;
 use libc::{self, c_int, c_void, size_t};
+#[cfg(target_os = "macos")]
+use libc::c_char;
 #[cfg(target_os = "linux")]
 use libudev;
 use termios;
@@ -777,6 +783,123 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 }
 
 #[cfg(target_os = "macos")]
+fn get_parent_device_by_type(device: io_object_t,
+                             parent_type: *const c_char)
+                             -> Option<io_registry_entry_t> {
+    let parent_type = unsafe { CStr::from_ptr(parent_type) };
+    use mach::kern_return::KERN_SUCCESS;
+    let mut device = device;
+    loop {
+        let mut class_name: [c_char; 128] = unsafe { mem::uninitialized() };
+        unsafe { IOObjectGetClass(device, &mut class_name[0]) };
+        let name = unsafe { CStr::from_ptr(&class_name[0]) };
+        if name == parent_type {
+            return Some(device);
+        }
+        let mut parent: io_registry_entry_t = unsafe { mem::uninitialized() };
+        if unsafe {
+               IORegistryEntryGetParentEntry(device, kIOServiceClass(), &mut parent) != KERN_SUCCESS
+           } {
+            return None;
+        }
+        device = parent;
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[allow(non_upper_case_globals)]
+/// Returns a specific property of the given device as an integer.
+fn get_int_property(device_type: io_registry_entry_t,
+                    property: &str,
+                    cf_number_type: CFNumberType)
+                    -> Option<u32> {
+    unsafe {
+        let prop_str = CString::new(property).unwrap();
+        let key = CFStringCreateWithCString(kCFAllocatorDefault,
+                                            prop_str.as_ptr(),
+                                            kCFStringEncodingUTF8);
+        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
+        if container.is_null() {
+            return None;
+        }
+        let num = match cf_number_type {
+            kCFNumberSInt16Type => {
+                let mut num: u16 = 0;
+                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
+                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
+                Some(num as u32)
+            }
+            kCFNumberSInt32Type => {
+                let mut num: u32 = 0;
+                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
+                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
+                Some(num)
+            }
+            _ => None,
+        };
+        CFRelease(container);
+
+        num
+    }
+}
+
+#[cfg(target_os = "macos")]
+/// Returns a specific property of the given device as a string.
+fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
+    unsafe {
+        let prop_str = CString::new(property).unwrap();
+        let key = CFStringCreateWithCString(kCFAllocatorDefault,
+                                            prop_str.as_ptr(),
+                                            kCFStringEncodingUTF8);
+        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
+        if container.is_null() {
+            return None;
+        }
+
+        let str_ptr = CFStringGetCStringPtr(container as CFStringRef, kCFStringEncodingMacRoman);
+        if str_ptr.is_null() {
+            CFRelease(container);
+            return None;
+        }
+        let opt_str = CStr::from_ptr(str_ptr).to_str().ok().map(String::from);
+
+        CFRelease(container);
+
+        opt_str
+    }
+}
+
+#[cfg(target_os = "macos")]
+/// Determine the serial port type based on the service object (like that returned by
+/// `IOIteratorNext`). Specific properties are extracted for USB devices.
+fn port_type(service: io_object_t) -> SerialPortType {
+    let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
+    if let Some(usb_device) = get_parent_device_by_type(service, kIOUSBDeviceClassName()) {
+        SerialPortType::UsbPort(UsbPortInfo {
+                                    vid: get_int_property(usb_device,
+                                                          "idVendor",
+                                                          kCFNumberSInt16Type)
+                                            .unwrap_or_default() as
+                                         u16,
+                                    pid: get_int_property(usb_device,
+                                                          "idProduct",
+                                                          kCFNumberSInt16Type)
+                                            .unwrap_or_default() as
+                                         u16,
+                                    serial_number: get_string_property(usb_device,
+                                                                       "USB Serial Number"),
+                                    manufacturer: get_string_property(usb_device,
+                                                                      "USB Vendor Name"),
+                                    product: get_string_property(usb_device, "USB Product Name"),
+                                })
+    } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
+        SerialPortType::BluetoothPort
+    } else {
+        SerialPortType::PciPort
+    }
+}
+
+#[cfg(target_os = "macos")]
 /// Scans the system for serial ports and returns a list of them.
 /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
@@ -861,7 +984,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                     let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
                     vec.push(SerialPortInfo {
                                  port_name: path.to_string(),
-                                 port_type: ::SerialPortType::Unknown,
+                                 port_type: port_type(modem_service),
                              });
                 } else {
                     return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
