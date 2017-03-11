@@ -43,13 +43,7 @@ extern crate mach;
 extern crate termios;
 
 #[cfg(windows)]
-extern crate advapi32;
-#[cfg(windows)]
-extern crate kernel32;
-#[cfg(windows)]
 extern crate regex;
-#[cfg(windows)]
-extern crate setupapi;
 #[cfg(windows)]
 extern crate winapi;
 

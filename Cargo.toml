@@ -30,11 +30,13 @@ termios = "0.2.2"
 libudev = "0.2.0"
 
 [target."cfg(windows)".dependencies]
-advapi32-sys = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
-kernel32-sys = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
 regex = "0.2"
-setupapi-sys = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
-winapi = { git = "https://github.com/retep998/winapi-rs.git", branch = "0.2" }
+
+[target."cfg(windows)".dependencies.winapi]
+git = "https://github.com/retep998/winapi-rs.git"
+branch = "dev"
+features = ["commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
+            "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 IOKit-sys = "0.1"
