@@ -18,6 +18,7 @@ use libc::{self, c_int, c_void, size_t};
 use libc::c_char;
 #[cfg(target_os = "linux")]
 use libudev;
+use nix;
 use termios;
 
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
@@ -65,24 +66,24 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
-        use libc::{O_RDWR, O_NONBLOCK, F_SETFL, EINVAL};
+        use libc::{O_RDWR, O_NONBLOCK, F_SETFL};
         use termios::{CREAD, CLOCAL}; // cflags
         use termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
         use termios::{TCSANOW, TCIOFLUSH};
 
         let cstr = match CString::new(path.as_os_str().as_bytes()) {
             Ok(s) => s,
-            Err(_) => return Err(super::error::from_raw_os_error(EINVAL)),
+            Err(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
         };
 
         let fd = unsafe { libc::open(cstr.as_ptr(), O_RDWR | O_NOCTTY | O_NONBLOCK, 0) };
         if fd < 0 {
-            return Err(super::error::last_os_error());
+            return Err(nix::Error::last().into());
         }
 
         let mut termios = match termios::Termios::from_fd(fd) {
             Ok(t) => t,
-            Err(e) => return Err(super::error::from_io_error(&e)),
+            Err(e) => return Err(e.into()),
         };
 
         // setup TTY for binary serial port access
@@ -95,21 +96,21 @@ impl TTYPort {
 
         // write settings to TTY
         if let Err(err) = tcsetattr(fd, TCSANOW, &termios) {
-            return Err(super::error::from_io_error(&err));
+            return Err(err.into());
         }
 
         // Read back settings from port and confirm they were applied correctly
         // TODO: Switch this to an all-zeroed termios struct
         let mut actual_termios = termios;
         if let Err(err) = tcgetattr(fd, &mut actual_termios) {
-            return Err(super::error::from_io_error(&err));
+            return Err(err.into());
         }
         if actual_termios != termios {
             return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
         }
 
         if let Err(err) = tcflush(fd, TCIOFLUSH) {
-            return Err(super::error::from_io_error(&err));
+            return Err(err.into());
         }
 
         let mut port = TTYPort {
@@ -122,12 +123,12 @@ impl TTYPort {
 
         // get exclusive access to device
         if let Err(err) = ioctl::tiocexcl(port.fd) {
-            return Err(super::error::from_io_error(&err));
+            return Err(err.into());
         }
 
         // clear O_NONBLOCK flag
         if unsafe { libc::fcntl(port.fd, F_SETFL, 0) } < 0 {
-            return Err(super::error::last_os_error());
+            return Err(nix::Error::last().into());
         }
 
         port.set_all(settings)?;
@@ -161,7 +162,7 @@ impl TTYPort {
         };
 
         if let Err(err) = setting_result {
-            Err(super::error::from_io_error(&err))
+            Err(err.into())
         } else {
             self.exclusive = exclusive;
             Ok(())
@@ -173,11 +174,11 @@ impl TTYPort {
         use termios::{TCSANOW, TCIOFLUSH};
 
         if let Err(err) = tcsetattr(self.fd, TCSANOW, &self.termios) {
-            return Err(super::error::from_io_error(&err));
+            return Err(err.into());
         }
 
         if let Err(err) = tcflush(self.fd, TCIOFLUSH) {
-            return Err(super::error::from_io_error(&err));
+            return Err(err.into());
         }
         Ok(())
     }
@@ -191,14 +192,14 @@ impl TTYPort {
 
         match retval {
             Ok(()) => Ok(()),
-            Err(err) => Err(super::error::from_io_error(&err)),
+            Err(err) => Err(err.into()),
         }
     }
 
     fn read_pin(&mut self, pin: c_int) -> ::Result<bool> {
         match ioctl::tiocmget(self.fd) {
             Ok(pins) => Ok(pins & pin != 0),
-            Err(err) => Err(super::error::from_io_error(&err)),
+            Err(err) => Err(err.into()),
         }
     }
 
@@ -226,26 +227,26 @@ impl TTYPort {
         // Open the next free pty.
         let next_pty_fd = unsafe { libc::posix_openpt(libc::O_RDWR) };
         if next_pty_fd < 0 {
-            return Err(super::error::last_os_error());
+            return Err(nix::Error::last().into());
         }
 
         // Grant access to the associated slave pty
         if unsafe { libc::grantpt(next_pty_fd) } < 0 {
             unsafe { libc::close(next_pty_fd) };
-            return Err(super::error::last_os_error());
+            return Err(nix::Error::last().into());
         }
 
         // Unlock the slave pty
         if unsafe { libc::unlockpt(next_pty_fd) } < 0 {
             unsafe { libc::close(next_pty_fd) };
-            return Err(super::error::last_os_error());
+            return Err(nix::Error::last().into());
         }
 
         // Get the path of the attached slave ptty
         let ptty_name_ptr = unsafe { libc::ptsname(next_pty_fd) };
         if ptty_name_ptr.is_null() {
             unsafe { libc::close(next_pty_fd) };
-            return Err(super::error::last_os_error());
+            return Err(nix::Error::last().into());
         }
 
         let ptty_name_cstr = unsafe { CStr::from_ptr(ptty_name_ptr) };
@@ -253,7 +254,7 @@ impl TTYPort {
             Ok(s) => s,
             Err(_) => {
                 unsafe { libc::close(next_pty_fd) };
-                return Err(super::error::last_os_error());
+                return Err(nix::Error::last().into());
             }
         };
 
@@ -522,7 +523,6 @@ impl SerialPort for TTYPort {
     }
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
-        use libc::EINVAL;
         use termios::cfsetspeed;
         use termios::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
                       B9600, B19200, B38400};
@@ -593,7 +593,7 @@ impl SerialPort for TTYPort {
             #[cfg(target_os = "linux")]
             BaudRate::BaudOther(4000000) => B4000000,
 
-            BaudRate::BaudOther(_) => return Err(super::error::from_raw_os_error(EINVAL)),
+            BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
         };
 
         cfsetspeed(&mut self.termios, baud)?;
