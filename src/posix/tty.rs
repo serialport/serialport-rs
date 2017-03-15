@@ -1,4 +1,4 @@
-use std::ffi::{CString, CStr};
+use std::ffi::CStr;
 #[cfg(target_os = "linux")]
 use std::ffi::OsStr;
 use std::io;
@@ -19,22 +19,12 @@ use libc::c_char;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
+use nix::fcntl::fcntl;
 use termios;
 
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
      SerialPortType, StopBits, UsbPortInfo};
 use {Error, ErrorKind};
-
-
-#[cfg(target_os = "linux")]
-const O_NOCTTY: c_int = 0x00000100;
-
-#[cfg(target_os = "macos")]
-const O_NOCTTY: c_int = 0x00020000;
-
-#[cfg(not(any(target_os = "linux", target_os = "macos")))]
-const O_NOCTTY: c_int = 0;
-
 
 /// A TTY-based serial port implementation.
 ///
@@ -66,20 +56,14 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
-        use libc::{O_RDWR, O_NONBLOCK, F_SETFL};
+        use nix::fcntl::{O_RDWR, O_NOCTTY, O_NONBLOCK, F_SETFL};
         use termios::{CREAD, CLOCAL}; // cflags
         use termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
         use termios::{TCSANOW, TCIOFLUSH};
 
-        let cstr = match CString::new(path.as_os_str().as_bytes()) {
-            Ok(s) => s,
-            Err(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
-        };
-
-        let fd = unsafe { libc::open(cstr.as_ptr(), O_RDWR | O_NOCTTY | O_NONBLOCK, 0) };
-        if fd < 0 {
-            return Err(nix::Error::last().into());
-        }
+        let fd = nix::fcntl::open(path,
+                                  O_RDWR | O_NOCTTY | O_NONBLOCK,
+                                  nix::sys::stat::Mode::empty())?;
 
         let mut termios = match termios::Termios::from_fd(fd) {
             Ok(t) => t,
@@ -127,9 +111,7 @@ impl TTYPort {
         }
 
         // clear O_NONBLOCK flag
-        if unsafe { libc::fcntl(port.fd, F_SETFL, 0) } < 0 {
-            return Err(nix::Error::last().into());
-        }
+        fcntl(port.fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
 
         port.set_all(settings)?;
 
