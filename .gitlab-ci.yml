@@ -1,5 +1,6 @@
 variables:
     APT_CACHE_DIR: apt-cache
+    GIT_SUBMODULE_STRATEGY: recursive
 
 cache:
     key: apt-cache
