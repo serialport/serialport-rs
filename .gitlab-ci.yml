@@ -1,6 +1,5 @@
 variables:
     APT_CACHE_DIR: apt-cache
-    GIT_SUBMODULE_STRATEGY: recursive
 
 cache:
     key: apt-cache
@@ -18,6 +17,7 @@ before_script:
     - apt-get -qq update
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install curl build-essential libudev-dev pkg-config
     - export PATH="/root/.cargo/bin:$PATH"
+    - git submodule update --init --recursive
 
 build:1.13:
     image: "scorpil/rust:1.13"
