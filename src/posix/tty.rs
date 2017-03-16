@@ -1,4 +1,6 @@
 use std::ffi::CStr;
+#[cfg(target_os = "macos")]
+use std::ffi::CString;
 #[cfg(target_os = "linux")]
 use std::ffi::OsStr;
 use std::io;
