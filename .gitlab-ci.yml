@@ -47,6 +47,7 @@ test:stable:
 test:rustfmt:
     image: "scorpil/rust:stable"
     stage: test
+    allow_failure: true
     script:
     - cargo install rustfmt
     - cargo fmt -- --write-mode=diff
