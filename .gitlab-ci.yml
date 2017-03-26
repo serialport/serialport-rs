@@ -2,7 +2,8 @@ variables:
     APT_CACHE_DIR: apt-cache
 
 cache:
-    key: apt-cache
+    key: "$CI_JOB_NAME"
+    untracked: true
     paths:
     - apt-cache/
     - cargo/
