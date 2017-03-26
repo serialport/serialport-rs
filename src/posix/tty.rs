@@ -227,20 +227,17 @@ impl TTYPort {
         }
 
         // Get the path of the attached slave ptty
-        let ptty_name_ptr = unsafe { libc::ptsname(next_pty_fd) };
-        if ptty_name_ptr.is_null() {
-            unsafe { libc::close(next_pty_fd) };
+        // TODO: Switch this to use `nix::pty::ptsname_r` as soon as #556 is merged.
+        let mut name_buf = [0 as libc::c_char; 64];
+        if unsafe { libc::ptsname_r(next_pty_fd, name_buf.as_mut_ptr(), name_buf.len()) } != 0 {
             return Err(nix::Error::last().into());
         }
 
-        let ptty_name_cstr = unsafe { CStr::from_ptr(ptty_name_ptr) };
-        let ptty_name = match ptty_name_cstr.to_str() {
-            Ok(s) => s,
-            Err(_) => {
-                unsafe { libc::close(next_pty_fd) };
-                return Err(nix::Error::last().into());
-            }
+        let name = unsafe {
+            CStr::from_ptr(name_buf.as_ptr())
         };
+        // This should always be a valid string here, so just unwrap() here
+        let ptty_name = name.to_str().unwrap();
 
         // Open the slave port using default settings
         let slave_tty = TTYPort::open(Path::new(ptty_name), &Default::default())?;
