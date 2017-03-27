@@ -1,6 +1,0 @@
-[submodule "winapi-rs"]
-	path = winapi-rs
-	url = https://github.com/retep998/winapi-rs.git
-[submodule "nix"]
-	path = nix
-	url = https://github.com/nix-rust/nix
