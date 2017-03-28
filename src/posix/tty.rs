@@ -43,6 +43,40 @@ pub struct TTYPort {
     port_name: Option<String>,
 }
 
+// TODO: Replace this with `nix::pty::ptsname` as soon as #556 is merged.
+#[cfg(not(any(target_os = "linux",
+              target_os = "android",
+              target_os = "emscripten",
+              target_os = "fuchsia")))]
+fn ptsname(fd: RawFd) -> ::Result<String> {
+    let name_ptr = unsafe { libc::ptsname(fd) };
+    if name_ptr.is_null() {
+        return Err(nix::Error::last().into());
+    }
+
+    let name = unsafe {
+        CStr::from_ptr(name_ptr)
+    };
+    Ok(name.to_string_lossy().into_owned())
+}
+
+// TODO: Replace this with `nix::pty::ptsname_r` as soon as #556 is merged.
+#[cfg(any(target_os = "linux",
+          target_os = "android",
+          target_os = "emscripten",
+          target_os = "fuchsia"))]
+fn ptsname_r(fd: RawFd) -> ::Result<String> {
+    let mut name_buf = [0 as libc::c_char; 64];
+    if unsafe { libc::ptsname_r(fd, name_buf.as_mut_ptr(), name_buf.len()) } != 0 {
+        return Err(nix::Error::last().into());
+    }
+
+    let name = unsafe {
+        CStr::from_ptr(name_buf.as_ptr())
+    };
+    Ok(name.to_string_lossy().into_owned())
+}
+
 impl TTYPort {
     /// Opens a TTY device as a serial port.
     ///
@@ -227,20 +261,23 @@ impl TTYPort {
         }
 
         // Get the path of the attached slave ptty
-        // TODO: Switch this to use `nix::pty::ptsname_r` as soon as #556 is merged.
-        let mut name_buf = [0 as libc::c_char; 64];
-        if unsafe { libc::ptsname_r(next_pty_fd, name_buf.as_mut_ptr(), name_buf.len()) } != 0 {
-            return Err(nix::Error::last().into());
-        }
+        // TODO: Switch this to use `nix::pty::ptsname(_r)?` as soon as #556 is
+        // merged.
+        #[cfg(not(any(target_os = "linux",
+                      target_os = "android",
+                      target_os = "emscripten",
+                      target_os = "fuchsia")))]
+        let ptty_name = ptsname(next_pty_fd)?;
 
-        let name = unsafe {
-            CStr::from_ptr(name_buf.as_ptr())
-        };
-        // This should always be a valid string here, so just unwrap() here
-        let ptty_name = name.to_str().unwrap();
+        #[cfg(any(target_os = "linux",
+                  target_os = "android",
+                  target_os = "emscripten",
+                  target_os = "fuchsia"))]
+        let ptty_name = ptsname_r(next_pty_fd)?;
 
         // Open the slave port using default settings
-        let slave_tty = TTYPort::open(Path::new(ptty_name), &Default::default())?;
+        let slave_tty = TTYPort::open(Path::new(&ptty_name),
+                                      &Default::default())?;
 
         // Manually construct the master port here because the
         // `Termios::from_fd()` doesn't work on Mac, Solaris, and maybe other
