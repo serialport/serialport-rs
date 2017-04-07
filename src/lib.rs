@@ -53,6 +53,7 @@ extern crate setupapi;
 #[cfg(windows)]
 extern crate winapi;
 
+use std::convert::From;
 use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt;
@@ -212,7 +213,7 @@ pub enum BaudRate {
     BaudOther(usize),
 }
 
-impl BaudRate {
+impl From<usize> for BaudRate {
     /// Creates a `BaudRate` for a particular speed.
     ///
     /// This function can be used to select a `BaudRate` variant from an integer containing the
@@ -222,11 +223,14 @@ impl BaudRate {
     ///
     /// ```
     /// # use serialport::BaudRate;
-    /// assert_eq!(BaudRate::Baud9600, BaudRate::from_speed(9600));
-    /// assert_eq!(BaudRate::Baud115200, BaudRate::from_speed(115200));
-    /// assert_eq!(BaudRate::BaudOther(4000000), BaudRate::from_speed(4000000));
+    /// assert_eq!(BaudRate::Baud9600, BaudRate::from(9600));
+    /// assert_eq!(BaudRate::Baud115200, BaudRate::from(115200));
+    /// assert_eq!(BaudRate::BaudOther(4000000), BaudRate::from(4000000));
+    /// assert_eq!(BaudRate::Baud9600, 9600usize.into());
+    /// assert_eq!(BaudRate::Baud115200, 115200usize.into());
+    /// assert_eq!(BaudRate::BaudOther(4000000), 4000000usize.into());
     /// ```
-    pub fn from_speed(speed: usize) -> BaudRate {
+    fn from(speed: usize) -> BaudRate {
         match speed {
             110 => BaudRate::Baud110,
             300 => BaudRate::Baud300,
@@ -242,19 +246,24 @@ impl BaudRate {
             n => BaudRate::BaudOther(n),
         }
     }
+}
 
-    /// Returns the baud rate as an integer.
+impl From<BaudRate> for usize {
+    /// Converts a `BaudRate` into an integer.
     ///
     /// ## Example
     ///
     /// ```
     /// # use serialport::BaudRate;
-    /// assert_eq!(9600, BaudRate::Baud9600.speed());
-    /// assert_eq!(115200, BaudRate::Baud115200.speed());
-    /// assert_eq!(4000000, BaudRate::BaudOther(4000000).speed());
+    /// assert_eq!(9600usize, usize::from(BaudRate::Baud9600));
+    /// assert_eq!(115200usize, usize::from(BaudRate::Baud115200));
+    /// assert_eq!(4000000usize, usize::from(BaudRate::BaudOther(4000000)));
+    /// assert_eq!(9600usize, BaudRate::Baud9600.into());
+    /// assert_eq!(115200usize, BaudRate::Baud115200.into());
+    /// assert_eq!(4000000usize, BaudRate::BaudOther(4000000).into());
     /// ```
-    pub fn speed(&self) -> usize {
-        match *self {
+    fn from(speed: BaudRate) -> usize {
+        match speed {
             BaudRate::Baud110 => 110,
             BaudRate::Baud300 => 300,
             BaudRate::Baud600 => 600,
