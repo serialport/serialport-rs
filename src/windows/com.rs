@@ -277,7 +277,7 @@ impl SerialPort for COMPort {
             CBR_115200 => Some(BaudRate::Baud115200),
             CBR_128000 => Some(BaudRate::BaudOther(128000)),
             CBR_256000 => Some(BaudRate::BaudOther(256000)),
-            n => Some(BaudRate::BaudOther(n as usize)),
+            n => Some(BaudRate::BaudOther(n as u32)),
         }
     }
 
