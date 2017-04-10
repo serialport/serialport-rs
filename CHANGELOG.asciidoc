@@ -16,8 +16,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Software license has changed from LGPLv3+ to MPL-2.0. This makes it
   possible to use this library in any Rust project if it's unmodified.
 * Mac is now a Tier 2 supported platform
-* Removed `BaudRate::from_speed` and `BaudRate::speed` in favor of the
-  `From<u32>` and `Into<u32>` traits.
+* Removed `BaudRate::from_speed(usize)` and `BaudRate::speed -> usize` in favor
+  of the `From<u32>` and `Into<u32>` traits.
 
 === [1.0.1] - 2017-02-20
 ==== Fixed
