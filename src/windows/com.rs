@@ -200,7 +200,8 @@ impl SerialPort for COMPort {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
             data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
-            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
+            flow_control: self.flow_control()
+                .expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
             timeout: self.timeout,
@@ -547,7 +548,11 @@ impl PortDevice {
         } else {
             let end_of_buffer = result_buf.len() - 1;
             result_buf[end_of_buffer] = 0;
-            Some(unsafe { CStr::from_ptr(result_buf.as_ptr()).to_string_lossy().into_owned() })
+            Some(unsafe {
+                     CStr::from_ptr(result_buf.as_ptr())
+                         .to_string_lossy()
+                         .into_owned()
+                 })
         }
     }
 
@@ -592,12 +597,16 @@ impl PortDevice {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
                         return ::SerialPortType::UsbPort(::UsbPortInfo {
-                            vid: vid,
-                            pid: pid,
-                            serial_number: caps.get(4).map(|m| m.as_str().to_string()),
-                            manufacturer: self.property(SPDRP_MFG),
-                            product: self.property(SPDRP_FRIENDLYNAME),
-                        });
+                                                             vid: vid,
+                                                             pid: pid,
+                                                             serial_number: caps.get(4)
+                                                                 .map(|m| {
+                                                                          m.as_str().to_string()
+                                                                      }),
+                                                             manufacturer: self.property(SPDRP_MFG),
+                                                             product:
+                                                                 self.property(SPDRP_FRIENDLYNAME),
+                                                         });
                     }
                 }
             }
@@ -625,7 +634,11 @@ impl PortDevice {
         }
         let end_of_buffer = result_buf.len() - 1;
         result_buf[end_of_buffer] = 0;
-        Some(unsafe { CStr::from_ptr(result_buf.as_ptr()).to_string_lossy().into_owned() })
+        Some(unsafe {
+                 CStr::from_ptr(result_buf.as_ptr())
+                     .to_string_lossy()
+                     .into_owned()
+             })
     }
 }
 

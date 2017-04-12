@@ -54,9 +54,7 @@ fn ptsname(fd: RawFd) -> ::Result<String> {
         return Err(nix::Error::last().into());
     }
 
-    let name = unsafe {
-        CStr::from_ptr(name_ptr)
-    };
+    let name = unsafe { CStr::from_ptr(name_ptr) };
     Ok(name.to_string_lossy().into_owned())
 }
 
@@ -71,9 +69,7 @@ fn ptsname_r(fd: RawFd) -> ::Result<String> {
         return Err(nix::Error::last().into());
     }
 
-    let name = unsafe {
-        CStr::from_ptr(name_buf.as_ptr())
-    };
+    let name = unsafe { CStr::from_ptr(name_buf.as_ptr()) };
     Ok(name.to_string_lossy().into_owned())
 }
 
@@ -276,8 +272,7 @@ impl TTYPort {
         let ptty_name = ptsname_r(next_pty_fd)?;
 
         // Open the slave port using default settings
-        let slave_tty = TTYPort::open(Path::new(&ptty_name),
-                                      &Default::default())?;
+        let slave_tty = TTYPort::open(Path::new(&ptty_name), &Default::default())?;
 
         // Manually construct the master port here because the
         // `Termios::from_fd()` doesn't work on Mac, Solaris, and maybe other
@@ -387,7 +382,8 @@ impl SerialPort for TTYPort {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
             data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
-            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
+            flow_control: self.flow_control()
+                .expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
             timeout: self.timeout,
