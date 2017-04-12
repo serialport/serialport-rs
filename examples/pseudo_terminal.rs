@@ -34,7 +34,7 @@ fn main() {
         let msg = format!("Message #{}", x);
 
         // Send the message on the master
-        assert_eq!(master.write(&msg.as_bytes()).unwrap(), msg.len());
+        assert_eq!(master.write(msg.as_bytes()).unwrap(), msg.len());
 
         // Receive on the slave
         let bytes_recvd = slave.read(&mut buf).unwrap();
