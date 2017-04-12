@@ -13,7 +13,6 @@ pub const CBR_9600: DWORD = 9600;
 pub const CBR_14400: DWORD = 14400;
 pub const CBR_19200: DWORD = 19200;
 pub const CBR_38400: DWORD = 38400;
-pub const CBR_56000: DWORD = 56000;
 pub const CBR_57600: DWORD = 57600;
 pub const CBR_115200: DWORD = 115200;
 pub const CBR_128000: DWORD = 128000;

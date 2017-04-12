@@ -269,14 +269,13 @@ impl SerialPort for COMPort {
             CBR_2400 => Some(BaudRate::Baud2400),
             CBR_4800 => Some(BaudRate::Baud4800),
             CBR_9600 => Some(BaudRate::Baud9600),
-            CBR_14400 => Some(BaudRate::BaudOther(14400)),
+            CBR_14400 => Some(BaudRate::Baud14400),
             CBR_19200 => Some(BaudRate::Baud19200),
             CBR_38400 => Some(BaudRate::Baud38400),
-            CBR_56000 => Some(BaudRate::BaudOther(56000)),
             CBR_57600 => Some(BaudRate::Baud57600),
             CBR_115200 => Some(BaudRate::Baud115200),
-            CBR_128000 => Some(BaudRate::BaudOther(128000)),
-            CBR_256000 => Some(BaudRate::BaudOther(256000)),
+            CBR_128000 => Some(BaudRate::Baud128000),
+            CBR_256000 => Some(BaudRate::Baud256000),
             n => Some(BaudRate::BaudOther(n as u32)),
         }
     }
@@ -339,10 +338,13 @@ impl SerialPort for COMPort {
             BaudRate::Baud2400 => CBR_2400,
             BaudRate::Baud4800 => CBR_4800,
             BaudRate::Baud9600 => CBR_9600,
+            BaudRate::Baud14400 => CBR_14400,
             BaudRate::Baud19200 => CBR_19200,
             BaudRate::Baud38400 => CBR_38400,
             BaudRate::Baud57600 => CBR_57600,
             BaudRate::Baud115200 => CBR_115200,
+            BaudRate::Baud128000 => CBR_128000,
+            BaudRate::Baud256000 => CBR_256000,
             BaudRate::BaudOther(n) => n as DWORD,
         };
 
@@ -652,5 +654,5 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 /// Return a list of offically-supported baud rates. It is likely that the hardware supports
 /// more baud rates than this (many support arbitrary baud rates).
 pub fn available_baud_rates() -> Vec<u32> {
-    vec![110u32, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+    vec![110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200, 128000, 256000]
 }

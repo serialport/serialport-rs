@@ -11,6 +11,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Serial port enumeration is now supported on Mac
 * Serial port enumeration now attempts to return the interface used for the
   port (USB, PCI, Bluetooth, Unknown).
+* `BaudRate::standard_rates()` provides a vector of cross-platform baud rates.
 
 ==== Changed
 * Software license has changed from LGPLv3+ to MPL-2.0. This makes it
@@ -18,6 +19,9 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Mac is now a Tier 2 supported platform
 * Removed `BaudRate::from_speed(usize)` and `BaudRate::speed -> usize` in favor
   of the `From<u32>` and `Into<u32>` traits.
+* Removed `available_baud_rates` in favor of `BaudRate::platform_rates()` as
+  this has a more clear semantic meaning. The returned list of baud rates is
+  now also correct for all supported platforms.
 
 === [1.0.1] - 2017-02-20
 ==== Fixed

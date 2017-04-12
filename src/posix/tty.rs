@@ -560,56 +560,60 @@ impl SerialPort for TTYPort {
         use termios::os::openbsd::{B7200, B14400, B28800, B76800};
 
         let baud = match baud_rate {
-            BaudRate::BaudOther(50) => B50,
-            BaudRate::BaudOther(75) => B75,
+            BaudRate::Baud50 => B50,
+            BaudRate::Baud75 => B75,
             BaudRate::Baud110 => B110,
-            BaudRate::BaudOther(134) => B134,
-            BaudRate::BaudOther(150) => B150,
-            BaudRate::BaudOther(200) => B200,
+            BaudRate::Baud134 => B134,
+            BaudRate::Baud150 => B150,
+            BaudRate::Baud200 => B200,
             BaudRate::Baud300 => B300,
             BaudRate::Baud600 => B600,
             BaudRate::Baud1200 => B1200,
-            BaudRate::BaudOther(1800) => B1800,
+            BaudRate::Baud1800 => B1800,
             BaudRate::Baud2400 => B2400,
             BaudRate::Baud4800 => B4800,
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            BaudRate::BaudOther(7200) => B7200,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud7200 => B7200,
             BaudRate::Baud9600 => B9600,
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            BaudRate::BaudOther(14400) => B14400,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud14400 => B14400,
             BaudRate::Baud19200 => B19200,
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            BaudRate::BaudOther(28800) => B28800,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud28800 => B28800,
             BaudRate::Baud38400 => B38400,
             BaudRate::Baud57600 => B57600,
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            BaudRate::BaudOther(76800) => B76800,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud76800 => B76800,
             BaudRate::Baud115200 => B115200,
-            BaudRate::BaudOther(230400) => B230400,
-            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-            BaudRate::BaudOther(460800) => B460800,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(500000) => B500000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(576000) => B576000,
-            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-            BaudRate::BaudOther(921600) => B921600,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(1000000) => B1000000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(1152000) => B1152000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(1500000) => B1500000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(2000000) => B2000000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(2500000) => B2500000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(3000000) => B3000000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(3500000) => B3500000,
-            #[cfg(target_os = "linux")]
-            BaudRate::BaudOther(4000000) => B4000000,
+            BaudRate::Baud230400 => B230400,
+            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
+            BaudRate::Baud460800 => B460800,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud500000 => B500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud576000 => B576000,
+            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
+            BaudRate::Baud921600 => B921600,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1000000 => B1000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1152000 => B1152000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1500000 => B1500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud2000000 => B2000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud2500000 => B2500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud3000000 => B3000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud3500000 => B3500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud4000000 => B4000000,
 
             BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
         };
