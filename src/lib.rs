@@ -176,28 +176,107 @@ impl From<Error> for io::Error {
 /// rates. Using the standard baud rates is more likely to result in portable applications.
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum BaudRate {
+    /** 50 baud. */
+    #[cfg(not(windows))]
+    Baud50,
+    /** 75 baud. */
+    #[cfg(not(windows))]
+    Baud75,
     /** 110 baud. */
     Baud110,
+    /** 134 baud. */
+    #[cfg(not(windows))]
+    Baud134,
+    /** 150 baud. */
+    #[cfg(not(windows))]
+    Baud150,
+    /** 200 baud. */
+    #[cfg(not(windows))]
+    Baud200,
     /** 300 baud. */
     Baud300,
     /** 600 baud. */
     Baud600,
     /** 1200 baud. */
     Baud1200,
+    /** 1800 baud. */
+    #[cfg(not(windows))]
+    Baud1800,
     /** 2400 baud. */
     Baud2400,
     /** 4800 baud. */
     Baud4800,
+    /** 7200 baud. */
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
+    Baud7200,
     /** 9600 baud. */
     Baud9600,
+    /** 14,400 baud. */
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd", windows))]
+    Baud14400,
     /** 19,200 baud. */
     Baud19200,
+    /** 28,800 baud. */
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
+    Baud28800,
     /** 38,400 baud. */
     Baud38400,
     /** 57,600 baud. */
     Baud57600,
+    /** 76,800 baud. */
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+              target_os = "netbsd", target_os = "openbsd"))]
+    Baud76800,
     /** 115,200 baud. */
     Baud115200,
+    /** 128,000 baud. */
+    #[cfg(windows)]
+    Baud128000,
+    /** 230,400 baud. */
+    #[cfg(not(windows))]
+    Baud230400,
+    /** 256,000 baud. */
+    #[cfg(windows)]
+    Baud256000,
+    /** 460,800 baud. */
+    #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
+    Baud460800,
+    /** 500,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud500000,
+    /** 576,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud576000,
+    /** 921,600 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
+    Baud921600,
+    /** 1,000,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud1000000,
+    /** 1,152,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud1152000,
+    /** 1,500,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud1500000,
+    /** 2,000,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud2000000,
+    /** 2,500,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud2500000,
+    /** 3,000,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud3000000,
+    /** 3,500,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud3500000,
+    /** 4,000,000 baud. */
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Baud4000000,
 
     /// Non-standard baud rates.
     ///
@@ -213,6 +292,26 @@ pub enum BaudRate {
     BaudOther(u32),
 }
 
+impl BaudRate {
+    /// Returns all cross-platform baud rates
+    pub fn standard_rates() -> Vec<u32> {
+        vec![110, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+    }
+
+    /// Returns all available baud rates for the current platform
+    pub fn platform_rates() -> Vec<u32> {
+        #[cfg(unix)]
+        return posix::available_baud_rates();
+
+        #[cfg(windows)]
+        return windows::available_baud_rates();
+
+        #[cfg(not(any(unix, windows)))]
+        Err(Error::new(ErrorKind::Unknown,
+                       "available_ports() not implemented for platform"))
+    }
+}
+
 impl From<u32> for BaudRate {
     /// Creates a `BaudRate` for a particular speed.
     ///
@@ -224,25 +323,77 @@ impl From<u32> for BaudRate {
     /// ```
     /// # use serialport::BaudRate;
     /// assert_eq!(BaudRate::Baud9600, BaudRate::from(9600));
-    /// assert_eq!(BaudRate::Baud115200, BaudRate::from(115200));
-    /// assert_eq!(BaudRate::BaudOther(4000000), BaudRate::from(4000000));
+    /// assert_eq!(BaudRate::BaudOther(50000), BaudRate::from(50000));
     /// assert_eq!(BaudRate::Baud9600, 9600u32.into());
-    /// assert_eq!(BaudRate::Baud115200, 115200u32.into());
-    /// assert_eq!(BaudRate::BaudOther(4000000), 4000000u32.into());
+    /// assert_eq!(BaudRate::BaudOther(50000), 50000u32.into());
     /// ```
     fn from(speed: u32) -> BaudRate {
         match speed {
+            #[cfg(not(windows))]
+            50 => BaudRate::Baud50,
+            #[cfg(not(windows))]
+            75 => BaudRate::Baud75,
             110 => BaudRate::Baud110,
+            #[cfg(not(windows))]
+            134 => BaudRate::Baud134,
+            #[cfg(not(windows))]
+            150 => BaudRate::Baud150,
+            #[cfg(not(windows))]
+            200 => BaudRate::Baud200,
             300 => BaudRate::Baud300,
             600 => BaudRate::Baud600,
             1200 => BaudRate::Baud1200,
+            #[cfg(not(windows))]
+            1800 => BaudRate::Baud1800,
             2400 => BaudRate::Baud2400,
             4800 => BaudRate::Baud4800,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            7200 => BaudRate::Baud7200,
             9600 => BaudRate::Baud9600,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd", windows))]
+            14400 => BaudRate::Baud14400,
             19200 => BaudRate::Baud19200,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            28800 => BaudRate::Baud28800,
             38400 => BaudRate::Baud38400,
             57600 => BaudRate::Baud57600,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            76800 => BaudRate::Baud76800,
             115200 => BaudRate::Baud115200,
+            #[cfg(windows)]
+            128000 => BaudRate::Baud128000,
+            #[cfg(not(windows))]
+            230400 => BaudRate::Baud230400,
+            #[cfg(windows)]
+            256000 => BaudRate::Baud256000,
+            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
+            460800 => BaudRate::Baud460800,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            500000 => BaudRate::Baud500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            576000 => BaudRate::Baud576000,
+            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
+            921600 => BaudRate::Baud921600,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            1000000 => BaudRate::Baud1000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            1152000 => BaudRate::Baud1152000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            1500000 => BaudRate::Baud1500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            2000000 => BaudRate::Baud2000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            2500000 => BaudRate::Baud2500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            3000000 => BaudRate::Baud3000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            3500000 => BaudRate::Baud3500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            4000000 => BaudRate::Baud4000000,
             n => BaudRate::BaudOther(n),
         }
     }
@@ -264,17 +415,71 @@ impl From<BaudRate> for u32 {
     /// ```
     fn from(speed: BaudRate) -> u32 {
         match speed {
+            #[cfg(not(windows))]
+            BaudRate::Baud50 => 50,
+            #[cfg(not(windows))]
+            BaudRate::Baud75 => 75,
             BaudRate::Baud110 => 110,
+            #[cfg(not(windows))]
+            BaudRate::Baud134 => 134,
+            #[cfg(not(windows))]
+            BaudRate::Baud150 => 150,
+            #[cfg(not(windows))]
+            BaudRate::Baud200 => 200,
             BaudRate::Baud300 => 300,
             BaudRate::Baud600 => 600,
             BaudRate::Baud1200 => 1200,
+            #[cfg(not(windows))]
+            BaudRate::Baud1800 => 1800,
             BaudRate::Baud2400 => 2400,
             BaudRate::Baud4800 => 4800,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud7200 => 7200,
             BaudRate::Baud9600 => 9600,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd", windows))]
+            BaudRate::Baud14400 => 14400,
             BaudRate::Baud19200 => 19200,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud28800 => 28800,
             BaudRate::Baud38400 => 38400,
             BaudRate::Baud57600 => 57600,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud76800 => 76800,
             BaudRate::Baud115200 => 115200,
+            #[cfg(windows)]
+            BaudRate::Baud128000 => 128000,
+            #[cfg(not(windows))]
+            BaudRate::Baud230400 => 230400,
+            #[cfg(windows)]
+            BaudRate::Baud256000 => 256000,
+            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
+            BaudRate::Baud460800 => 460800,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud500000 => 500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud576000 => 576000,
+            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
+            BaudRate::Baud921600 => 921600,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1000000 => 1000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1152000 => 1152000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1500000 => 1500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud2000000 => 2000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud2500000 => 2500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud3000000 => 3000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud3500000 => 3500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud4000000 => 4000000,
             BaudRate::BaudOther(n) => n,
         }
     }
@@ -670,19 +875,27 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                    "available_ports() not implemented for platform"))
 }
 
-/// Returns a list of available baud rates for this system.
-///
-/// Officially supported baud rates vary by system so this function may not
-/// return the same results across all platforms. Also note that this list may
-/// be incomplete and it's likely that the underlying platform and hardware can
-/// support more baud rates than returned by this function.
-pub fn available_baud_rates() -> Vec<u32> {
-    #[cfg(unix)]
-    return posix::available_baud_rates();
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_platform_rates() {
+        use BaudRate;
 
-    #[cfg(windows)]
-    return windows::available_baud_rates();
+        for rate in BaudRate::platform_rates().iter() {
+            if let BaudRate::BaudOther(n) = BaudRate::from(*rate) {
+                assert!(false, "BaudOther({}) not a platform rate", n);
+            }
+        }
+    }
 
-    #[cfg(not(any(unix, windows)))]
-    return Vec::new();
+    #[test]
+    fn test_standard_rates() {
+        use BaudRate;
+
+        for rate in BaudRate::standard_rates().iter() {
+            if let BaudRate::BaudOther(n) = BaudRate::from(*rate) {
+                assert!(false, "BaudOther({}) not a standard rate", n);
+            }
+        }
+    }
 }

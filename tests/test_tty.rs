@@ -45,8 +45,8 @@ fn test_ttyport_pair() {
 #[test]
 fn test_ttyport_set_standard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
-    // TODO: Convert this to a statement-level attribute once https://github.com/rust-lang/rust/issues/15701
-    //       is on stable.
+    // TODO: Convert this to a statement-level attribute once
+    //       https://github.com/rust-lang/rust/issues/15701 is on stable.
     #![allow(unused_variables)]
     let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
 

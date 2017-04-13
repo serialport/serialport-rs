@@ -200,7 +200,8 @@ impl SerialPort for COMPort {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
             data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
-            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
+            flow_control: self.flow_control()
+                .expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
             timeout: self.timeout,
@@ -269,14 +270,13 @@ impl SerialPort for COMPort {
             CBR_2400 => Some(BaudRate::Baud2400),
             CBR_4800 => Some(BaudRate::Baud4800),
             CBR_9600 => Some(BaudRate::Baud9600),
-            CBR_14400 => Some(BaudRate::BaudOther(14400)),
+            CBR_14400 => Some(BaudRate::Baud14400),
             CBR_19200 => Some(BaudRate::Baud19200),
             CBR_38400 => Some(BaudRate::Baud38400),
-            CBR_56000 => Some(BaudRate::BaudOther(56000)),
             CBR_57600 => Some(BaudRate::Baud57600),
             CBR_115200 => Some(BaudRate::Baud115200),
-            CBR_128000 => Some(BaudRate::BaudOther(128000)),
-            CBR_256000 => Some(BaudRate::BaudOther(256000)),
+            CBR_128000 => Some(BaudRate::Baud128000),
+            CBR_256000 => Some(BaudRate::Baud256000),
             n => Some(BaudRate::BaudOther(n as u32)),
         }
     }
@@ -339,10 +339,13 @@ impl SerialPort for COMPort {
             BaudRate::Baud2400 => CBR_2400,
             BaudRate::Baud4800 => CBR_4800,
             BaudRate::Baud9600 => CBR_9600,
+            BaudRate::Baud14400 => CBR_14400,
             BaudRate::Baud19200 => CBR_19200,
             BaudRate::Baud38400 => CBR_38400,
             BaudRate::Baud57600 => CBR_57600,
             BaudRate::Baud115200 => CBR_115200,
+            BaudRate::Baud128000 => CBR_128000,
+            BaudRate::Baud256000 => CBR_256000,
             BaudRate::BaudOther(n) => n as DWORD,
         };
 
@@ -545,7 +548,11 @@ impl PortDevice {
         } else {
             let end_of_buffer = result_buf.len() - 1;
             result_buf[end_of_buffer] = 0;
-            Some(unsafe { CStr::from_ptr(result_buf.as_ptr()).to_string_lossy().into_owned() })
+            Some(unsafe {
+                     CStr::from_ptr(result_buf.as_ptr())
+                         .to_string_lossy()
+                         .into_owned()
+                 })
         }
     }
 
@@ -590,12 +597,16 @@ impl PortDevice {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
                         return ::SerialPortType::UsbPort(::UsbPortInfo {
-                            vid: vid,
-                            pid: pid,
-                            serial_number: caps.get(4).map(|m| m.as_str().to_string()),
-                            manufacturer: self.property(SPDRP_MFG),
-                            product: self.property(SPDRP_FRIENDLYNAME),
-                        });
+                                                             vid: vid,
+                                                             pid: pid,
+                                                             serial_number: caps.get(4)
+                                                                 .map(|m| {
+                                                                          m.as_str().to_string()
+                                                                      }),
+                                                             manufacturer: self.property(SPDRP_MFG),
+                                                             product:
+                                                                 self.property(SPDRP_FRIENDLYNAME),
+                                                         });
                     }
                 }
             }
@@ -623,7 +634,11 @@ impl PortDevice {
         }
         let end_of_buffer = result_buf.len() - 1;
         result_buf[end_of_buffer] = 0;
-        Some(unsafe { CStr::from_ptr(result_buf.as_ptr()).to_string_lossy().into_owned() })
+        Some(unsafe {
+                 CStr::from_ptr(result_buf.as_ptr())
+                     .to_string_lossy()
+                     .into_owned()
+             })
     }
 }
 
@@ -652,5 +667,5 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 /// Return a list of offically-supported baud rates. It is likely that the hardware supports
 /// more baud rates than this (many support arbitrary baud rates).
 pub fn available_baud_rates() -> Vec<u32> {
-    vec![110u32, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+    vec![110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200, 128000, 256000]
 }
