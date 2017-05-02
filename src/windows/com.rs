@@ -12,6 +12,7 @@ use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::CHAR;
 use winapi::shared::winerror::*;
+use winapi::um::cguid::GUID_NULL;
 use winapi::um::commapi::*;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::fileapi::*;
@@ -24,15 +25,6 @@ use winapi::um::winreg::*;
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
      StopBits};
 use {Error, ErrorKind};
-
-// GUID_NULL is defined in winapi 0.3, but we're still using 0.2.8, so we declare it here.
-// This can be removed once we move to winapi 0.3
-const GUID_NULL: GUID = GUID {
-    Data1: 0,
-    Data2: 0,
-    Data3: 0,
-    Data4: [0; 8],
-};
 
 /// A serial port implementation for Windows COM ports.
 ///

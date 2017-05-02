@@ -35,7 +35,7 @@ regex = "0.2"
 [target."cfg(windows)".dependencies.winapi]
 git = "https://github.com/retep998/winapi-rs.git"
 branch = "dev"
-features = ["commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
+features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
             "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
