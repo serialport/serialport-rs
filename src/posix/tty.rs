@@ -682,8 +682,8 @@ impl SerialPort for TTYPort {
         use termios::CSTOPB;
 
         match stop_bits {
-            StopBits::Two => self.termios.c_cflag &= !CSTOPB,
-            StopBits::One => self.termios.c_cflag |= CSTOPB,
+            StopBits::One => self.termios.c_cflag &= !CSTOPB,
+            StopBits::Two => self.termios.c_cflag |= CSTOPB,
         };
         self.write_settings()
     }
