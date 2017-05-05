@@ -23,6 +23,10 @@ and this project adheres to http://semver.org/[Semantic Versioning].
   this has a more clear semantic meaning. The returned list of baud rates is
   now also correct for all supported platforms.
 
+==== Fixed
+* Stop bits are now specified properly (had been reversed). Thanks to
+  @serviushack (MR#9)
+
 === [1.0.1] - 2017-02-20
 ==== Fixed
 * `read()` now properly blocks for at least one character
