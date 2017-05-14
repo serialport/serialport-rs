@@ -73,6 +73,12 @@ fn ptsname_r(fd: RawFd) -> ::Result<String> {
     Ok(name.to_string_lossy().into_owned())
 }
 
+fn cleanup_fd(fd: RawFd) {
+    let _ = unsafe {
+        libc::close(fd);
+    };
+}
+
 impl TTYPort {
     /// Opens a TTY device as a serial port.
     ///
@@ -88,6 +94,9 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
+
+        println!("OPENING PORT {}!", path.to_string_lossy());
+
         use nix::fcntl::{O_RDWR, O_NOCTTY, O_NONBLOCK, F_SETFL};
         use termios::{CREAD, CLOCAL}; // cflags
         use termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
@@ -99,7 +108,10 @@ impl TTYPort {
 
         let mut termios = match termios::Termios::from_fd(fd) {
             Ok(t) => t,
-            Err(e) => return Err(e.into()),
+            Err(e) => {
+                cleanup_fd(fd);
+                return Err(e.into());
+            }
         };
 
         // setup TTY for binary serial port access
@@ -112,20 +124,37 @@ impl TTYPort {
 
         // write settings to TTY
         if let Err(err) = tcsetattr(fd, TCSANOW, &termios) {
+            cleanup_fd(fd);
             return Err(err.into());
         }
 
         // Read back settings from port and confirm they were applied correctly
         // TODO: Switch this to an all-zeroed termios struct
         let mut actual_termios = termios;
+
         if let Err(err) = tcgetattr(fd, &mut actual_termios) {
+            cleanup_fd(fd);
             return Err(err.into());
         }
         if actual_termios != termios {
+            cleanup_fd(fd);
             return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
         }
 
         if let Err(err) = tcflush(fd, TCIOFLUSH) {
+            cleanup_fd(fd);
+            return Err(err.into());
+        }
+
+        // get exclusive access to device
+        if let Err(err) = ioctl::tiocexcl(fd) {
+            cleanup_fd(fd);
+            return Err(err.into());
+        }
+
+        // clear O_NONBLOCK flag
+        if let Err(err) = fcntl(fd, F_SETFL(nix::fcntl::OFlag::empty())) {
+            cleanup_fd(fd);
             return Err(err.into());
         }
 
@@ -137,15 +166,10 @@ impl TTYPort {
             port_name: path.to_str().map(|s| s.to_string()),
         };
 
-        // get exclusive access to device
-        if let Err(err) = ioctl::tiocexcl(port.fd) {
+        if let Err(err) = port.set_all(settings) {
+            cleanup_fd(fd);
             return Err(err.into());
         }
-
-        // clear O_NONBLOCK flag
-        fcntl(port.fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
-
-        port.set_all(settings)?;
 
         Ok(port)
     }
@@ -291,12 +315,8 @@ impl TTYPort {
 
 impl Drop for TTYPort {
     fn drop(&mut self) {
-        #![allow(unused_must_use)]
-        ioctl::tiocnxcl(self.fd);
-
-        unsafe {
-            libc::close(self.fd);
-        }
+        ioctl::tiocnxcl(self.fd).unwrap_or(());
+        cleanup_fd(self.fd);
     }
 }
 
@@ -779,9 +799,15 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                 if let Some(devnode) = d.devnode() {
                     if let Some(path) = devnode.to_str() {
                         if let Some(driver) = p.driver() {
-                            if driver == "serial8250" &&
-                               TTYPort::open(devnode, &Default::default()).is_err() {
-                                continue;
+                            {
+                                match TTYPort::open(devnode, &Default::default()) {
+                                    Err(_) => {
+                                        if driver == "serial8250" {
+                                            continue;
+                                        }
+                                    }
+                                    _ => {}
+                                };
                             }
                         }
                         // Stop bubbling up port_type errors here so problematic ports are just
