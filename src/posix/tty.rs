@@ -148,7 +148,7 @@ impl TTYPort {
         })().map_err(|e|{
                 cleanup_fd(fd);
                 e
-            }).is_ok();
+            })?;
 
         let mut port = TTYPort {
             fd: fd,
