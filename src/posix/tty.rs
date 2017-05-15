@@ -74,7 +74,7 @@ fn ptsname_r(fd: RawFd) -> ::Result<String> {
 }
 
 fn cleanup_fd(fd: RawFd) {
-    let _ = unsafe {
+    unsafe {
         libc::close(fd);
     };
 }
@@ -136,6 +136,7 @@ impl TTYPort {
             cleanup_fd(fd);
             return Err(err.into());
         }
+
         if actual_termios != termios {
             cleanup_fd(fd);
             return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
@@ -800,13 +801,10 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                     if let Some(path) = devnode.to_str() {
                         if let Some(driver) = p.driver() {
                             {
-                                match TTYPort::open(devnode, &Default::default()) {
-                                    Err(_) => {
-                                        if driver == "serial8250" {
-                                            continue;
-                                        }
+                                if let Err(_) = TTYPort::open(devnode, &Default::default()) {
+                                    if driver == "serial8250" {
+                                        continue;
                                     }
-                                    _ => {}
                                 };
                             }
                         }
