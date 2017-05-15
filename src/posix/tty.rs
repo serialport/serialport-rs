@@ -95,8 +95,6 @@ impl TTYPort {
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
 
-        println!("OPENING PORT {}!", path.to_string_lossy());
-
         use nix::fcntl::{O_RDWR, O_NOCTTY, O_NONBLOCK, F_SETFL};
         use termios::{CREAD, CLOCAL}; // cflags
         use termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
