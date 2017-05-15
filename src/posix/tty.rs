@@ -104,16 +104,13 @@ impl TTYPort {
                                   O_RDWR | O_NOCTTY | O_NONBLOCK,
                                   nix::sys::stat::Mode::empty())?;
 
-        let mut termios = match termios::Termios::from_fd(fd) {
-            Ok(t) => t,
-            Err(e) => {
-                cleanup_fd(fd);
-                return Err(e.into());
-            }
-        };
+        let mut termios = termios::Termios::from_fd(fd)
+            .map_err(|e| {
+                         cleanup_fd(fd);
+                         e
+                     })?;
 
-        (|| {
-
+        {
             // setup TTY for binary serial port access
             // Enable reading from the port and ignore all modem control lines
             termios.c_cflag |= CREAD | CLOCAL;
@@ -145,16 +142,16 @@ impl TTYPort {
 
             Ok(())
 
-        })().map_err(|e|{
-                cleanup_fd(fd);
-                e
-            })?;
+        }.map_err(|e:Error|{
+            cleanup_fd(fd);
+            e
+        })?;
 
         let mut port = TTYPort {
             fd: fd,
             termios: termios,
             timeout: Duration::from_millis(100),
-            exclusive: true, // This is guaranteed by the following `ioctl::tiocexcl()` call
+            exclusive: true, // This is guaranteed by above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
         };
 
