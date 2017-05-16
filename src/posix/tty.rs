@@ -1,4 +1,3 @@
-use std::ffi::CStr;
 #[cfg(target_os = "macos")]
 use std::ffi::CString;
 #[cfg(target_os = "linux")]
@@ -15,9 +14,9 @@ use cf::*;
 #[cfg(target_os = "macos")]
 use IOKit_sys::*;
 use ioctl;
-use libc::{self, c_int};
 #[cfg(target_os = "macos")]
 use libc::{c_char, c_void};
+use libc::c_int;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
@@ -41,36 +40,6 @@ pub struct TTYPort {
     timeout: Duration,
     exclusive: bool,
     port_name: Option<String>,
-}
-
-// TODO: Replace this with `nix::pty::ptsname` as soon as #556 is merged.
-#[cfg(not(any(target_os = "linux",
-              target_os = "android",
-              target_os = "emscripten",
-              target_os = "fuchsia")))]
-fn ptsname(fd: RawFd) -> ::Result<String> {
-    let name_ptr = unsafe { libc::ptsname(fd) };
-    if name_ptr.is_null() {
-        return Err(nix::Error::last().into());
-    }
-
-    let name = unsafe { CStr::from_ptr(name_ptr) };
-    Ok(name.to_string_lossy().into_owned())
-}
-
-// TODO: Replace this with `nix::pty::ptsname_r` as soon as #556 is merged.
-#[cfg(any(target_os = "linux",
-          target_os = "android",
-          target_os = "emscripten",
-          target_os = "fuchsia"))]
-fn ptsname_r(fd: RawFd) -> ::Result<String> {
-    let mut name_buf = [0 as libc::c_char; 64];
-    if unsafe { libc::ptsname_r(fd, name_buf.as_mut_ptr(), name_buf.len()) } != 0 {
-        return Err(nix::Error::last().into());
-    }
-
-    let name = unsafe { CStr::from_ptr(name_buf.as_ptr()) };
-    Ok(name.to_string_lossy().into_owned())
 }
 
 impl TTYPort {
@@ -239,37 +208,26 @@ impl TTYPort {
     pub fn pair() -> ::Result<(Self, Self)> {
 
         // Open the next free pty.
-        let next_pty_fd = unsafe { libc::posix_openpt(libc::O_RDWR) };
-        if next_pty_fd < 0 {
-            return Err(nix::Error::last().into());
-        }
+        let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::O_RDWR)?;
 
         // Grant access to the associated slave pty
-        if unsafe { libc::grantpt(next_pty_fd) } < 0 {
-            nix::unistd::close(next_pty_fd)?;
-            return Err(nix::Error::last().into());
-        }
+        nix::pty::grantpt(&next_pty_fd)?;
 
         // Unlock the slave pty
-        if unsafe { libc::unlockpt(next_pty_fd) } < 0 {
-            nix::unistd::close(next_pty_fd)?;
-            return Err(nix::Error::last().into());
-        }
+        nix::pty::unlockpt(&next_pty_fd)?;
 
         // Get the path of the attached slave ptty
-        // TODO: Switch this to use `nix::pty::ptsname(_r)?` as soon as #556 is
-        // merged.
         #[cfg(not(any(target_os = "linux",
                       target_os = "android",
                       target_os = "emscripten",
                       target_os = "fuchsia")))]
-        let ptty_name = ptsname(next_pty_fd)?;
+        let ptty_name = nix::pty::ptsname(&next_pty_fd)?;
 
         #[cfg(any(target_os = "linux",
                   target_os = "android",
                   target_os = "emscripten",
                   target_os = "fuchsia"))]
-        let ptty_name = ptsname_r(next_pty_fd)?;
+        let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
         // Open the slave port using default settings
         let slave_tty = TTYPort::open(Path::new(&ptty_name), &Default::default())?;
@@ -278,7 +236,7 @@ impl TTYPort {
         // `Termios::from_fd()` doesn't work on Mac, Solaris, and maybe other
         // BSDs because `tcgetattr` will fail when used on the master port.
         let master_tty = TTYPort {
-            fd: next_pty_fd,
+            fd: next_pty_fd.into_raw_fd(),
             termios: slave_tty.termios,
             timeout: Duration::from_millis(100),
             exclusive: true,

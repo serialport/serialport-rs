@@ -20,8 +20,8 @@ impl From<nix::Error> for ::Error {
     fn from(e: nix::Error) -> ::Error {
         let description = e.errno().desc();
         match e {
-            nix::Error::Sys(_) => ::Error::new(::ErrorKind::Unknown, description),
             nix::Error::InvalidPath => ::Error::new(::ErrorKind::InvalidInput, description),
+            _ => ::Error::new(::ErrorKind::Unknown, description),
         }
     }
 }
