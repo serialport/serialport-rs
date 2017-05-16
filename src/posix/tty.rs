@@ -15,7 +15,7 @@ use cf::*;
 #[cfg(target_os = "macos")]
 use IOKit_sys::*;
 use ioctl;
-use libc::{self, c_int, c_void, size_t};
+use libc::{self, c_int};
 #[cfg(target_os = "macos")]
 use libc::c_char;
 #[cfg(target_os = "linux")]
@@ -254,13 +254,13 @@ impl TTYPort {
 
         // Grant access to the associated slave pty
         if unsafe { libc::grantpt(next_pty_fd) } < 0 {
-            unsafe { libc::close(next_pty_fd) };
+            nix::unistd::close(next_pty_fd)?;
             return Err(nix::Error::last().into());
         }
 
         // Unlock the slave pty
         if unsafe { libc::unlockpt(next_pty_fd) } < 0 {
-            unsafe { libc::close(next_pty_fd) };
+            nix::unistd::close(next_pty_fd)?;
             return Err(nix::Error::last().into());
         }
 
@@ -299,8 +299,9 @@ impl TTYPort {
 
 impl Drop for TTYPort {
     fn drop(&mut self) {
-        ioctl::tiocnxcl(self.fd).unwrap_or(());
-        unistd::close(self.fd).unwrap_or(());
+        #![allow(unused_must_use)]
+        ioctl::tiocnxcl(self.fd);
+        nix::unistd::close(self.fd).unwrap();
     }
 }
 
@@ -348,13 +349,8 @@ impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         super::poll::wait_read_fd(self.fd, self.timeout)?;
 
-        let len = unsafe { libc::read(self.fd, buf.as_ptr() as *mut c_void, buf.len() as size_t) };
-
-        if len >= 0 {
-            Ok(len as usize)
-        } else {
-            Err(io::Error::last_os_error())
-        }
+        let len = nix::unistd::read(self.fd, buf)?;
+        Ok(len)
     }
 }
 
@@ -362,13 +358,8 @@ impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         super::poll::wait_write_fd(self.fd, self.timeout)?;
 
-        let len = unsafe { libc::write(self.fd, buf.as_ptr() as *mut c_void, buf.len() as size_t) };
-
-        if len >= 0 {
-            Ok(len as usize)
-        } else {
-            Err(io::Error::last_os_error())
-        }
+        let len = nix::unistd::write(self.fd, buf)?;
+        Ok(len)
     }
 
     fn flush(&mut self) -> io::Result<()> {
