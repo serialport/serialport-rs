@@ -21,6 +21,7 @@ use libc::c_char;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
+use nix::unistd;
 use nix::fcntl::fcntl;
 use termios;
 
@@ -291,12 +292,8 @@ impl TTYPort {
 
 impl Drop for TTYPort {
     fn drop(&mut self) {
-        #![allow(unused_must_use)]
-        ioctl::tiocnxcl(self.fd);
-
-        unsafe {
-            libc::close(self.fd);
-        }
+        ioctl::tiocnxcl(self.fd).unwrap_or(());
+        unistd::close(self.fd).unwrap_or(());
     }
 }
 
