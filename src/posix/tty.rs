@@ -98,55 +98,61 @@ impl TTYPort {
                                   O_RDWR | O_NOCTTY | O_NONBLOCK,
                                   nix::sys::stat::Mode::empty())?;
 
-        let mut termios = match termios::Termios::from_fd(fd) {
-            Ok(t) => t,
-            Err(e) => return Err(e.into()),
-        };
+        let mut termios = termios::Termios::from_fd(fd)
+            .map_err(|e| {
+                         unistd::close(fd).unwrap_or(());
+                         e
+                     })?;
 
-        // setup TTY for binary serial port access
-        // Enable reading from the port and ignore all modem control lines
-        termios.c_cflag |= CREAD | CLOCAL;
-        // Enable raw mode with disables any implicit processing of the input or output data streams
-        // This also sets no timeout period and a read will block until at least one character is
-        // available.
-        cfmakeraw(&mut termios);
+        {
+            // setup TTY for binary serial port access
+            // Enable reading from the port and ignore all modem control lines
+            termios.c_cflag |= CREAD | CLOCAL;
+            // Enable raw mode with disables any implicit processing of the input or output data streams
+            // This also sets no timeout period and a read will block until at least one character is
+            // available.
+            cfmakeraw(&mut termios);
 
-        // write settings to TTY
-        if let Err(err) = tcsetattr(fd, TCSANOW, &termios) {
-            return Err(err.into());
-        }
+            // write settings to TTY
+            tcsetattr(fd, TCSANOW, &termios)?;
 
-        // Read back settings from port and confirm they were applied correctly
-        // TODO: Switch this to an all-zeroed termios struct
-        let mut actual_termios = termios;
-        if let Err(err) = tcgetattr(fd, &mut actual_termios) {
-            return Err(err.into());
-        }
-        if actual_termios != termios {
-            return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
-        }
+            // Read back settings from port and confirm they were applied correctly
+            // TODO: Switch this to an all-zeroed termios struct
+            let mut actual_termios = termios;
 
-        if let Err(err) = tcflush(fd, TCIOFLUSH) {
-            return Err(err.into());
-        }
+            tcgetattr(fd, &mut actual_termios)?;
+
+            if actual_termios != termios {
+                return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
+            };
+
+            tcflush(fd, TCIOFLUSH)?;
+
+            // get exclusive access to device
+            ioctl::tiocexcl(fd)?;
+
+            // clear O_NONBLOCK flag
+            fcntl(fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
+
+            Ok(())
+
+        }.map_err(|e:Error|{
+            unistd::close(fd).unwrap_or(());
+            e
+        })?;
 
         let mut port = TTYPort {
             fd: fd,
             termios: termios,
             timeout: Duration::from_millis(100),
-            exclusive: true, // This is guaranteed by the following `ioctl::tiocexcl()` call
+            exclusive: true, // This is guaranteed by above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
         };
 
-        // get exclusive access to device
-        if let Err(err) = ioctl::tiocexcl(port.fd) {
+        if let Err(err) = port.set_all(settings) {
+            unistd::close(fd).unwrap_or(());
             return Err(err.into());
         }
-
-        // clear O_NONBLOCK flag
-        fcntl(port.fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
-
-        port.set_all(settings)?;
 
         Ok(port)
     }
