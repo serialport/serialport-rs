@@ -29,6 +29,29 @@ use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, Serial
      SerialPortType, StopBits, UsbPortInfo};
 use {Error, ErrorKind};
 
+
+/// Convenience method for closing a file descriptor and
+/// possibly centralizing platform specific workarounds
+fn close_fd(fd: RawFd){
+    #![allow(unused_must_use)]
+    // remove exclusive access
+    ioctl::tiocnxcl(fd);
+    // On Linux and BSD, we don't need to worry about return
+    // type as EBADF means the fd was never open or is already closed
+    //
+    // Linux and BSD guarantee that for any other error code the
+    // fd is already closed, though MacOSX does not. 
+    //
+    // close() also should never be retried, and the error code
+    // in most cases in purely informative
+    //
+    // TODO: We need robust MacOSX support, as mac osx posix
+    // close has issues. 
+    //
+    // cf [libc issue 595](https://github.com/rust-lang/libc/issues/595)
+    unistd::close(fd);
+}
+
 /// A TTY-based serial port implementation.
 ///
 /// The port will be closed when the value is dropped. However, this struct
@@ -101,7 +124,7 @@ impl TTYPort {
 
         let mut termios = termios::Termios::from_fd(fd)
             .map_err(|e| {
-                         unistd::close(fd).unwrap_or(());
+                         close_fd(fd);
                          e
                      })?;
 
@@ -138,7 +161,7 @@ impl TTYPort {
             Ok(())
 
         }.map_err(|e:Error|{
-            unistd::close(fd).unwrap_or(());
+            close_fd(fd);
             e
         })?;
 
@@ -151,7 +174,7 @@ impl TTYPort {
         };
 
         if let Err(err) = port.set_all(settings) {
-            unistd::close(fd).unwrap_or(());
+            close_fd(fd);
             return Err(err.into());
         }
 
@@ -254,13 +277,13 @@ impl TTYPort {
 
         // Grant access to the associated slave pty
         if unsafe { libc::grantpt(next_pty_fd) } < 0 {
-            nix::unistd::close(next_pty_fd)?;
+            close_fd(next_pty_fd);
             return Err(nix::Error::last().into());
         }
 
         // Unlock the slave pty
         if unsafe { libc::unlockpt(next_pty_fd) } < 0 {
-            nix::unistd::close(next_pty_fd)?;
+            close_fd(next_pty_fd);
             return Err(nix::Error::last().into());
         }
 
@@ -299,9 +322,7 @@ impl TTYPort {
 
 impl Drop for TTYPort {
     fn drop(&mut self) {
-        #![allow(unused_must_use)]
-        ioctl::tiocnxcl(self.fd);
-        nix::unistd::close(self.fd).unwrap();
+        close_fd(self.fd);
     }
 }
 
