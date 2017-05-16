@@ -21,6 +21,7 @@ use libc::c_char;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
+use nix::unistd;
 use nix::fcntl::fcntl;
 use termios;
 
@@ -73,12 +74,6 @@ fn ptsname_r(fd: RawFd) -> ::Result<String> {
     Ok(name.to_string_lossy().into_owned())
 }
 
-fn cleanup_fd(fd: RawFd) {
-    unsafe {
-        libc::close(fd);
-    };
-}
-
 impl TTYPort {
     /// Opens a TTY device as a serial port.
     ///
@@ -106,7 +101,7 @@ impl TTYPort {
 
         let mut termios = termios::Termios::from_fd(fd)
             .map_err(|e| {
-                         cleanup_fd(fd);
+                         unistd::close(fd).unwrap_or(());
                          e
                      })?;
 
@@ -143,7 +138,7 @@ impl TTYPort {
             Ok(())
 
         }.map_err(|e:Error|{
-            cleanup_fd(fd);
+            unistd::close(fd).unwrap_or(());
             e
         })?;
 
@@ -156,7 +151,7 @@ impl TTYPort {
         };
 
         if let Err(err) = port.set_all(settings) {
-            cleanup_fd(fd);
+            unistd::close(fd).unwrap_or(());
             return Err(err.into());
         }
 
@@ -305,7 +300,7 @@ impl TTYPort {
 impl Drop for TTYPort {
     fn drop(&mut self) {
         ioctl::tiocnxcl(self.fd).unwrap_or(());
-        cleanup_fd(self.fd);
+        unistd::close(self.fd).unwrap_or(());
     }
 }
 
