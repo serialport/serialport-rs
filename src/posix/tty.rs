@@ -20,12 +20,38 @@ use libc::c_int;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
+use nix::unistd;
 use nix::fcntl::fcntl;
 use termios;
 
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
      SerialPortType, StopBits, UsbPortInfo};
 use {Error, ErrorKind};
+
+/// Convenience method for removing exclusive access from
+/// a fd and closing it.
+fn close(fd: RawFd){
+    // remove exclusive access
+    #![allow(unused_must_use)]
+    ioctl::tiocnxcl(fd);
+
+    // On Linux and BSD, we don't need to worry about return
+    // type as EBADF means the fd was never open or is already closed
+    //
+    // Linux and BSD guarantee that for any other error code the
+    // fd is already closed, though MacOSX does not. 
+    //
+    // close() also should never be retried, and the error code
+    // in most cases in purely informative
+    //
+    // TODO: We need robust MacOSX support, as mac osx posix
+    // close has issues. We could add a cfg item here to
+    // call close$NOCANCEL on OSX until these tickets are closed
+    //
+    // see [nix issue 604](https://github.com/nix-rust/nix/issues/604)
+    // see [libc issue 595](https://github.com/rust-lang/libc/issues/595)
+    unistd::close(fd);
+}
 
 /// A TTY-based serial port implementation.
 ///
@@ -57,6 +83,7 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
+
         use nix::fcntl::{O_RDWR, O_NOCTTY, O_NONBLOCK, F_SETFL};
         use termios::{CREAD, CLOCAL}; // cflags
         use termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
@@ -66,55 +93,67 @@ impl TTYPort {
                                   O_RDWR | O_NOCTTY | O_NONBLOCK,
                                   nix::sys::stat::Mode::empty())?;
 
-        let mut termios = match termios::Termios::from_fd(fd) {
-            Ok(t) => t,
-            Err(e) => return Err(e.into()),
-        };
+        let mut termios = termios::Termios::from_fd(fd)
+            .map_err(|e| {
+                         close(fd);
+                         e
+                     })?;
 
-        // setup TTY for binary serial port access
-        // Enable reading from the port and ignore all modem control lines
-        termios.c_cflag |= CREAD | CLOCAL;
-        // Enable raw mode with disables any implicit processing of the input or output data streams
-        // This also sets no timeout period and a read will block until at least one character is
-        // available.
-        cfmakeraw(&mut termios);
+        // If any of these steps fail, then we should abort creation of the 
+        // TTYPort and ensure the file descriptor is closed.
+        // So we wrap these calls in a block and check the result.
+        {
+            // setup TTY for binary serial port access
+            // Enable reading from the port and ignore all modem control lines
+            termios.c_cflag |= CREAD | CLOCAL;
+            // Enable raw mode with disables any implicit processing of the input or output data streams
+            // This also sets no timeout period and a read will block until at least one character is
+            // available.
+            cfmakeraw(&mut termios);
 
-        // write settings to TTY
-        if let Err(err) = tcsetattr(fd, TCSANOW, &termios) {
-            return Err(err.into());
-        }
+            // write settings to TTY
+            tcsetattr(fd, TCSANOW, &termios)?;
 
-        // Read back settings from port and confirm they were applied correctly
-        // TODO: Switch this to an all-zeroed termios struct
-        let mut actual_termios = termios;
-        if let Err(err) = tcgetattr(fd, &mut actual_termios) {
-            return Err(err.into());
-        }
-        if actual_termios != termios {
-            return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
-        }
+            // Read back settings from port and confirm they were applied correctly
+            // TODO: Switch this to an all-zeroed termios struct
+            let mut actual_termios = termios;
 
-        if let Err(err) = tcflush(fd, TCIOFLUSH) {
-            return Err(err.into());
-        }
+            tcgetattr(fd, &mut actual_termios)?;
+
+            if actual_termios != termios {
+                return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
+            };
+
+            tcflush(fd, TCIOFLUSH)?;
+
+            // get exclusive access to device
+            ioctl::tiocexcl(fd)?;
+
+            // clear O_NONBLOCK flag
+            fcntl(fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
+
+            Ok(())
+
+        }.map_err(|e:Error|{
+            close(fd);
+            e
+        })?;
 
         let mut port = TTYPort {
             fd: fd,
             termios: termios,
             timeout: Duration::from_millis(100),
-            exclusive: true, // This is guaranteed by the following `ioctl::tiocexcl()` call
+            exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
         };
 
-        // get exclusive access to device
-        if let Err(err) = ioctl::tiocexcl(port.fd) {
+        // Then we try and finish setting up the port.
+        // If this fails, we also need to be sure to close the 
+        // file descriptor.
+        if let Err(err) = port.set_all(settings) {
+            close(fd);
             return Err(err.into());
         }
-
-        // clear O_NONBLOCK flag
-        fcntl(port.fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
-
-        port.set_all(settings)?;
 
         Ok(port)
     }
@@ -249,10 +288,7 @@ impl TTYPort {
 
 impl Drop for TTYPort {
     fn drop(&mut self) {
-        #![allow(unused_must_use)]
-        ioctl::tiocnxcl(self.fd);
-
-        nix::unistd::close(self.fd).unwrap();
+        close(self.fd);
     }
 }
 
