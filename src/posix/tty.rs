@@ -32,8 +32,7 @@ use {Error, ErrorKind};
 /// a fd and closing it.
 fn close(fd: RawFd){
     // remove exclusive access
-    #![allow(unused_must_use)]
-    ioctl::tiocnxcl(fd);
+    let _ = ioctl::tiocnxcl(fd);
 
     // On Linux and BSD, we don't need to worry about return
     // type as EBADF means the fd was never open or is already closed
@@ -50,7 +49,7 @@ fn close(fd: RawFd){
     //
     // see [nix issue 604](https://github.com/nix-rust/nix/issues/604)
     // see [libc issue 595](https://github.com/rust-lang/libc/issues/595)
-    unistd::close(fd);
+    let _ = unistd::close(fd);
 }
 
 /// A TTY-based serial port implementation.
