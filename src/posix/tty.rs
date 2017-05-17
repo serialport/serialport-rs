@@ -17,7 +17,7 @@ use IOKit_sys::*;
 use ioctl;
 use libc::{self, c_int};
 #[cfg(target_os = "macos")]
-use libc::c_char;
+use libc::{c_char, c_void};
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
