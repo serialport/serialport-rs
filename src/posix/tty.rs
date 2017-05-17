@@ -39,7 +39,7 @@ fn close(fd: RawFd){
     // type as EBADF means the fd was never open or is already closed
     //
     // Linux and BSD guarantee that for any other error code the
-    // fd is already closed, though MacOSX does not. 
+    // fd is already closed, though MacOSX does not.
     //
     // close() also should never be retried, and the error code
     // in most cases in purely informative
@@ -99,7 +99,7 @@ impl TTYPort {
                          e
                      })?;
 
-        // If any of these steps fail, then we should abort creation of the 
+        // If any of these steps fail, then we should abort creation of the
         // TTYPort and ensure the file descriptor is closed.
         // So we wrap these calls in a block and check the result.
         {
@@ -148,7 +148,7 @@ impl TTYPort {
         };
 
         // Then we try and finish setting up the port.
-        // If this fails, we also need to be sure to close the 
+        // If this fails, we also need to be sure to close the
         // file descriptor.
         if let Err(err) = port.set_all(settings) {
             close(fd);
