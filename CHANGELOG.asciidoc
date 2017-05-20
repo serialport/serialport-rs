@@ -26,7 +26,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 ==== Fixed
 * Stop bits are now specified properly (had been reversed). Thanks to
   @serviushack (MR#9)
-* `TTYPort::open()` is now thread-safe.
+* `TTYPort::pair()` is now thread-safe.
 * `TTYPort::open()` no longer leaks file descriptors if it errors. Thanks to
   @daniel (MR#12)
 
