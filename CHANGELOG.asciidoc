@@ -12,6 +12,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Serial port enumeration now attempts to return the interface used for the
   port (USB, PCI, Bluetooth, Unknown).
 * `BaudRate::standard_rates()` provides a vector of cross-platform baud rates.
+* `SerialPort` trait is now `Send`
 
 ==== Changed
 * Software license has changed from LGPLv3+ to MPL-2.0. This makes it
