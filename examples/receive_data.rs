@@ -6,21 +6,34 @@ use std::time::Duration;
 use std::io::{self, Write};
 
 use argparse::{ArgumentParser, Store};
+use serialport::prelude::*;
 
 fn main() {
     let mut port_name = "".to_string();
+    let mut baud_rate = "".to_string();
     {
         let mut ap = ArgumentParser::new();
-        ap.set_description("Read from the given serial port at 9600 baud");
+        ap.set_description("Read from the given serial port");
         ap.refer(&mut port_name)
             .add_argument("port", Store, "Port name")
+            .required();
+        ap.refer(&mut baud_rate)
+            .add_argument("baud", Store, "Baud rate")
             .required();
         ap.parse_args_or_exit();
     }
 
-    if let Ok(mut port) = serialport::open(&port_name) {
+    let mut settings: SerialPortSettings = Default::default();
+    if let Ok(rate) = baud_rate.parse::<u32>() {
+        settings.baud_rate = rate.into();
+    } else {
+        println!("Error: Invalid baud rate '{}' specified", baud_rate);
+        return;
+    }
+
+    if let Ok(mut port) = serialport::open_with_settings(&port_name, &settings) {
         let mut serial_buf: Vec<u8> = vec![0; 1000];
-        println!("Receiving data on {} at 9600 baud:", &port_name);
+        println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
         loop {
             if let Ok(t) = port.read(serial_buf.as_mut_slice()) {
                 io::stdout().write_all(&serial_buf[..t]).unwrap();
