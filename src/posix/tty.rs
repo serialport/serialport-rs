@@ -333,18 +333,22 @@ impl FromRawFd for TTYPort {
 
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        super::poll::wait_read_fd(self.fd, self.timeout)?;
+        super::poll::wait_read_fd(self.fd, self.timeout)
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "wait_read_fd failed"))?;
 
-        let len = nix::unistd::read(self.fd, buf)?;
+        let len = nix::unistd::read(self.fd, buf)
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "read failed"))?;
         Ok(len)
     }
 }
 
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        super::poll::wait_write_fd(self.fd, self.timeout)?;
+        super::poll::wait_write_fd(self.fd, self.timeout)
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "wait_write_fd failed"))?;
 
-        let len = nix::unistd::write(self.fd, buf)?;
+        let len = nix::unistd::write(self.fd, buf)
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "write failed"))?;
         Ok(len)
     }
 
