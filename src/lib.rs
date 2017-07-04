@@ -39,8 +39,6 @@ extern crate IOKit_sys;
 extern crate CoreFoundation_sys as cf;
 #[cfg(target_os = "macos")]
 extern crate mach;
-#[cfg(unix)]
-extern crate termios;
 
 #[cfg(windows)]
 extern crate regex;
