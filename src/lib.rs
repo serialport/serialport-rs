@@ -742,7 +742,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
 #[derive(Debug,Clone,PartialEq,Eq)]
 /// Contains all possible USB information about a `SerialPort`
 pub struct UsbPortInfo {
-    /// Vender ID
+    /// Vendor ID
     pub vid: u16,
     /// Product ID
     pub pid: u16,
