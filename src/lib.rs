@@ -29,9 +29,9 @@
 #[cfg(target_os = "linux")]
 extern crate libudev;
 #[cfg(unix)]
-extern crate nix;
+#[macro_use] extern crate nix;
 #[cfg(unix)]
-extern crate ioctl_rs as ioctl;
+#[macro_use] extern crate bitflags;
 #[cfg(target_os = "macos")]
 extern crate IOKit_sys;
 #[cfg(target_os = "macos")]
