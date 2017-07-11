@@ -23,6 +23,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Removed `available_baud_rates` in favor of `BaudRate::platform_rates()` as
   this has a more clear semantic meaning. The returned list of baud rates is
   now also correct for all supported platforms.
+* Removed `termios` dependency in favor of `nix`. This is a big step towards
+  supporting additional platforms.
 
 ==== Fixed
 * Stop bits are now specified properly (had been reversed). Thanks to
