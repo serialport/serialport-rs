@@ -13,7 +13,10 @@ code from the https://github.com/dcuddeback/serial-rs[serial-rs] library and aim
 very similar interface to that of the https://doc.qt.io/qt-5/qserialport.html[QSerialPort]
 library.
 
-== Feature Overview
+For async I/O functionality, see the https://github.com/berkowski/mio-serial[mio-serial] and
+https://github.com/berkowski/tokio-serial[tokio-serial] crates.
+
+== Features
 
 The library has been organized such that there is a high-level `SerialPort` trait that provides
 a cross-platform API for accessing serial ports. This is the preferred method of interacting
