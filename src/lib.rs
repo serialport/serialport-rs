@@ -26,7 +26,6 @@
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
-extern crate libc;
 #[cfg(target_os = "linux")]
 extern crate libudev;
 #[cfg(unix)]

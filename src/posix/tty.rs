@@ -16,8 +16,8 @@ use cf::*;
 use IOKit_sys::*;
 use ioctl;
 #[cfg(target_os = "macos")]
-use libc::{c_char, c_void};
-use libc::c_int;
+use nix::libc::{c_char, c_void};
+use nix::libc::c_int;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
