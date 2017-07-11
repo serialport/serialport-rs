@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types,dead_code)]
 
 use std::io;
+use std::os::unix::io::RawFd;
 use std::time::Duration;
 
 use libc;
@@ -11,15 +12,15 @@ use nix::sys::signal::SigSet;
 #[cfg(target_os = "linux")]
 use nix::sys::time::{TimeSpec, TimeValLike};
 
-pub fn wait_read_fd(fd: libc::c_int, timeout: Duration) -> io::Result<()> {
+pub fn wait_read_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
     wait_fd(fd, POLLIN, timeout)
 }
 
-pub fn wait_write_fd(fd: libc::c_int, timeout: Duration) -> io::Result<()> {
+pub fn wait_write_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
     wait_fd(fd, POLLOUT, timeout)
 }
 
-fn wait_fd(fd: libc::c_int, events: EventFlags, timeout: Duration) -> io::Result<()> {
+fn wait_fd(fd: RawFd, events: EventFlags, timeout: Duration) -> io::Result<()> {
     use nix::Errno::{EPIPE, EIO};
 
     let mut fds = vec![PollFd::new(fd, events)];
