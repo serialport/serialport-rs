@@ -28,10 +28,11 @@ fn wait_fd(fd: RawFd, events: EventFlags, timeout: Duration) -> io::Result<()> {
 
     let milliseconds = timeout.as_secs() as i64 * 1000 + timeout.subsec_nanos() as i64 / 1_000_000;
     #[cfg(target_os = "linux")]
-    let timespec = TimeSpec::milliseconds(milliseconds);
-    #[cfg(target_os = "linux")]
-    let wait = nix::poll::ppoll(fds.as_mut_slice(), timespec, SigSet::empty())
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "ppoll failed"))?;
+    let wait = {
+        let timespec = TimeSpec::milliseconds(milliseconds);
+        nix::poll::ppoll(fds.as_mut_slice(), timespec, SigSet::empty())
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "ppoll failed"))?
+    };
     #[cfg(not(target_os = "linux"))]
     let wait = nix::poll::poll(fds.as_mut_slice(), milliseconds as libc::c_int)
         .map_err(|_| io::Error::new(io::ErrorKind::Other, "poll failed"))?;
