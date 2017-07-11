@@ -16,8 +16,8 @@ use cf::*;
 use IOKit_sys::*;
 use ioctl;
 #[cfg(target_os = "macos")]
-use libc::{c_char, c_void};
-use libc::c_int;
+use nix::libc::{c_char, c_void};
+use nix::libc::c_int;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
@@ -42,13 +42,6 @@ fn close(fd: RawFd){
     //
     // close() also should never be retried, and the error code
     // in most cases in purely informative
-    //
-    // TODO: We need robust MacOSX support, as mac osx posix
-    // close has issues. We could add a cfg item here to
-    // call close$NOCANCEL on OSX until these tickets are closed
-    //
-    // see [nix issue 604](https://github.com/nix-rust/nix/issues/604)
-    // see [libc issue 595](https://github.com/rust-lang/libc/issues/595)
     let _ = unistd::close(fd);
 }
 
