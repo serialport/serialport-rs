@@ -386,7 +386,7 @@ impl SerialPort for TTYPort {
         use nix::sys::termios::BaudRate::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
                       B9600, B19200, B38400, B57600, B115200, B230400};
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         use nix::sys::termios::BaudRate::{B460800, B500000, B576000, B921600, B1000000, B1152000, B1500000,
                                  B2000000, B2500000, B3000000, B3500000, B4000000};
 
@@ -433,29 +433,29 @@ impl SerialPort for TTYPort {
             B76800 => Some(BaudRate::BaudOther(76800)),
             B115200 => Some(BaudRate::Baud115200),
             B230400 => Some(BaudRate::BaudOther(230400)),
-            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+            #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
             B460800 => Some(BaudRate::BaudOther(460800)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B500000 => Some(BaudRate::BaudOther(500000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B576000 => Some(BaudRate::BaudOther(576000)),
-            #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+            #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
             B921600 => Some(BaudRate::BaudOther(921600)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B1000000 => Some(BaudRate::BaudOther(1000000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B1152000 => Some(BaudRate::BaudOther(1152000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android",target_os = "linux"))]
             B1500000 => Some(BaudRate::BaudOther(1500000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B2000000 => Some(BaudRate::BaudOther(2000000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B2500000 => Some(BaudRate::BaudOther(2500000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B3000000 => Some(BaudRate::BaudOther(3000000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B3500000 => Some(BaudRate::BaudOther(3500000)),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             B4000000 => Some(BaudRate::BaudOther(4000000)),
 
             _ => None,
@@ -530,7 +530,7 @@ impl SerialPort for TTYPort {
         use nix::sys::termios::BaudRate::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
                       B9600, B19200, B38400, B57600, B115200, B230400};
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         use nix::sys::termios::BaudRate::{B460800, B500000, B576000, B921600, B1000000, B1152000, B1500000,
                                  B2000000, B2500000, B3000000, B3500000, B4000000};
 
