@@ -289,6 +289,157 @@ impl TTYPort {
 
         Ok((master_tty, slave_tty))
     }
+
+    fn set_baud_rate_nowrite(&mut self, baud_rate: BaudRate) -> ::Result<()> {
+        use nix::sys::termios::cfsetspeed;
+        use nix::sys::termios::BaudRate::{B50, B75, B110, B134, B150, B200, B300, B600, B1200,
+                                          B1800, B2400, B4800, B9600, B19200, B38400, B57600,
+                                          B115200, B230400};
+
+        #[cfg(any(target_os = "linux", target_os = "android"))]
+        use nix::sys::termios::BaudRate::{B460800, B500000, B576000, B921600, B1000000, B1152000,
+                                          B1500000, B2000000, B2500000, B3000000, B3500000,
+                                          B4000000};
+
+        #[cfg(target_os = "macos")]
+        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800};
+
+        #[cfg(target_os = "freebsd")]
+        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800, B460800, B921600};
+
+        #[cfg(target_os = "openbsd")]
+        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800};
+
+        let baud = match baud_rate {
+            BaudRate::Baud50 => B50,
+            BaudRate::Baud75 => B75,
+            BaudRate::Baud110 => B110,
+            BaudRate::Baud134 => B134,
+            BaudRate::Baud150 => B150,
+            BaudRate::Baud200 => B200,
+            BaudRate::Baud300 => B300,
+            BaudRate::Baud600 => B600,
+            BaudRate::Baud1200 => B1200,
+            BaudRate::Baud1800 => B1800,
+            BaudRate::Baud2400 => B2400,
+            BaudRate::Baud4800 => B4800,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud7200 => B7200,
+            BaudRate::Baud9600 => B9600,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud14400 => B14400,
+            BaudRate::Baud19200 => B19200,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud28800 => B28800,
+            BaudRate::Baud38400 => B38400,
+            BaudRate::Baud57600 => B57600,
+            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
+                      target_os = "netbsd", target_os = "openbsd"))]
+            BaudRate::Baud76800 => B76800,
+            BaudRate::Baud115200 => B115200,
+            BaudRate::Baud230400 => B230400,
+            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
+            BaudRate::Baud460800 => B460800,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud500000 => B500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud576000 => B576000,
+            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
+            BaudRate::Baud921600 => B921600,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1000000 => B1000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1152000 => B1152000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud1500000 => B1500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud2000000 => B2000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud2500000 => B2500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud3000000 => B3000000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud3500000 => B3500000,
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            BaudRate::Baud4000000 => B4000000,
+
+            BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
+        };
+
+        cfsetspeed(&mut self.termios, baud).map_err(|e| e.into())
+    }
+
+    fn set_data_bits_nowrite(&mut self, data_bits: DataBits) -> ::Result<()> {
+        use nix::sys::termios::{CSIZE, CS5, CS6, CS7, CS8};
+
+        let size = match data_bits {
+            DataBits::Five => CS5,
+            DataBits::Six => CS6,
+            DataBits::Seven => CS7,
+            DataBits::Eight => CS8,
+        };
+
+        self.termios.control_flags.remove(CSIZE);
+        self.termios.control_flags.insert(size);
+        Ok(())
+    }
+
+    fn set_flow_control_nowrite(&mut self, flow_control: FlowControl) -> ::Result<()> {
+        use nix::sys::termios::{IXON, IXOFF, CRTSCTS};
+
+        match flow_control {
+            FlowControl::None => {
+                self.termios.input_flags.remove(IXON | IXOFF);
+                self.termios.control_flags.remove(CRTSCTS);
+            }
+            FlowControl::Software => {
+                self.termios.input_flags.insert(IXON | IXOFF);
+                self.termios.control_flags.remove(CRTSCTS);
+            }
+            FlowControl::Hardware => {
+                self.termios.input_flags.remove(IXON | IXOFF);
+                self.termios.control_flags.insert(CRTSCTS);
+            }
+        };
+        Ok(())
+    }
+
+    fn set_parity_nowrite(&mut self, parity: Parity) -> ::Result<()> {
+        use nix::sys::termios::{PARENB, PARODD, INPCK, IGNPAR};
+
+        match parity {
+            Parity::None => {
+                self.termios.control_flags.remove(PARENB | PARODD);
+                self.termios.input_flags.remove(INPCK);
+                self.termios.input_flags.insert(IGNPAR);
+            }
+            Parity::Odd => {
+                self.termios.control_flags.insert(PARENB | PARODD);
+                self.termios.input_flags.insert(INPCK);
+                self.termios.input_flags.remove(IGNPAR);
+            }
+            Parity::Even => {
+                self.termios.control_flags.remove(PARODD);
+                self.termios.control_flags.insert(PARENB);
+                self.termios.input_flags.insert(INPCK);
+                self.termios.input_flags.remove(IGNPAR);
+            }
+        };
+        Ok(())
+    }
+
+    fn set_stop_bits_nowrite(&mut self, stop_bits: StopBits) -> ::Result<()> {
+        use nix::sys::termios::CSTOPB;
+
+        match stop_bits {
+            StopBits::One => self.termios.control_flags.remove(CSTOPB),
+            StopBits::Two => self.termios.control_flags.insert(CSTOPB),
+        };
+        Ok(())
+    }
 }
 
 impl Drop for TTYPort {
@@ -516,162 +667,39 @@ impl SerialPort for TTYPort {
     }
 
     fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
-        self.set_baud_rate(settings.baud_rate)?;
-        self.set_data_bits(settings.data_bits)?;
-        self.set_flow_control(settings.flow_control)?;
-        self.set_parity(settings.parity)?;
-        self.set_stop_bits(settings.stop_bits)?;
+        self.set_baud_rate_nowrite(settings.baud_rate)?;
+        self.set_data_bits_nowrite(settings.data_bits)?;
+        self.set_flow_control_nowrite(settings.flow_control)?;
+        self.set_parity_nowrite(settings.parity)?;
+        self.set_stop_bits_nowrite(settings.stop_bits)?;
         self.set_timeout(settings.timeout)?;
+        self.write_settings()?;
+
         Ok(())
     }
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
-        use nix::sys::termios::cfsetspeed;
-        use nix::sys::termios::BaudRate::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
-                      B9600, B19200, B38400, B57600, B115200, B230400};
-
-        #[cfg(any(target_os = "linux", target_os = "android"))]
-        use nix::sys::termios::BaudRate::{B460800, B500000, B576000, B921600, B1000000, B1152000, B1500000,
-                                 B2000000, B2500000, B3000000, B3500000, B4000000};
-
-        #[cfg(target_os = "macos")]
-        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800};
-
-        #[cfg(target_os = "freebsd")]
-        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800, B460800, B921600};
-
-        #[cfg(target_os = "openbsd")]
-        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800};
-
-        let baud = match baud_rate {
-            BaudRate::Baud50 => B50,
-            BaudRate::Baud75 => B75,
-            BaudRate::Baud110 => B110,
-            BaudRate::Baud134 => B134,
-            BaudRate::Baud150 => B150,
-            BaudRate::Baud200 => B200,
-            BaudRate::Baud300 => B300,
-            BaudRate::Baud600 => B600,
-            BaudRate::Baud1200 => B1200,
-            BaudRate::Baud1800 => B1800,
-            BaudRate::Baud2400 => B2400,
-            BaudRate::Baud4800 => B4800,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud7200 => B7200,
-            BaudRate::Baud9600 => B9600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud14400 => B14400,
-            BaudRate::Baud19200 => B19200,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud28800 => B28800,
-            BaudRate::Baud38400 => B38400,
-            BaudRate::Baud57600 => B57600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud76800 => B76800,
-            BaudRate::Baud115200 => B115200,
-            BaudRate::Baud230400 => B230400,
-            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-            BaudRate::Baud460800 => B460800,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud500000 => B500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud576000 => B576000,
-            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-            BaudRate::Baud921600 => B921600,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1000000 => B1000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1152000 => B1152000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1500000 => B1500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2000000 => B2000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2500000 => B2500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3000000 => B3000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3500000 => B3500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud4000000 => B4000000,
-
-            BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
-        };
-
-        cfsetspeed(&mut self.termios, baud)?;
+        self.set_baud_rate_nowrite(baud_rate)?;
         self.write_settings()
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
-        use nix::sys::termios::{CSIZE, CS5, CS6, CS7, CS8};
-
-        let size = match data_bits {
-            DataBits::Five => CS5,
-            DataBits::Six => CS6,
-            DataBits::Seven => CS7,
-            DataBits::Eight => CS8,
-        };
-
-        self.termios.control_flags.remove(CSIZE);
-        self.termios.control_flags.insert(size);
+        self.set_data_bits_nowrite(data_bits)?;
         self.write_settings()
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
-        use nix::sys::termios::{IXON, IXOFF, CRTSCTS};
-
-        match flow_control {
-            FlowControl::None => {
-                self.termios.input_flags.remove(IXON | IXOFF);
-                self.termios.control_flags.remove(CRTSCTS);
-            }
-            FlowControl::Software => {
-                self.termios.input_flags.insert(IXON | IXOFF);
-                self.termios.control_flags.remove(CRTSCTS);
-            }
-            FlowControl::Hardware => {
-                self.termios.input_flags.remove(IXON | IXOFF);
-                self.termios.control_flags.insert(CRTSCTS);
-            }
-        };
+        self.set_flow_control_nowrite(flow_control)?;
         self.write_settings()
     }
 
     fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
-        use nix::sys::termios::{PARENB, PARODD, INPCK, IGNPAR};
-
-        match parity {
-            Parity::None => {
-                self.termios.control_flags.remove(PARENB | PARODD);
-                self.termios.input_flags.remove(INPCK);
-                self.termios.input_flags.insert(IGNPAR);
-            }
-            Parity::Odd => {
-                self.termios.control_flags.insert(PARENB | PARODD);
-                self.termios.input_flags.insert(INPCK);
-                self.termios.input_flags.remove(IGNPAR);
-            }
-            Parity::Even => {
-                self.termios.control_flags.remove(PARODD);
-                self.termios.control_flags.insert(PARENB);
-                self.termios.input_flags.insert(INPCK);
-                self.termios.input_flags.remove(IGNPAR);
-            }
-        };
+        self.set_parity_nowrite(parity)?;
         self.write_settings()
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
-        use nix::sys::termios::CSTOPB;
-
-        match stop_bits {
-            StopBits::One => self.termios.control_flags.remove(CSTOPB),
-            StopBits::Two => self.termios.control_flags.insert(CSTOPB),
-        };
+        self.set_stop_bits_nowrite(stop_bits)?;
         self.write_settings()
     }
 
