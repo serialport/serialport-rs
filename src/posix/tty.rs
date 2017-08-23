@@ -14,10 +14,9 @@ use std::fmt;
 use cf::*;
 #[cfg(target_os = "macos")]
 use IOKit_sys::*;
-use ioctl;
+use posix::ioctl;
 #[cfg(target_os = "macos")]
 use nix::libc::{c_char, c_void};
-use nix::libc::c_int;
 #[cfg(target_os = "linux")]
 use libudev;
 use nix;
@@ -210,7 +209,7 @@ impl TTYPort {
         Ok(())
     }
 
-    fn set_pin(&mut self, pin: c_int, level: bool) -> ::Result<()> {
+    fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> ::Result<()> {
         let retval = if level {
             ioctl::tiocmbis(self.fd, pin)
         } else {
@@ -223,9 +222,9 @@ impl TTYPort {
         }
     }
 
-    fn read_pin(&mut self, pin: c_int) -> ::Result<bool> {
+    fn read_pin(&mut self, pin: ioctl::SerialLines) -> ::Result<bool> {
         match ioctl::tiocmget(self.fd) {
-            Ok(pins) => Ok(pins & pin != 0),
+            Ok(pins) => Ok(pins.contains(pin)),
             Err(err) => Err(err.into()),
         }
     }
@@ -709,27 +708,27 @@ impl SerialPort for TTYPort {
     }
 
     fn write_request_to_send(&mut self, level: bool) -> ::Result<()> {
-        self.set_pin(ioctl::TIOCM_RTS, level)
+        self.set_pin(ioctl::REQUEST_TO_SEND, level)
     }
 
     fn write_data_terminal_ready(&mut self, level: bool) -> ::Result<()> {
-        self.set_pin(ioctl::TIOCM_DTR, level)
+        self.set_pin(ioctl::DATA_TERMINAL_READY, level)
     }
 
     fn read_clear_to_send(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::TIOCM_CTS)
+        self.read_pin(ioctl::CLEAR_TO_SEND)
     }
 
     fn read_data_set_ready(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::TIOCM_DSR)
+        self.read_pin(ioctl::DATA_SET_READY)
     }
 
     fn read_ring_indicator(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::TIOCM_RI)
+        self.read_pin(ioctl::RING)
     }
 
     fn read_carrier_detect(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::TIOCM_CD)
+        self.read_pin(ioctl::DATA_CARRIER_DETECT)
     }
 }
 

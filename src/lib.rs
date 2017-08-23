@@ -29,9 +29,9 @@
 #[cfg(target_os = "linux")]
 extern crate libudev;
 #[cfg(unix)]
-extern crate nix;
+#[macro_use] extern crate nix;
 #[cfg(unix)]
-extern crate ioctl_rs as ioctl;
+#[macro_use] extern crate bitflags;
 #[cfg(target_os = "macos")]
 extern crate IOKit_sys;
 #[cfg(target_os = "macos")]
@@ -742,7 +742,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
 #[derive(Debug,Clone,PartialEq,Eq)]
 /// Contains all possible USB information about a `SerialPort`
 pub struct UsbPortInfo {
-    /// Vender ID
+    /// Vendor ID
     pub vid: u16,
     /// Product ID
     pub pid: u16,
