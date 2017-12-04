@@ -86,14 +86,15 @@ impl TTYPort {
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
 
-        use nix::fcntl::{O_RDWR, O_NOCTTY, O_NONBLOCK, F_SETFL};
-        use nix::sys::termios::{CREAD, CLOCAL}; // cflags
+        use nix::fcntl::OFlag;
+        use nix::fcntl::FcntlArg::F_SETFL;
+        use nix::sys::termios::ControlFlags;
         use nix::sys::termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
         use nix::sys::termios::SetArg::TCSANOW;
         use nix::sys::termios::FlushArg::TCIOFLUSH;
 
         let fd = nix::fcntl::open(path,
-                                  O_RDWR | O_NOCTTY | O_NONBLOCK,
+                                  OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
                                   nix::sys::stat::Mode::empty())?;
 
         let mut termios = tcgetattr(fd)
@@ -108,7 +109,7 @@ impl TTYPort {
         {
             // setup TTY for binary serial port access
             // Enable reading from the port and ignore all modem control lines
-            termios.control_flags.insert(CREAD | CLOCAL);
+            termios.control_flags.insert(ControlFlags::CREAD | ControlFlags::CLOCAL);
             // Enable raw mode with disables any implicit processing of the input or output data streams
             // This also sets no timeout period and a read will block until at least one character is
             // available.
@@ -251,7 +252,7 @@ impl TTYPort {
     pub fn pair() -> ::Result<(Self, Self)> {
 
         // Open the next free pty.
-        let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::O_RDWR)?;
+        let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::OFlag::O_RDWR)?;
 
         // Grant access to the associated slave pty
         nix::pty::grantpt(&next_pty_fd)?;
@@ -349,77 +350,77 @@ impl TTYPort {
             #[cfg(any(target_os = "android", target_os = "linux"))]
             BaudRate::Baud4000000 => B4000000,
 
-            BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::Errno::EINVAL).into()),
+            BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::errno::Errno::EINVAL).into()),
         };
 
         cfsetspeed(&mut self.termios, baud).map_err(|e| e.into())
     }
 
     fn set_data_bits_nowrite(&mut self, data_bits: DataBits) -> ::Result<()> {
-        use nix::sys::termios::{CSIZE, CS5, CS6, CS7, CS8};
+        use nix::sys::termios::ControlFlags;
 
         let size = match data_bits {
-            DataBits::Five => CS5,
-            DataBits::Six => CS6,
-            DataBits::Seven => CS7,
-            DataBits::Eight => CS8,
+            DataBits::Five => ControlFlags::CS5,
+            DataBits::Six => ControlFlags::CS6,
+            DataBits::Seven => ControlFlags::CS7,
+            DataBits::Eight => ControlFlags::CS8,
         };
 
-        self.termios.control_flags.remove(CSIZE);
+        self.termios.control_flags.remove(ControlFlags::CSIZE);
         self.termios.control_flags.insert(size);
         Ok(())
     }
 
     fn set_flow_control_nowrite(&mut self, flow_control: FlowControl) -> ::Result<()> {
-        use nix::sys::termios::{IXON, IXOFF, CRTSCTS};
+        use nix::sys::termios::{ControlFlags, InputFlags};
 
         match flow_control {
             FlowControl::None => {
-                self.termios.input_flags.remove(IXON | IXOFF);
-                self.termios.control_flags.remove(CRTSCTS);
+                self.termios.input_flags.remove(InputFlags::IXON | InputFlags::IXOFF);
+                self.termios.control_flags.remove(ControlFlags::CRTSCTS);
             }
             FlowControl::Software => {
-                self.termios.input_flags.insert(IXON | IXOFF);
-                self.termios.control_flags.remove(CRTSCTS);
+                self.termios.input_flags.insert(InputFlags::IXON | InputFlags::IXOFF);
+                self.termios.control_flags.remove(ControlFlags::CRTSCTS);
             }
             FlowControl::Hardware => {
-                self.termios.input_flags.remove(IXON | IXOFF);
-                self.termios.control_flags.insert(CRTSCTS);
+                self.termios.input_flags.remove(InputFlags::IXON | InputFlags::IXOFF);
+                self.termios.control_flags.insert(ControlFlags::CRTSCTS);
             }
         };
         Ok(())
     }
 
     fn set_parity_nowrite(&mut self, parity: Parity) -> ::Result<()> {
-        use nix::sys::termios::{PARENB, PARODD, INPCK, IGNPAR};
+        use nix::sys::termios::{ControlFlags, InputFlags};
 
         match parity {
             Parity::None => {
-                self.termios.control_flags.remove(PARENB | PARODD);
-                self.termios.input_flags.remove(INPCK);
-                self.termios.input_flags.insert(IGNPAR);
+                self.termios.control_flags.remove(ControlFlags::PARENB | ControlFlags::PARODD);
+                self.termios.input_flags.remove(InputFlags::INPCK);
+                self.termios.input_flags.insert(InputFlags::IGNPAR);
             }
             Parity::Odd => {
-                self.termios.control_flags.insert(PARENB | PARODD);
-                self.termios.input_flags.insert(INPCK);
-                self.termios.input_flags.remove(IGNPAR);
+                self.termios.control_flags.insert(ControlFlags::PARENB | ControlFlags::PARODD);
+                self.termios.input_flags.insert(InputFlags::INPCK);
+                self.termios.input_flags.remove(InputFlags::IGNPAR);
             }
             Parity::Even => {
-                self.termios.control_flags.remove(PARODD);
-                self.termios.control_flags.insert(PARENB);
-                self.termios.input_flags.insert(INPCK);
-                self.termios.input_flags.remove(IGNPAR);
+                self.termios.control_flags.remove(ControlFlags::PARODD);
+                self.termios.control_flags.insert(ControlFlags::PARENB);
+                self.termios.input_flags.insert(InputFlags::INPCK);
+                self.termios.input_flags.remove(InputFlags::IGNPAR);
             }
         };
         Ok(())
     }
 
     fn set_stop_bits_nowrite(&mut self, stop_bits: StopBits) -> ::Result<()> {
-        use nix::sys::termios::CSTOPB;
+        use nix::sys::termios::ControlFlags;
 
         match stop_bits {
-            StopBits::One => self.termios.control_flags.remove(CSTOPB),
-            StopBits::Two => self.termios.control_flags.insert(CSTOPB),
+            StopBits::One => self.termios.control_flags.remove(ControlFlags::CSTOPB),
+            StopBits::Two => self.termios.control_flags.insert(ControlFlags::CSTOPB),
         };
         Ok(())
     }
@@ -597,24 +598,24 @@ impl SerialPort for TTYPort {
     }
 
     fn data_bits(&self) -> Option<DataBits> {
-        use nix::sys::termios::{CSIZE, CS5, CS6, CS7, CS8};
+        use nix::sys::termios::ControlFlags;
 
-        match self.termios.control_flags & CSIZE {
-            CS8 => Some(DataBits::Eight),
-            CS7 => Some(DataBits::Seven),
-            CS6 => Some(DataBits::Six),
-            CS5 => Some(DataBits::Five),
+        match self.termios.control_flags & ControlFlags::CSIZE {
+            ControlFlags::CS8 => Some(DataBits::Eight),
+            ControlFlags::CS7 => Some(DataBits::Seven),
+            ControlFlags::CS6 => Some(DataBits::Six),
+            ControlFlags::CS5 => Some(DataBits::Five),
 
             _ => None,
         }
     }
 
     fn flow_control(&self) -> Option<FlowControl> {
-        use nix::sys::termios::{IXON, IXOFF, CRTSCTS};
+        use nix::sys::termios::{ControlFlags, InputFlags};
 
-        if self.termios.control_flags.contains(CRTSCTS) {
+        if self.termios.control_flags.contains(ControlFlags::CRTSCTS) {
             Some(FlowControl::Hardware)
-        } else if self.termios.input_flags.intersects(IXON | IXOFF) {
+        } else if self.termios.input_flags.intersects(InputFlags::IXON | InputFlags::IXOFF) {
             Some(FlowControl::Software)
         } else {
             Some(FlowControl::None)
@@ -622,10 +623,10 @@ impl SerialPort for TTYPort {
     }
 
     fn parity(&self) -> Option<Parity> {
-        use nix::sys::termios::{PARENB, PARODD};
+        use nix::sys::termios::ControlFlags;
 
-        if self.termios.control_flags.contains(PARENB) {
-            if self.termios.control_flags.contains(PARODD) {
+        if self.termios.control_flags.contains(ControlFlags::PARENB) {
+            if self.termios.control_flags.contains(ControlFlags::PARODD) {
                 Some(Parity::Odd)
             } else {
                 Some(Parity::Even)
@@ -636,9 +637,9 @@ impl SerialPort for TTYPort {
     }
 
     fn stop_bits(&self) -> Option<StopBits> {
-        use nix::sys::termios::CSTOPB;
+        use nix::sys::termios::ControlFlags;
 
-        if self.termios.control_flags.contains(CSTOPB) {
+        if self.termios.control_flags.contains(ControlFlags::CSTOPB) {
             Some(StopBits::Two)
         } else {
             Some(StopBits::One)
