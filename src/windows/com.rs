@@ -17,9 +17,10 @@ use winapi::um::commapi::*;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
+use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::setupapi::*;
 use winapi::um::winbase::*;
-use winapi::um::winnt::{FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, KEY_READ};
+use winapi::um::winnt::{DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, KEY_READ};
 use winapi::um::winreg::*;
 
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
@@ -427,6 +428,33 @@ impl SerialPort for COMPort {
         }
 
         self.write_settings()
+    }
+
+    // FIXME : Remove the setting caching as changing the setting through multiple objects can
+    // cause some problems.
+    fn try_clone(&self) -> ::Result<Box<SerialPort>> {
+        let process_handle: HANDLE = unsafe {GetCurrentProcess()};
+        let mut cloned_handle: HANDLE;
+        unsafe {
+            cloned_handle = mem::uninitialized();
+            DuplicateHandle(process_handle, 
+                            self.handle,
+                            process_handle,
+                            &mut cloned_handle,
+                            0,
+                            TRUE,
+                            DUPLICATE_SAME_ACCESS);
+            if cloned_handle != INVALID_HANDLE_VALUE {
+                Ok(Box::new(COMPort {
+                    handle: cloned_handle,
+                    port_name: self.port_name.clone(),
+                    inner: self.inner.clone(),
+                    timeout: self.timeout,
+                }))
+            } else {
+                Err(super::error::last_os_error())
+            }
+        }
     }
 }
 
