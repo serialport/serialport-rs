@@ -1,0 +1,83 @@
+[![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
+[![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/crate/serialport)
+
+
+[![GitLab CI status](https://gitlab.com/susurrus/serialport-rs/badges/master/build.svg)](https://gitlab.com/susurrus/serialport-rs/pipelines)
+[![Appveyor CI status](https://ci.appveyor.com/api/projects/status/gitlab/Susurrus/serialport-rs?svg=true&branch=master)](https://ci.appveyor.com/project/Susurrus/serialport-rs)
+[![Travis CI status](https://travis-ci.org/Susurrus/serialport-rs.svg?branch=master)](https://travis-ci.org/Susurrus/serialport-rs)
+
+Overview
+========
+
+`serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
+simple blocking I/O interface and port enumeration on POSIX and Windows systems.
+
+For async I/O functionality, see the [mio-serial](https://github.com/berkowski/mio-serial) and
+[tokio-serial](https://github.com/berkowski/tokio-serial) crates.
+
+Features
+=======
+
+The library has been organized such that there is a high-level `SerialPort` trait that provides
+a cross-platform API for accessing serial ports. This is the preferred method of interacting
+with ports and as such is part of the `prelude`. The `open*()` and `available_ports()` functions
+in the root are also cross-platform.
+
+For platform-specific functionality, this crate is split into a `posix` and `windows` API with
+corresponding `TTYPort` and `COMPort` structs, both of which implement the `SerialPort` trait. Using
+the platform-specific `open*()` functions will return the platform-specific port object which
+allows access to platform-specific functionality.
+
+Rationale
+=========
+
+This library started as a fork of the [serial-rs](https://github.com/dcuddeback/serial-rs)
+library because `serial-rs` was slow to include enumeration support. Additionally I found its API a
+bit cumbersome as I was more familiar with `QSerialPort`'s API.
+
+Dependencies
+============
+
+Rust versions 1.13 and higher are supported.
+
+Platform Support
+=============
+
+Operating system support is as follows:
+
+Tier 1:
+
+  * Linux, i686 & x86_64
+
+Tier 2:
+
+  * Windows 7+, i686 & x86_64
+  * Mac OS X
+
+Tier 1 supports means this library is build- and run-tested and is regularly used so this should
+be pretty bug-free. Tier 2 means it's only build- and run-tested, but no developer uses this as
+their primary development environment.
+
+Licensing
+=======
+
+Licensed under the https://www.mozilla.org/en-US/MPL/2.0/[Mozilla Public License, version 2.0].
+
+
+Contributing
+===========
+
+Please open an issue or merge request on GitLab to contibute. Code contributions submitted for
+inclusion in the work by you, as defined in the MPL2.0 license, shall be licensed as the above
+without any additional terms or conditions.
+
+Acknowledgments
+================
+
+Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
+which this library heavily borrows from.
+
+Additionally I'd like to acknowledge the following people who have made contributions:
+
+  * Dave Hylands
+  * Zac Berkowitz
