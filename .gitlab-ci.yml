@@ -18,18 +18,19 @@ before_script:
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install build-essential curl git libudev-dev pkg-config
     - export PATH="/root/.cargo/bin:$PATH"
     - git submodule update --init --recursive
-    - cargo update
 
 build:1.13:
     image: "scorpil/rust:1.13"
     stage: build
     script:
+    - cargo update
     - cargo build --verbose
 
 build:stable:
     image: "scorpil/rust:stable"
     stage: build
     script:
+    - cargo update
     - cargo build --verbose
 
 build:nightly:
@@ -37,12 +38,14 @@ build:nightly:
     stage: build
     allow_failure: true
     script:
+    - cargo update
     - cargo build --verbose
 
 test:stable:
     image: "scorpil/rust:stable"
     stage: test
     script:
+    - cargo update
     - cargo test --verbose
 
 test:rustfmt:
@@ -50,6 +53,7 @@ test:rustfmt:
     stage: test
     allow_failure: true
     script:
+    - cargo update
     - cargo install rustfmt
     - cargo fmt -- --write-mode=diff
 
@@ -64,6 +68,7 @@ test:clippy:
     - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
     - tar -xzf $RUST_ARCHIVE --strip-components=1
     - ./install.sh
+    - cargo update
     - cargo build --verbose
     - cargo install clippy
 # Turn all warnings into errors
