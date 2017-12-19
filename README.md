@@ -16,7 +16,7 @@ For async I/O functionality, see the [mio-serial](https://github.com/berkowski/m
 [tokio-serial](https://github.com/berkowski/tokio-serial) crates.
 
 Features
-=======
+========
 
 The library has been organized such that there is a high-level `SerialPort` trait that provides
 a cross-platform API for accessing serial ports. This is the preferred method of interacting
@@ -41,7 +41,7 @@ Dependencies
 Rust versions 1.13 and higher are supported.
 
 Platform Support
-=============
+================
 
 Operating system support is as follows:
 
@@ -59,20 +59,20 @@ be pretty bug-free. Tier 2 means it's only build- and run-tested, but no develop
 their primary development environment.
 
 Licensing
-=======
+=========
 
-Licensed under the https://www.mozilla.org/en-US/MPL/2.0/[Mozilla Public License, version 2.0].
+Licensed under the [Mozilla Public License, version 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
 
 
 Contributing
-===========
+============
 
 Please open an issue or merge request on GitLab to contibute. Code contributions submitted for
 inclusion in the work by you, as defined in the MPL2.0 license, shall be licensed as the above
 without any additional terms or conditions.
 
 Acknowledgments
-================
+===============
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from.
