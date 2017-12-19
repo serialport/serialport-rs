@@ -19,15 +19,15 @@ before_script:
     - export PATH="/root/.cargo/bin:$PATH"
     - git submodule update --init --recursive
 
-build:1.13:
-    image: "scorpil/rust:1.13"
+build:1.20:
+    image: "rust:1.20"
     stage: build
     script:
     - cargo update
     - cargo build --verbose
 
 build:stable:
-    image: "scorpil/rust:stable"
+    image: "rust:latest"
     stage: build
     script:
     - cargo update
@@ -42,14 +42,14 @@ build:nightly:
     - cargo build --verbose
 
 test:stable:
-    image: "scorpil/rust:stable"
+    image: "rust:latest"
     stage: test
     script:
     - cargo update
     - cargo test --verbose
 
 test:rustfmt:
-    image: "scorpil/rust:stable"
+    image: "rust:latest"
     stage: test
     allow_failure: true
     script:

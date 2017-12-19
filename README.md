@@ -38,7 +38,7 @@ bit cumbersome as I was more familiar with `QSerialPort`'s API.
 Dependencies
 ============
 
-Rust versions 1.13 and higher are supported.
+Rust versions 1.20 and higher are supported.
 
 Platform Support
 ================
