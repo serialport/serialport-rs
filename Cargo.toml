@@ -8,7 +8,7 @@ license = "MPL-2.0"
 readme = "README.md"
 repository = "https://gitlab.com/susurrus/serialport-rs"
 description = "A cross-platform low-level serial port library"
-documentation = "https://docs.rs/serialport"
+documentation = "https://docs.rs/serialport/*/serialport"
 
 [badges]
 appveyor = { repository = "Susurrus/serialport-rs", service = "gitlab" }
