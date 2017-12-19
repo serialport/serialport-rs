@@ -13,7 +13,7 @@ documentation = "https://docs.rs/serialport"
 [badges]
 appveyor = { repository = "Susurrus/serialport-rs", service = "gitlab" }
 gitlab = { repository = "susurrus/serialport-rs" }
-travis = { repository = "Susurrus/serialport-rs" }
+travis-ci = { repository = "Susurrus/serialport-rs" }
 
 [dev-dependencies]
 argparse = "0.2"
