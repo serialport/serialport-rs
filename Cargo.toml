@@ -29,8 +29,7 @@ libudev = "0.2.0"
 regex = "0.2"
 
 [target."cfg(windows)".dependencies.winapi]
-git = "https://github.com/retep998/winapi-rs.git"
-branch = "dev"
+version = "0.3"
 features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
             "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt"]
 
