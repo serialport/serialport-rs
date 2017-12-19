@@ -5,22 +5,22 @@ use std::os::unix::io::RawFd;
 use std::time::Duration;
 
 use nix;
-use nix::poll::{EventFlags, POLLHUP, POLLIN, POLLNVAL, POLLOUT, PollFd};
+use nix::poll::{EventFlags, PollFd};
 #[cfg(target_os = "linux")]
 use nix::sys::signal::SigSet;
 #[cfg(target_os = "linux")]
 use nix::sys::time::{TimeSpec, TimeValLike};
 
 pub fn wait_read_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd, POLLIN, timeout)
+    wait_fd(fd, EventFlags::POLLIN, timeout)
 }
 
 pub fn wait_write_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd, POLLOUT, timeout)
+    wait_fd(fd, EventFlags::POLLOUT, timeout)
 }
 
 fn wait_fd(fd: RawFd, events: EventFlags, timeout: Duration) -> io::Result<()> {
-    use nix::Errno::{EPIPE, EIO};
+    use nix::errno::Errno::{EPIPE, EIO};
 
     let mut fds = vec![PollFd::new(fd, events)];
 
@@ -46,7 +46,7 @@ fn wait_fd(fd: RawFd, events: EventFlags, timeout: Duration) -> io::Result<()> {
     match fds[0].revents() {
         Some(e) if e == events => return Ok(()),
         // If there was a hangout or invalid request
-        Some(e) if e.contains(POLLHUP) || e.contains(POLLNVAL) => {
+        Some(e) if e.contains(EventFlags::POLLHUP) || e.contains(EventFlags::POLLNVAL) => {
             return Err(io::Error::new(io::ErrorKind::BrokenPipe, EPIPE.desc()));
         }
         Some(_) | None => (),
