@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
-=== [2.0.0] - Unreleased
+=== [UNRELEASED]
+
+=== [2.0.0] - 2017-12-18
 ==== Added
 * USB device information is now returned in calls to `available_ports()`
 * Serial port enumeration is now supported on Mac
