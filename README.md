@@ -15,6 +15,10 @@ simple blocking I/O interface and port enumeration on POSIX and Windows systems.
 For async I/O functionality, see the [mio-serial](https://github.com/berkowski/mio-serial) and
 [tokio-serial](https://github.com/berkowski/tokio-serial) crates.
 
+The canonical repository for this crate is on [GitLab](https://gitlab.com/susurrus/serialport-rs),
+but it is mirrored on GitHub purely for testing via Travis CI. To report any issues or contribute
+code, please do so using through the GitLab repository.
+
 Features
 ========
 
