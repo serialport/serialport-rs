@@ -155,7 +155,7 @@ impl TTYPort {
         // file descriptor.
         if let Err(err) = port.set_all(settings) {
             close(fd);
-            return Err(err.into());
+            return Err(err);
         }
 
         Ok(port)
@@ -187,7 +187,7 @@ impl TTYPort {
         };
 
         if let Err(err) = setting_result {
-            Err(err.into())
+            Err(err)
         } else {
             self.exclusive = exclusive;
             Ok(())
@@ -218,14 +218,14 @@ impl TTYPort {
 
         match retval {
             Ok(()) => Ok(()),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(err),
         }
     }
 
     fn read_pin(&mut self, pin: ioctl::SerialLines) -> ::Result<bool> {
         match ioctl::tiocmget(self.fd) {
             Ok(pins) => Ok(pins.contains(pin)),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(err),
         }
     }
 
