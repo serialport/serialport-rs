@@ -37,7 +37,7 @@ pub fn tiocnxcl(fd: RawFd) -> ::Result<()> {
 
 pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
     let mut status = unsafe { mem::uninitialized() };
-    unsafe { raw::tiocmget(fd, &mut status) }.map(|s| SerialLines::from_bits_truncate(s)).map_err(|e| e.into())
+    unsafe { raw::tiocmget(fd, &mut status) }.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
 }
 
 pub fn tiocmbic(fd: RawFd, status: SerialLines) -> ::Result<()> {

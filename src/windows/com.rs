@@ -677,5 +677,5 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 /// Return a list of offically-supported baud rates. It is likely that the hardware supports
 /// more baud rates than this (many support arbitrary baud rates).
 pub fn available_baud_rates() -> Vec<u32> {
-    vec![110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200, 128000, 256000]
+    vec![110, 300, 600, 1200, 2400, 4800, 9600, 14_400, 19_200, 38_400, 57_600, 115_200, 128_000, 256_000]
 }

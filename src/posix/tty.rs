@@ -156,7 +156,7 @@ impl TTYPort {
         // file descriptor.
         if let Err(err) = port.set_all(settings) {
             close(fd);
-            return Err(err.into());
+            return Err(err);
         }
 
         Ok(port)
@@ -188,7 +188,7 @@ impl TTYPort {
         };
 
         if let Err(err) = setting_result {
-            Err(err.into())
+            Err(err)
         } else {
             self.exclusive = exclusive;
             Ok(())
@@ -219,14 +219,14 @@ impl TTYPort {
 
         match retval {
             Ok(()) => Ok(()),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(err),
         }
     }
 
     fn read_pin(&mut self, pin: ioctl::SerialLines) -> ::Result<bool> {
         match ioctl::tiocmget(self.fd) {
             Ok(pins) => Ok(pins.contains(pin)),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(err),
         }
     }
 
@@ -558,41 +558,40 @@ impl SerialPort for TTYPort {
             B7200 => Some(BaudRate::BaudOther(7200)),
             B9600 => Some(BaudRate::Baud9600),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B14400 => Some(BaudRate::BaudOther(14400)),
+            B14400 => Some(BaudRate::BaudOther(14_400)),
             B19200 => Some(BaudRate::Baud19200),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B28800 => Some(BaudRate::BaudOther(28800)),
+            B28800 => Some(BaudRate::BaudOther(28_800)),
             B38400 => Some(BaudRate::Baud38400),
             B57600 => Some(BaudRate::Baud57600),
             #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B76800 => Some(BaudRate::BaudOther(76800)),
+            B76800 => Some(BaudRate::BaudOther(76_800)),
             B115200 => Some(BaudRate::Baud115200),
-            B230400 => Some(BaudRate::BaudOther(230400)),
+            B230400 => Some(BaudRate::BaudOther(230_400)),
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
-            B460800 => Some(BaudRate::BaudOther(460800)),
+            B460800 => Some(BaudRate::BaudOther(460_800)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B500000 => Some(BaudRate::BaudOther(500000)),
+            B500000 => Some(BaudRate::BaudOther(500_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B576000 => Some(BaudRate::BaudOther(576000)),
+            B576000 => Some(BaudRate::BaudOther(576_000)),
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
-            B921600 => Some(BaudRate::BaudOther(921600)),
+            B921600 => Some(BaudRate::BaudOther(921_600)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1000000 => Some(BaudRate::BaudOther(1000000)),
+            B1000000 => Some(BaudRate::BaudOther(1_000_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1152000 => Some(BaudRate::BaudOther(1152000)),
+            B1152000 => Some(BaudRate::BaudOther(1_152_000)),
             #[cfg(any(target_os = "android",target_os = "linux"))]
-            B1500000 => Some(BaudRate::BaudOther(1500000)),
+            B1500000 => Some(BaudRate::BaudOther(1_500_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B2000000 => Some(BaudRate::BaudOther(2000000)),
+            B2000000 => Some(BaudRate::BaudOther(2_000_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B2500000 => Some(BaudRate::BaudOther(2500000)),
+            B2500000 => Some(BaudRate::BaudOther(2_500_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B3000000 => Some(BaudRate::BaudOther(3000000)),
+            B3000000 => Some(BaudRate::BaudOther(3_000_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B3500000 => Some(BaudRate::BaudOther(3500000)),
+            B3500000 => Some(BaudRate::BaudOther(3_500_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            B4000000 => Some(BaudRate::BaudOther(4000000)),
-
+            B4000000 => Some(BaudRate::BaudOther(4_000_000)),
             _ => None,
         }
     }
@@ -1033,41 +1032,41 @@ pub fn available_baud_rates() -> Vec<u32> {
     vec.push(9600);
     #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
               target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(14400);
-    vec.push(19200);
+    vec.push(14_400);
+    vec.push(19_200);
     #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
               target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(28800);
-    vec.push(38400);
-    vec.push(57600);
+    vec.push(28_800);
+    vec.push(38_400);
+    vec.push(57_600);
     #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
               target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(76800);
-    vec.push(115200);
-    vec.push(230400);
+    vec.push(76_800);
+    vec.push(115_200);
+    vec.push(230_400);
     #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-    vec.push(460800);
+    vec.push(460_800);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(500000);
+    vec.push(500_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(576000);
+    vec.push(576_000);
     #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-    vec.push(921600);
+    vec.push(921_600);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(1000000);
+    vec.push(1_000_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(1152000);
+    vec.push(1_152_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(1500000);
+    vec.push(1_500_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(2000000);
+    vec.push(2_000_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(2500000);
+    vec.push(2_500_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(3000000);
+    vec.push(3_000_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(3500000);
+    vec.push(3_500_000);
     #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(4000000);
+    vec.push(4_000_000);
     vec
 }

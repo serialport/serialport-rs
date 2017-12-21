@@ -19,8 +19,9 @@ impl From<libudev::Error> for ::Error {
 impl From<nix::Error> for ::Error {
     fn from(e: nix::Error) -> ::Error {
         match e {
-            nix::Error::InvalidPath => ::Error::new(::ErrorKind::InvalidInput, "Invalid input"),
-            nix::Error::InvalidUtf8 => ::Error::new(::ErrorKind::InvalidInput, "Invalid input"),
+            nix::Error::InvalidPath | nix::Error::InvalidUtf8 => {
+                ::Error::new(::ErrorKind::InvalidInput, "Invalid input")
+            }
             nix::Error::UnsupportedOperation => ::Error::new(::ErrorKind::Unknown, "Unknown error"),
             nix::Error::Sys(e) => {
                 ::Error::new(::ErrorKind::Unknown, e.desc())
