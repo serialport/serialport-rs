@@ -25,7 +25,7 @@ fn wait_fd(fd: RawFd, events: EventFlags, timeout: Duration) -> io::Result<()> {
     let mut fds = vec![PollFd::new(fd, events)];
 
 
-    let milliseconds = timeout.as_secs() as i64 * 1000 + timeout.subsec_nanos() as i64 / 1_000_000;
+    let milliseconds = timeout.as_secs() as i64 * 1000 + i64::from(timeout.subsec_nanos()) / 1_000_000;
     #[cfg(target_os = "linux")]
     let wait = {
         let timespec = TimeSpec::milliseconds(milliseconds);
