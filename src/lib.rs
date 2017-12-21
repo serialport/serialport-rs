@@ -286,7 +286,7 @@ pub enum BaudRate {
 impl BaudRate {
     /// Returns all cross-platform baud rates
     pub fn standard_rates() -> Vec<u32> {
-        vec![110, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+        vec![110, 300, 600, 1200, 2400, 4800, 9600, 19_200, 38_400, 57_600, 115_200]
     }
 
     /// Returns all available baud rates for the current platform
@@ -344,47 +344,47 @@ impl From<u32> for BaudRate {
             9600 => BaudRate::Baud9600,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
                       target_os = "netbsd", target_os = "openbsd", windows))]
-            14400 => BaudRate::Baud14400,
-            19200 => BaudRate::Baud19200,
+            14_400 => BaudRate::Baud14400,
+            19_200 => BaudRate::Baud19200,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
                       target_os = "netbsd", target_os = "openbsd"))]
-            28800 => BaudRate::Baud28800,
-            38400 => BaudRate::Baud38400,
-            57600 => BaudRate::Baud57600,
+            28_800 => BaudRate::Baud28800,
+            38_400 => BaudRate::Baud38400,
+            57_600 => BaudRate::Baud57600,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
                       target_os = "netbsd", target_os = "openbsd"))]
-            76800 => BaudRate::Baud76800,
-            115200 => BaudRate::Baud115200,
+            76_800 => BaudRate::Baud76800,
+            115_200 => BaudRate::Baud115200,
             #[cfg(windows)]
-            128000 => BaudRate::Baud128000,
+            128_000 => BaudRate::Baud128000,
             #[cfg(not(windows))]
-            230400 => BaudRate::Baud230400,
+            230_400 => BaudRate::Baud230400,
             #[cfg(windows)]
-            256000 => BaudRate::Baud256000,
+            256_000 => BaudRate::Baud256000,
             #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-            460800 => BaudRate::Baud460800,
+            460_800 => BaudRate::Baud460800,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            500000 => BaudRate::Baud500000,
+            500_000 => BaudRate::Baud500000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            576000 => BaudRate::Baud576000,
+            576_000 => BaudRate::Baud576000,
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-            921600 => BaudRate::Baud921600,
+            921_600 => BaudRate::Baud921600,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            1000000 => BaudRate::Baud1000000,
+            1_000_000 => BaudRate::Baud1000000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            1152000 => BaudRate::Baud1152000,
+            1_152_000 => BaudRate::Baud1152000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            1500000 => BaudRate::Baud1500000,
+            1_500_000 => BaudRate::Baud1500000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            2000000 => BaudRate::Baud2000000,
+            2_000_000 => BaudRate::Baud2000000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            2500000 => BaudRate::Baud2500000,
+            2_500_000 => BaudRate::Baud2500000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            3000000 => BaudRate::Baud3000000,
+            3_000_000 => BaudRate::Baud3000000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            3500000 => BaudRate::Baud3500000,
+            3_500_000 => BaudRate::Baud3500000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            4000000 => BaudRate::Baud4000000,
+            4_000_000 => BaudRate::Baud4000000,
             n => BaudRate::BaudOther(n),
         }
     }
@@ -430,47 +430,47 @@ impl From<BaudRate> for u32 {
             BaudRate::Baud9600 => 9600,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
                       target_os = "netbsd", target_os = "openbsd", windows))]
-            BaudRate::Baud14400 => 14400,
-            BaudRate::Baud19200 => 19200,
+            BaudRate::Baud14400 => 14_400,
+            BaudRate::Baud19200 => 19_200,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
                       target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud28800 => 28800,
-            BaudRate::Baud38400 => 38400,
-            BaudRate::Baud57600 => 57600,
+            BaudRate::Baud28800 => 28_800,
+            BaudRate::Baud38400 => 38_400,
+            BaudRate::Baud57600 => 57_600,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
                       target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud76800 => 76800,
-            BaudRate::Baud115200 => 115200,
+            BaudRate::Baud76800 => 76_800,
+            BaudRate::Baud115200 => 115_200,
             #[cfg(windows)]
-            BaudRate::Baud128000 => 128000,
+            BaudRate::Baud128000 => 128_000,
             #[cfg(not(windows))]
-            BaudRate::Baud230400 => 230400,
+            BaudRate::Baud230400 => 230_400,
             #[cfg(windows)]
-            BaudRate::Baud256000 => 256000,
+            BaudRate::Baud256000 => 256_000,
             #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-            BaudRate::Baud460800 => 460800,
+            BaudRate::Baud460800 => 460_800,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud500000 => 500000,
+            BaudRate::Baud500000 => 500_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud576000 => 576000,
+            BaudRate::Baud576000 => 576_000,
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-            BaudRate::Baud921600 => 921600,
+            BaudRate::Baud921600 => 921_600,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1000000 => 1000000,
+            BaudRate::Baud1000000 => 1_000_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1152000 => 1152000,
+            BaudRate::Baud1152000 => 1_152_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1500000 => 1500000,
+            BaudRate::Baud1500000 => 1_500_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2000000 => 2000000,
+            BaudRate::Baud2000000 => 2_000_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2500000 => 2500000,
+            BaudRate::Baud2500000 => 2_500_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3000000 => 3000000,
+            BaudRate::Baud3000000 => 3_000_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3500000 => 3500000,
+            BaudRate::Baud3500000 => 3_500_000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud4000000 => 4000000,
+            BaudRate::Baud4000000 => 4_000_000,
             BaudRate::BaudOther(n) => n,
         }
     }
