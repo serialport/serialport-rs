@@ -6,6 +6,8 @@ The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
+==== Added
+* `impl FromRawHandle` for `COMPort`
 
 === [2.0.0] - 2017-12-18
 ==== Added

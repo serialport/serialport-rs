@@ -57,6 +57,10 @@ impl COMPort {
     ///
     /// `port` should be the name of a COM port, e.g., `COM1`.
     ///
+    /// If the COM port handle needs to be opened with special flags, use
+    /// `from_raw_handle` method to create the `COMPort`. Note that you should
+    /// set the different settings before using the serial port using `set_all`.
+    ///
     /// ## Errors
     ///
     /// * `NoDevice` if the device could not be opened. This could indicate that
@@ -83,27 +87,10 @@ impl COMPort {
         };
 
         if handle != INVALID_HANDLE_VALUE {
-
-            let timeout = Duration::from_millis(100);
-
-            let mut dcb: DCB = unsafe { mem::uninitialized() };
-
-            match unsafe { GetCommState(handle, &mut dcb) } {
-                0 => return Err(super::error::last_os_error()),
-                _ => (),
-
-            }
-
-            let mut port = COMPort {
-                handle: handle,
-                inner: dcb,
-                timeout: timeout,
-                port_name: port.as_ref().to_str().map(|s| s.to_string()),
-            };
-
-            port.set_all(settings)?;
-
-            Ok(port)
+            let mut com = COMPort::open_from_raw_handle(handle as RawHandle)?;
+            com.port_name = port.as_ref().to_str().map(|s| s.to_string());
+            com.set_all(settings)?;
+            Ok(com)
         } else {
             Err(super::error::last_os_error())
         }
@@ -133,6 +120,25 @@ impl COMPort {
             _ => Ok(status & pin != 0),
         }
     }
+
+    fn open_from_raw_handle(handle: RawHandle) -> ::Result<Self> {
+        let handle = handle as HANDLE;
+
+        let mut dcb: DCB = unsafe { mem::uninitialized() };
+
+        if unsafe { GetCommState(handle, &mut dcb) != 0 } {
+            // It is not trivial to get the file path corresponding to a handle.
+            // We'll punt and set it `None` here.
+            Ok(COMPort {
+                handle: handle,
+                inner: dcb,
+                timeout: Duration::from_millis(100),
+                port_name: None,
+            })
+        } else {
+            Err(super::error::last_os_error())
+        }
+    }
 }
 
 impl Drop for COMPort {
@@ -145,7 +151,13 @@ impl Drop for COMPort {
 
 impl AsRawHandle for COMPort {
     fn as_raw_handle(&self) -> RawHandle {
-        unsafe { mem::transmute(self.handle) }
+        self.handle as RawHandle
+    }
+}
+
+impl FromRawHandle for COMPort {
+    unsafe fn from_raw_handle(handle: RawHandle) -> Self {
+        COMPort::open_from_raw_handle(handle).unwrap()
     }
 }
 
