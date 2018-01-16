@@ -943,7 +943,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
             return Err(Error::new(ErrorKind::Unknown, "Failed to allocate key string."));
         }
         let value = CFStringCreateWithCString(kCFAllocatorDefault,
-                                              kIOSerialBSDRS232Type(),
+                                              kIOSerialBSDAllTypes(),
                                               kCFStringEncodingUTF8);
         if value.is_null() {
             return Err(Error::new(ErrorKind::Unknown, "Failed to allocate value string."));
