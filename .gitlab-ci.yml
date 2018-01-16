@@ -2,6 +2,7 @@ variables:
     APT_CACHE_DIR: apt-cache
 
 cache:
+    key: "$CI_JOB_NAME"
     untracked: true
     paths:
     - apt-cache/
@@ -17,7 +18,6 @@ before_script:
     - apt-get -qq update
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install build-essential curl git libudev-dev pkg-config
     - export PATH="/root/.cargo/bin:$PATH"
-    - git submodule update --init --recursive
 
 build:1.20:
     image: "rust:1.20"
@@ -33,33 +33,26 @@ build:stable:
     - cargo update
     - cargo build --verbose
 
-build:nightly:
-    image: "scorpil/rust:nightly"
-    stage: build
+test:rustfmt:
+    image: "debian:stable-slim"
+    stage: test
     allow_failure: true
     script:
+    - export RUST_ARCHIVE=rust-nightly-x86_64-unknown-linux-gnu.tar.gz
+    - export RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
+    - curl -fsOSL $RUST_DOWNLOAD_URL
+    - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
+    - tar -xzf $RUST_ARCHIVE --strip-components=1
+    - ./install.sh
     - cargo update
     - cargo build --verbose
-
-test:stable:
-    image: "rust:latest"
-    stage: test
-    script:
-    - cargo update
-    - cargo test --verbose
-
-test:rustfmt:
-    image: "rust:latest"
-    stage: test
-    allow_failure: true
-    script:
-    - cargo update
-    - cargo install rustfmt
+    - cargo install rustfmt-nightly
     - cargo fmt -- --write-mode=diff
 
 test:clippy:
     image: "debian:stable-slim"
     stage: test
+    allow_failure: true
     script:
     - export RUST_ARCHIVE=rust-nightly-x86_64-unknown-linux-gnu.tar.gz
     - export RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
@@ -70,5 +63,4 @@ test:clippy:
     - cargo update
     - cargo build --verbose
     - cargo install clippy
-# Turn all warnings into errors
-    - cargo clippy -- -D warnings
+    - cargo clippy -- -D warnings # Turn all warnings into errors
