@@ -9,6 +9,10 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 ==== Added
 * `impl FromRawHandle` for `COMPort`
 
+==== Fixed
+* Modem-type USB serial devices are now enumerated on OS X. This now allows
+  connected Arduinos to be detected.
+
 === [2.0.0] - 2017-12-18
 ==== Added
 * USB device information is now returned in calls to `available_ports()`
