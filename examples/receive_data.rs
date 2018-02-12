@@ -1,7 +1,6 @@
 extern crate argparse;
 extern crate serialport;
 
-use std::thread;
 use std::time::Duration;
 use std::io::{self, Write};
 
@@ -24,6 +23,7 @@ fn main() {
     }
 
     let mut settings: SerialPortSettings = Default::default();
+    settings.timeout = Duration::from_millis(10);
     if let Ok(rate) = baud_rate.parse::<u32>() {
         settings.baud_rate = rate.into();
     } else {
@@ -35,10 +35,11 @@ fn main() {
         let mut serial_buf: Vec<u8> = vec![0; 1000];
         println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
         loop {
-            if let Ok(t) = port.read(serial_buf.as_mut_slice()) {
-                io::stdout().write_all(&serial_buf[..t]).unwrap();
+            match port.read(serial_buf.as_mut_slice()) {
+                Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(e) => eprintln!("{:?}", e),
             }
-            thread::sleep(Duration::from_millis(10));
         }
     } else {
         println!("Error: Port '{}' not available", &port_name);
