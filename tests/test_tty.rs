@@ -43,6 +43,32 @@ fn test_ttyport_pair() {
 }
 
 #[test]
+fn test_ttyport_timeout() {
+    let result = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let result_thread = result.clone();
+    
+    std::thread::spawn(move || {
+        let (mut master, _slave) = TTYPort::pair().expect("Unable to create ptty pair");
+        master.set_timeout(std::time::Duration::new(1, 0)).unwrap();
+
+        let mut buffer = [0u8];
+        let read_res = master.read(&mut buffer);
+
+        *result_thread.lock().unwrap() = Some(read_res);
+    });
+
+    std::thread::sleep(std::time::Duration::new(2, 0));
+
+    let read_res = result.lock().unwrap();
+    match *read_res {
+        Some(Ok(_)) => panic!("Received data without sending"),
+        Some(Err(ref e)) => assert_eq!(e.kind(), std::io::ErrorKind::TimedOut),
+        None => panic!("Read did not time out"),
+    }
+}
+
+
+#[test]
 fn test_ttyport_set_standard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once
