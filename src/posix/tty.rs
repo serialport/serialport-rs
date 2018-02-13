@@ -474,23 +474,27 @@ impl FromRawFd for TTYPort {
 
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        super::poll::wait_read_fd(self.fd, self.timeout)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "wait_read_fd failed"))?;
+        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
+            return Err(io::Error::from(::Error::from(e)));
+        }
 
-        let len = nix::unistd::read(self.fd, buf)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "read failed"))?;
-        Ok(len)
+        match nix::unistd::read(self.fd, buf) {
+            Ok(n) => Ok(n),
+            Err(e) => Err(io::Error::from(::Error::from(e))),
+        }
     }
 }
 
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        super::poll::wait_write_fd(self.fd, self.timeout)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "wait_write_fd failed"))?;
+        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
+            return Err(io::Error::from(::Error::from(e)));
+        }
 
-        let len = nix::unistd::write(self.fd, buf)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "write failed"))?;
-        Ok(len)
+        match nix::unistd::write(self.fd, buf) {
+            Ok(n) => Ok(n),
+            Err(e) => Err(io::Error::from(::Error::from(e))),
+        }
     }
 
     fn flush(&mut self) -> io::Result<()> {
