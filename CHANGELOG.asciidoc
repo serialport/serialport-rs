@@ -9,10 +9,14 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 ==== Added
 * `impl FromRawHandle` for `COMPort`
 
+==== Changed
+* Specific IO-related errors are now returned instead of mapping every IO
+  error to Unknown. This makes it possible to catch things like time-out
+  errors.
+
 ==== Fixed
 * Modem-type USB serial devices are now enumerated on OS X. This now allows
   connected Arduinos to be detected.
-* Specific IO-related errors are now returned instead of mapping every IO error to Unknown. This makes it possible to catch things like time-out errors.
 
 === [2.0.0] - 2017-12-18
 ==== Added
