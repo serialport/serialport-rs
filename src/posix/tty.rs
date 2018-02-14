@@ -565,7 +565,7 @@ impl SerialPort for TTYPort {
             B500000 => Some(BaudRate::BaudOther(500_000)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
             B576000 => Some(BaudRate::BaudOther(576_000)),
-            #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
+            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux", target_os = "netbsd"))]
             B921600 => Some(BaudRate::BaudOther(921_600)),
             #[cfg(any(target_os = "android", target_os = "linux"))]
             B1000000 => Some(BaudRate::BaudOther(1_000_000)),
