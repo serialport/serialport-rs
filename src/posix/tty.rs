@@ -331,7 +331,8 @@ impl TTYPort {
             BaudRate::Baud500000 => B500000,
             #[cfg(any(target_os = "android", target_os = "linux"))]
             BaudRate::Baud576000 => B576000,
-            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
+            // FIXME: Re-enable Baud921600 for FreeBSD & NetBSD once nix > 0.10.0 is released
+            #[cfg(any(target_os = "android", target_os = "linux"))]
             BaudRate::Baud921600 => B921600,
             #[cfg(any(target_os = "android", target_os = "linux"))]
             BaudRate::Baud1000000 => B1000000,
