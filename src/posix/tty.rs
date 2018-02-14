@@ -532,7 +532,7 @@ impl SerialPort for TTYPort {
             return None;
         }
 
-        match ospeed {
+        match (ospeed as nix::libc::speed_t).into() {
             B50 => Some(BaudRate::Baud50),
             B75 => Some(BaudRate::Baud75),
             B110 => Some(BaudRate::Baud110),
