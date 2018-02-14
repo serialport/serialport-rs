@@ -265,7 +265,7 @@ impl TTYPort {
                       target_os = "android",
                       target_os = "emscripten",
                       target_os = "fuchsia")))]
-        let ptty_name = nix::pty::ptsname(&next_pty_fd)?;
+        let ptty_name = unsafe { nix::pty::ptsname(&next_pty_fd)? };
 
         #[cfg(any(target_os = "linux",
                   target_os = "android",
