@@ -522,21 +522,7 @@ impl SerialPort for TTYPort {
 
     fn baud_rate(&self) -> Option<BaudRate> {
         use nix::sys::termios::{cfgetospeed, cfgetispeed};
-        use nix::sys::termios::BaudRate::{B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
-                      B9600, B19200, B38400, B57600, B115200, B230400};
-
-        #[cfg(any(target_os = "linux", target_os = "android"))]
-        use nix::sys::termios::BaudRate::{B460800, B500000, B576000, B921600, B1000000, B1152000, B1500000,
-                                 B2000000, B2500000, B3000000, B3500000, B4000000};
-
-        #[cfg(target_os = "macos")]
-        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800};
-
-        #[cfg(target_os = "freebsd")]
-        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800, B460800, B921600};
-
-        #[cfg(target_os = "openbsd")]
-        use nix::sys::termios::BaudRate::{B7200, B14400, B28800, B76800};
+        use nix::sys::termios::BaudRate::*;
 
         let ospeed = cfgetospeed(&self.termios);
         let ispeed = cfgetispeed(&self.termios);
