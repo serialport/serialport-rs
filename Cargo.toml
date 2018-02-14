@@ -19,7 +19,7 @@ travis-ci = { repository = "Susurrus/serialport-rs" }
 argparse = "0.2"
 
 [target."cfg(unix)".dependencies]
-nix = { git = "https://github.com/nix-rust/nix/" }
+nix = "0.10"
 bitflags = "0.9"
 
 [target.'cfg(target_os = "linux")'.dependencies]
