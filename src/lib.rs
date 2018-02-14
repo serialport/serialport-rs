@@ -19,9 +19,7 @@
 #![deny(missing_docs,
         missing_debug_implementations,
         missing_copy_implementations,
-        unused_import_braces,
-        unused_allocation,
-        unused_qualifications)]
+        unused)]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
