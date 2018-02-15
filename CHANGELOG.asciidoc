@@ -13,10 +13,14 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Specific IO-related errors are now returned instead of mapping every IO
   error to Unknown. This makes it possible to catch things like time-out
   errors.
+* Changed all baud rates to be reported as the discrete `BaudRate::Baud*` types
+  rather than as the `BaudRate::BaudOther(*)` type.
 
 ==== Fixed
 * Modem-type USB serial devices are now enumerated on OS X. This now allows
   connected Arduinos to be detected.
+* Compilation on FreeBSD and NetBSD was fixed by removing the 921600 baud rates.
+  These will be re-added in a future release.
 
 === [2.0.0] - 2017-12-18
 ==== Added

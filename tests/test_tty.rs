@@ -3,16 +3,20 @@
 
 extern crate serialport;
 
-use std::os::unix::prelude::*;
 use std::io::{Read, Write};
+use std::os::unix::prelude::*;
 use std::str;
+use std::time::Duration;
 
 use serialport::{BaudRate, SerialPort};
 use serialport::posix::TTYPort;
 
 #[test]
 fn test_ttyport_pair() {
+    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    master.set_timeout(Duration::from_millis(10)).expect("Unable to set timeout on the master");
+    slave.set_timeout(Duration::from_millis(10)).expect("Unable to set timeout on the slave");
 
     // Test file descriptors.
     assert!(master.as_raw_fd() > 0,
@@ -27,9 +31,10 @@ fn test_ttyport_pair() {
     let mut buf = [0u8; 128];
 
     // Write the string on the master
-    assert_eq!(master.write(msg.as_bytes()).unwrap(),
+    let nbytes = master.write(msg.as_bytes()).expect("Unable to write bytes.");
+    assert_eq!(nbytes,
                msg.len(),
-               "Unable to write message on master.");
+               "Write message length differs from sent message.");
 
     // Read it on the slave
     let nbytes = slave.read(&mut buf).expect("Unable to read bytes.");
@@ -46,10 +51,11 @@ fn test_ttyport_pair() {
 fn test_ttyport_timeout() {
     let result = std::sync::Arc::new(std::sync::Mutex::new(None));
     let result_thread = result.clone();
-    
+
     std::thread::spawn(move || {
+        // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
         let (mut master, _slave) = TTYPort::pair().expect("Unable to create ptty pair");
-        master.set_timeout(std::time::Duration::new(1, 0)).unwrap();
+        master.set_timeout(Duration::new(1, 0)).unwrap();
 
         let mut buffer = [0u8];
         let read_res = master.read(&mut buffer);
@@ -73,6 +79,7 @@ fn test_ttyport_set_standard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once
     //       https://github.com/rust-lang/rust/issues/15701 is on stable.
+    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
     #![allow(unused_variables)]
     let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
 
