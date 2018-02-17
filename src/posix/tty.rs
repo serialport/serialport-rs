@@ -143,7 +143,7 @@ impl TTYPort {
         let mut port = TTYPort {
             fd: fd,
             termios: termios,
-            timeout: Duration::from_millis(100),
+            timeout: Duration::new(0, 0), // This is overwritten by the subsequent call to `set_all()`
             exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
         };
