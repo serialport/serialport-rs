@@ -6,6 +6,9 @@ The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
+==== Added
+* Added `examples/hardware_check.rs` for use in debugging library or
+  driver issues when using physical serial ports.
 
 === [2.1.0] - 2018-02-14
 ==== Added
