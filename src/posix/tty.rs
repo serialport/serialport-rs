@@ -2,13 +2,10 @@
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "linux")]
 use std::ffi::OsStr;
-use std::io;
-#[cfg(target_os = "macos")]
-use std::mem;
+use std::{fmt, io, mem};
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
-use std::fmt;
 
 #[cfg(target_os = "macos")]
 use cf::*;
@@ -19,8 +16,7 @@ use posix::ioctl;
 use nix::libc::{c_char, c_void};
 #[cfg(target_os = "linux")]
 use libudev;
-use nix;
-use nix::unistd;
+use nix::{self, unistd};
 use nix::fcntl::fcntl;
 
 use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
@@ -147,7 +143,7 @@ impl TTYPort {
         let mut port = TTYPort {
             fd: fd,
             termios: termios,
-            timeout: Duration::from_millis(100),
+            timeout: Duration::new(0, 0), // This is overwritten by the subsequent call to `set_all()`
             exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
         };
@@ -442,9 +438,11 @@ impl AsRawFd for TTYPort {
 
 impl IntoRawFd for TTYPort {
     fn into_raw_fd(self) -> RawFd {
-        // Pull just the file descriptor out.  Let the
-        // rest of the member fields drop.
+        // Pull just the file descriptor out. We also prevent the destructor
+        // from being run by calling `mem::forget`. If we didn't do this, the
+        // port would be closed, which would make `into_raw_fd` unusable.
         let TTYPort { fd, .. } = self;
+        mem::forget(self);
         fd
     }
 }
@@ -1107,4 +1105,33 @@ pub fn available_baud_rates() -> Vec<u32> {
     #[cfg(any(target_os = "android", target_os = "linux"))]
     vec.push(4_000_000);
     vec
+}
+
+#[test]
+fn test_ttyport_into_raw_fd() {
+    // `master` must be used here as Dropping it causes slave to be deleted by the OS.
+    // TODO: Convert this to a statement-level attribute once
+    //       https://github.com/rust-lang/rust/issues/15701 is on stable.
+    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
+    #![allow(unused_variables)]
+    let (master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
+
+    // First test with the master
+    let master_fd = master.into_raw_fd();
+    let mut termios = unsafe { mem::uninitialized() };
+    let res = unsafe { nix::libc::tcgetattr(master_fd, &mut termios) };
+    if res != 0 {
+        close(master_fd);
+        panic!("tcgetattr on the master port failed");
+    }
+
+    // And then the slave
+    let slave_fd = slave.into_raw_fd();
+    let res = unsafe { nix::libc::tcgetattr(slave_fd, &mut termios) };
+    if res != 0 {
+        close(slave_fd);
+        panic!("tcgetattr on the master port failed");
+    }
+    close(master_fd);
+    close(slave_fd);
 }

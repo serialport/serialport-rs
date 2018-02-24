@@ -12,6 +12,10 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Added `SerialPort::try_clone` which allows for cloning a port for full-duplex
   reading and writing.
 
+==== Fixed
+* `TTYPort::into_raw_fd` will now work as expected. It previously closed the
+  port so the returned file descriptor would be invalid.
+
 === [2.1.0] - 2018-02-14
 ==== Added
 * `impl FromRawHandle` for `COMPort`
