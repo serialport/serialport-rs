@@ -1,11 +1,8 @@
 use regex::Regex;
 
 use std::ffi::{CStr, CString, OsStr};
-use std::fmt;
-use std::io;
-use std::mem;
+use std::{io, mem, ptr};
 use std::os::windows::prelude::*;
-use std::ptr;
 use std::time::Duration;
 
 use winapi::shared::guiddef::*;
@@ -33,22 +30,11 @@ use {Error, ErrorKind};
 /// should not be instantiated directly by using `COMPort::open()`, instead use
 /// the cross-platform `serialport::open()` or
 /// `serialport::open_with_settings()`.
+#[derive(Debug)]
 pub struct COMPort {
     handle: HANDLE,
-    inner: DCB,
     timeout: Duration,
     port_name: Option<String>,
-}
-
-// FIXME: Replace with `Derive` once `Debug` is implemented for `DCB`
-impl fmt::Debug for COMPort {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "COMPort {{ handle: {:?}, inner: DCB_STRUCT, timeout: {:?}, port_name: {:?} }}",
-               self.handle,
-               self.timeout,
-               self.port_name)
-    }
 }
 
 unsafe impl Send for COMPort {}
@@ -88,21 +74,12 @@ impl COMPort {
         };
 
         if handle != INVALID_HANDLE_VALUE {
-            let mut com = COMPort::open_from_raw_handle(handle as RawHandle)?;
+            let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
             com.port_name = port.as_ref().to_str().map(|s| s.to_string());
             com.set_all(settings)?;
             Ok(com)
         } else {
             Err(super::error::last_os_error())
-        }
-    }
-
-    fn write_settings(&mut self) -> ::Result<()> {
-        // Remove mut from &mut self.inner once the follow is resolved:
-        // https://github.com/retep998/winapi-rs/issues/383
-        match unsafe { SetCommState(self.handle, &mut self.inner) } {
-            0 => Err(super::error::last_os_error()),
-            _ => Ok(()),
         }
     }
 
@@ -122,22 +99,31 @@ impl COMPort {
         }
     }
 
-    fn open_from_raw_handle(handle: RawHandle) -> ::Result<Self> {
-        let handle = handle as HANDLE;
+    fn open_from_raw_handle(handle: RawHandle) -> Self {
+        // It is not trivial to get the file path corresponding to a handle.
+        // We'll punt and set it `None` here.
+        COMPort {
+            handle: handle as HANDLE,
+            timeout: Duration::from_millis(100),
+            port_name: None,
+        }
+    }
 
+    fn get_dcb(&self) -> ::Result<DCB> {
         let mut dcb: DCB = unsafe { mem::uninitialized() };
 
-        if unsafe { GetCommState(handle, &mut dcb) != 0 } {
-            // It is not trivial to get the file path corresponding to a handle.
-            // We'll punt and set it `None` here.
-            Ok(COMPort {
-                handle: handle,
-                inner: dcb,
-                timeout: Duration::from_millis(100),
-                port_name: None,
-            })
+        if unsafe { GetCommState(self.handle, &mut dcb) != 0 } {
+            return Ok(dcb);
         } else {
-            Err(super::error::last_os_error())
+            return Err(super::error::last_os_error());
+        }
+    }
+
+    fn set_dcb(&self, dcb: &DCB) -> ::Result<()> {
+        if unsafe { SetCommState(self.handle, dcb as *const _ as *mut _) != 0 } {
+            return Ok(());
+        } else {
+            return Err(super::error::last_os_error());
         }
     }
 }
@@ -158,7 +144,7 @@ impl AsRawHandle for COMPort {
 
 impl FromRawHandle for COMPort {
     unsafe fn from_raw_handle(handle: RawHandle) -> Self {
-        COMPort::open_from_raw_handle(handle).unwrap()
+        COMPort::open_from_raw_handle(handle)
     }
 }
 
@@ -219,6 +205,7 @@ impl SerialPort for COMPort {
     }
 
     /// Returns a struct with all port settings
+    // FIXME: Make this return all settings with one DCB read & write
     fn settings(&self) -> SerialPortSettings {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
@@ -242,8 +229,6 @@ impl SerialPort for COMPort {
             WriteTotalTimeoutConstant: 0,
         };
 
-        // Remove mut from &mut self.inner once the follow is resolved:
-        // https://github.com/retep998/winapi-rs/issues/383
         if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
             return Err(super::error::last_os_error());
         }
@@ -285,7 +270,11 @@ impl SerialPort for COMPort {
     }
 
     fn baud_rate(&self) -> Option<BaudRate> {
-        match self.inner.BaudRate {
+        let dcb = match self.get_dcb() {
+            Ok(d) => d,
+            Err(_) => return None,
+        };
+        match dcb.BaudRate {
             CBR_110 => Some(BaudRate::Baud110),
             CBR_300 => Some(BaudRate::Baud300),
             CBR_600 => Some(BaudRate::Baud600),
@@ -305,7 +294,11 @@ impl SerialPort for COMPort {
     }
 
     fn data_bits(&self) -> Option<DataBits> {
-        match self.inner.ByteSize {
+        let dcb = match self.get_dcb() {
+            Ok(d) => d,
+            Err(_) => return None,
+        };
+        match dcb.ByteSize {
             5 => Some(DataBits::Five),
             6 => Some(DataBits::Six),
             7 => Some(DataBits::Seven),
@@ -315,8 +308,11 @@ impl SerialPort for COMPort {
     }
 
     fn parity(&self) -> Option<Parity> {
-        let parity = self.inner.Parity;
-        match parity {
+        let dcb = match self.get_dcb() {
+            Ok(d) => d,
+            Err(_) => return None,
+        };
+        match dcb.Parity {
             ODDPARITY => Some(Parity::Odd),
             EVENPARITY => Some(Parity::Even),
             NOPARITY => Some(Parity::None),
@@ -325,8 +321,11 @@ impl SerialPort for COMPort {
     }
 
     fn stop_bits(&self) -> Option<StopBits> {
-        let stop_bits = self.inner.StopBits;
-        match stop_bits {
+        let dcb = match self.get_dcb() {
+            Ok(d) => d,
+            Err(_) => return None,
+        };
+        match dcb.StopBits {
             TWOSTOPBITS => Some(StopBits::Two),
             ONESTOPBIT => Some(StopBits::One),
             _ => None,
@@ -334,15 +333,20 @@ impl SerialPort for COMPort {
     }
 
     fn flow_control(&self) -> Option<FlowControl> {
-        if self.inner.fOutxCtsFlow() != 0 || self.inner.fRtsControl() != 0 {
+        let dcb = match self.get_dcb() {
+            Ok(d) => d,
+            Err(_) => return None,
+        };
+        if dcb.fOutxCtsFlow() != 0 || dcb.fRtsControl() != 0 {
             Some(FlowControl::Hardware)
-        } else if self.inner.fOutX() != 0 || self.inner.fInX() != 0 {
+        } else if dcb.fOutX() != 0 || dcb.fInX() != 0 {
             Some(FlowControl::Software)
         } else {
             Some(FlowControl::None)
         }
     }
 
+    // FIXME: Make this set everything with one DCB read & write
     fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
         self.set_baud_rate(settings.baud_rate)?;
         self.set_data_bits(settings.data_bits)?;
@@ -354,7 +358,8 @@ impl SerialPort for COMPort {
     }
 
     fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
-        self.inner.BaudRate = match baud_rate {
+        let mut dcb = self.get_dcb()?;
+        dcb.BaudRate = match baud_rate {
             BaudRate::Baud110 => CBR_110,
             BaudRate::Baud300 => CBR_300,
             BaudRate::Baud600 => CBR_600,
@@ -372,72 +377,74 @@ impl SerialPort for COMPort {
             BaudRate::BaudOther(n) => n as DWORD,
         };
 
-        self.write_settings()
+        self.set_dcb(&dcb)
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
-        self.inner.ByteSize = match data_bits {
+        let mut dcb = self.get_dcb()?;
+        dcb.ByteSize = match data_bits {
             DataBits::Five => 5,
             DataBits::Six => 6,
             DataBits::Seven => 7,
             DataBits::Eight => 8,
         };
 
-        self.write_settings()
+        self.set_dcb(&dcb)
     }
 
     fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
-        self.inner.Parity = match parity {
+        let mut dcb = self.get_dcb()?;
+        dcb.Parity = match parity {
             Parity::None => NOPARITY as u8,
             Parity::Odd => ODDPARITY as u8,
             Parity::Even => EVENPARITY as u8,
         };
 
-        self.write_settings()
+        self.set_dcb(&dcb)
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
-        self.inner.StopBits = match stop_bits {
+        let mut dcb = self.get_dcb()?;
+        dcb.StopBits = match stop_bits {
             StopBits::One => ONESTOPBIT as u8,
             StopBits::Two => TWOSTOPBITS as u8,
         };
 
-        self.write_settings()
+        self.set_dcb(&dcb)
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
+        let mut dcb = self.get_dcb()?;
         match flow_control {
             FlowControl::None => {
-                self.inner.set_fOutxCtsFlow(0);
-                self.inner.set_fRtsControl(0);
-                self.inner.set_fOutX(0);
-                self.inner.set_fInX(0);
+                dcb.set_fOutxCtsFlow(0);
+                dcb.set_fRtsControl(0);
+                dcb.set_fOutX(0);
+                dcb.set_fInX(0);
             }
             FlowControl::Software => {
-                self.inner.set_fOutxCtsFlow(0);
-                self.inner.set_fRtsControl(0);
-                self.inner.set_fOutX(1);
-                self.inner.set_fInX(1);
+                dcb.set_fOutxCtsFlow(0);
+                dcb.set_fRtsControl(0);
+                dcb.set_fOutX(1);
+                dcb.set_fInX(1);
             }
             FlowControl::Hardware => {
-                self.inner.set_fOutxCtsFlow(1);
-                self.inner.set_fRtsControl(1);
-                self.inner.set_fOutX(0);
-                self.inner.set_fInX(0);
+                dcb.set_fOutxCtsFlow(1);
+                dcb.set_fRtsControl(1);
+                dcb.set_fOutX(0);
+                dcb.set_fInX(0);
             }
         }
 
-        self.write_settings()
+        self.set_dcb(&dcb)
     }
 
-    // FIXME : Remove the setting caching as changing the setting through multiple objects can
-    // cause some problems.
     fn try_clone(&self) -> ::Result<Box<SerialPort>> {
         let process_handle: HANDLE = unsafe {GetCurrentProcess()};
         let mut cloned_handle: HANDLE;
         unsafe {
             cloned_handle = mem::uninitialized();
-            DuplicateHandle(process_handle, 
+            DuplicateHandle(process_handle,
                             self.handle,
                             process_handle,
                             &mut cloned_handle,
@@ -448,7 +455,6 @@ impl SerialPort for COMPort {
                 Ok(Box::new(COMPort {
                     handle: cloned_handle,
                     port_name: self.port_name.clone(),
-                    inner: self.inner.clone(),
                     timeout: self.timeout,
                 }))
             } else {
