@@ -29,7 +29,7 @@ use {Error, ErrorKind};
 
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
-fn close(fd: RawFd){
+fn close(fd: RawFd) {
     // remove exclusive access
     let _ = ioctl::tiocnxcl(fd);
 
@@ -60,12 +60,14 @@ pub struct TTYPort {
 
 impl fmt::Debug for TTYPort {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f,
-               "TTYPort {{ fd: {}, timeout: {:?}, exclusive: {}, port_name: {:?} }}",
-               self.fd,
-               self.timeout,
-               self.exclusive,
-               self.port_name)
+        write!(
+            f,
+            "TTYPort {{ fd: {}, timeout: {:?}, exclusive: {}, port_name: {:?} }}",
+            self.fd,
+            self.timeout,
+            self.exclusive,
+            self.port_name
+        )
     }
 }
 
@@ -97,11 +99,10 @@ impl TTYPort {
                                   OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
                                   nix::sys::stat::Mode::empty())?;
 
-        let mut termios = tcgetattr(fd)
-            .map_err(|e| {
-                         close(fd);
-                         e
-                     })?;
+        let mut termios = tcgetattr(fd).map_err(|e| {
+            close(fd);
+            e
+        })?;
 
         // If any of these steps fail, then we should abort creation of the
         // TTYPort and ensure the file descriptor is closed.
@@ -308,20 +309,20 @@ impl TTYPort {
             BaudRate::Baud2400 => B2400,
             BaudRate::Baud4800 => B4800,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+                        target_os = "netbsd", target_os = "openbsd"))]
             BaudRate::Baud7200 => B7200,
             BaudRate::Baud9600 => B9600,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+                        target_os = "netbsd", target_os = "openbsd"))]
             BaudRate::Baud14400 => B14400,
             BaudRate::Baud19200 => B19200,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+                        target_os = "netbsd", target_os = "openbsd"))]
             BaudRate::Baud28800 => B28800,
             BaudRate::Baud38400 => B38400,
             BaudRate::Baud57600 => B57600,
             #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+                        target_os = "netbsd", target_os = "openbsd"))]
             BaudRate::Baud76800 => B76800,
             BaudRate::Baud115200 => B115200,
             BaudRate::Baud230400 => B230400,
@@ -451,7 +452,8 @@ impl IntoRawFd for TTYPort {
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
 
-        let termios = nix::sys::termios::tcgetattr(fd).expect("Unable to retrieve termios settings.");
+        let termios =
+            nix::sys::termios::tcgetattr(fd).expect("Unable to retrieve termios settings.");
 
         // Try to set exclusive, as is the default setting.  Catch errors.. this method MUST
         // return a TTYPort so we'll just indicate non-exclusive on an error here.
@@ -499,7 +501,9 @@ impl io::Write for TTYPort {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        nix::sys::termios::tcdrain(self.fd).map_err(|_| io::Error::new(io::ErrorKind::Other, "flush failed"))
+        nix::sys::termios::tcdrain(self.fd).map_err(|_| {
+            io::Error::new(io::ErrorKind::Other, "flush failed")
+        })
     }
 }
 
@@ -513,8 +517,7 @@ impl SerialPort for TTYPort {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
             data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
-            flow_control: self.flow_control()
-                .expect("Couldn't retrieve flow control"),
+            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
             timeout: self.timeout,
@@ -706,6 +709,19 @@ impl SerialPort for TTYPort {
     fn read_carrier_detect(&mut self) -> ::Result<bool> {
         self.read_pin(ioctl::DATA_CARRIER_DETECT)
     }
+
+    // FIXME : Remove the setting caching as it can cause problem if you change the setting
+    // through two different objects.
+    fn try_clone(&self) -> ::Result<Box<SerialPort>> {
+        let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD(self.fd))?;
+        Ok(Box::new(TTYPort {
+            fd: fd_cloned,
+            termios: self.termios.clone(),
+            exclusive: self.exclusive,
+            port_name: self.port_name.clone(),
+            timeout: self.timeout,
+        }))
+    }
 }
 
 /// Retrieves the udev property value named by `key`. If the value exists, then it will be
@@ -742,12 +758,12 @@ fn port_type(d: &libudev::Device) -> ::Result<SerialPortType> {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
             Ok(SerialPortType::UsbPort(UsbPortInfo {
-                                           vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
-                                           pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
-                                           serial_number: serial_number,
-                                           manufacturer: udev_property_as_string(d, "ID_VENDOR"),
-                                           product: udev_property_as_string(d, "ID_MODEL"),
-                                       }))
+                vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
+                pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
+                serial_number: serial_number,
+                manufacturer: udev_property_as_string(d, "ID_VENDOR"),
+                product: udev_property_as_string(d, "ID_MODEL"),
+            }))
         }
         Some("pci") => Ok(SerialPortType::PciPort),
         _ => Ok(SerialPortType::Unknown),
@@ -770,7 +786,8 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                     if let Some(path) = devnode.to_str() {
                         if let Some(driver) = p.driver() {
                             if driver == "serial8250" &&
-                               TTYPort::open(devnode, &Default::default()).is_err() {
+                                TTYPort::open(devnode, &Default::default()).is_err()
+                            {
                                 continue;
                             }
                         }
@@ -778,9 +795,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                         // skipped instead of causing no ports to be returned.
                         if let Ok(pt) = port_type(&d) {
                             vec.push(SerialPortInfo {
-                                         port_name: String::from(path),
-                                         port_type: pt,
-                                     });
+                                port_name: String::from(path),
+                                port_type: pt,
+                            });
                         }
                     }
                 }
@@ -791,9 +808,10 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 }
 
 #[cfg(target_os = "macos")]
-fn get_parent_device_by_type(device: io_object_t,
-                             parent_type: *const c_char)
-                             -> Option<io_registry_entry_t> {
+fn get_parent_device_by_type(
+    device: io_object_t,
+    parent_type: *const c_char,
+) -> Option<io_registry_entry_t> {
     let parent_type = unsafe { CStr::from_ptr(parent_type) };
     use mach::kern_return::KERN_SUCCESS;
     let mut device = device;
@@ -806,8 +824,9 @@ fn get_parent_device_by_type(device: io_object_t,
         }
         let mut parent: io_registry_entry_t = unsafe { mem::uninitialized() };
         if unsafe {
-               IORegistryEntryGetParentEntry(device, kIOServiceClass(), &mut parent) != KERN_SUCCESS
-           } {
+            IORegistryEntryGetParentEntry(device, kIOServiceClass(), &mut parent) != KERN_SUCCESS
+        }
+        {
             return None;
         }
         device = parent;
@@ -817,15 +836,18 @@ fn get_parent_device_by_type(device: io_object_t,
 #[cfg(target_os = "macos")]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
-fn get_int_property(device_type: io_registry_entry_t,
-                    property: &str,
-                    cf_number_type: CFNumberType)
-                    -> Option<u32> {
+fn get_int_property(
+    device_type: io_registry_entry_t,
+    property: &str,
+    cf_number_type: CFNumberType,
+) -> Option<u32> {
     unsafe {
         let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(kCFAllocatorDefault,
-                                            prop_str.as_ptr(),
-                                            kCFStringEncodingUTF8);
+        let key = CFStringCreateWithCString(
+            kCFAllocatorDefault,
+            prop_str.as_ptr(),
+            kCFStringEncodingUTF8,
+        );
         let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
         if container.is_null() {
             return None;
@@ -856,9 +878,11 @@ fn get_int_property(device_type: io_registry_entry_t,
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
     unsafe {
         let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(kCFAllocatorDefault,
-                                            prop_str.as_ptr(),
-                                            kCFStringEncodingUTF8);
+        let key = CFStringCreateWithCString(
+            kCFAllocatorDefault,
+            prop_str.as_ptr(),
+            kCFStringEncodingUTF8,
+        );
         let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
         if container.is_null() {
             return None;
@@ -884,22 +908,14 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
     if let Some(usb_device) = get_parent_device_by_type(service, kIOUSBDeviceClassName()) {
         SerialPortType::UsbPort(UsbPortInfo {
-                                    vid: get_int_property(usb_device,
-                                                          "idVendor",
-                                                          kCFNumberSInt16Type)
-                                            .unwrap_or_default() as
-                                         u16,
-                                    pid: get_int_property(usb_device,
-                                                          "idProduct",
-                                                          kCFNumberSInt16Type)
-                                            .unwrap_or_default() as
-                                         u16,
-                                    serial_number: get_string_property(usb_device,
-                                                                       "USB Serial Number"),
-                                    manufacturer: get_string_property(usb_device,
-                                                                      "USB Vendor Name"),
-                                    product: get_string_property(usb_device, "USB Product Name"),
-                                })
+            vid: get_int_property(usb_device, "idVendor", kCFNumberSInt16Type)
+                .unwrap_or_default() as u16,
+            pid: get_int_property(usb_device, "idProduct", kCFNumberSInt16Type)
+                .unwrap_or_default() as u16,
+            serial_number: get_string_property(usb_device, "USB Serial Number"),
+            manufacturer: get_string_property(usb_device, "USB Vendor Name"),
+            product: get_string_property(usb_device, "USB Product Name"),
+        })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
         SerialPortType::BluetoothPort
     } else {
@@ -922,23 +938,33 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         // Create a dictionary for specifying the search terms against the IOService
         let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue());
         if classes_to_match.is_null() {
-            return Err(Error::new(ErrorKind::Unknown,
-                                  "IOServiceMatching returned a NULL dictionary."));
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "IOServiceMatching returned a NULL dictionary.",
+            ));
         }
 
         // Populate the search dictionary with a single key/value pair indicating that we're
         // searching for serial devices matching the RS232 device type.
-        let key = CFStringCreateWithCString(kCFAllocatorDefault,
-                                            kIOSerialBSDTypeKey(),
-                                            kCFStringEncodingUTF8);
+        let key = CFStringCreateWithCString(
+            kCFAllocatorDefault,
+            kIOSerialBSDTypeKey(),
+            kCFStringEncodingUTF8,
+        );
         if key.is_null() {
-            return Err(Error::new(ErrorKind::Unknown, "Failed to allocate key string."));
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "Failed to allocate key string.",
+            ));
         }
         let value = CFStringCreateWithCString(kCFAllocatorDefault,
                                               kIOSerialBSDAllTypes(),
                                               kCFStringEncodingUTF8);
         if value.is_null() {
-            return Err(Error::new(ErrorKind::Unknown, "Failed to allocate value string."));
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "Failed to allocate value string.",
+            ));
         }
         CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
 
@@ -946,16 +972,24 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         let mut master_port: mach_port_t = MACH_PORT_NULL;
         let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
         if kern_result != KERN_SUCCESS {
-            return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", kern_result)));
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                format!("ERROR: {}", kern_result),
+            ));
         }
 
         // Run the search.
         let mut matching_services: io_iterator_t = mem::uninitialized();
-        kern_result = IOServiceGetMatchingServices(kIOMasterPortDefault,
-                                                   classes_to_match,
-                                                   &mut matching_services);
+        kern_result = IOServiceGetMatchingServices(
+            kIOMasterPortDefault,
+            classes_to_match,
+            &mut matching_services,
+        );
         if kern_result != KERN_SUCCESS {
-            return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", kern_result)));
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                format!("ERROR: {}", kern_result),
+            ));
         }
 
         loop {
@@ -969,33 +1003,42 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 
             // Fetch all properties of the current search result item.
             let mut props = mem::uninitialized();
-            let result = IORegistryEntryCreateCFProperties(modem_service,
-                                                           &mut props,
-                                                           kCFAllocatorDefault,
-                                                           0);
+            let result = IORegistryEntryCreateCFProperties(
+                modem_service,
+                &mut props,
+                kCFAllocatorDefault,
+                0,
+            );
             if result == KERN_SUCCESS {
                 // We only care about the IODialinDevice, which is the device path for this port.
                 let key = CString::new("IODialinDevice").unwrap();
-                let key_cfstring = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                             key.as_ptr(),
-                                                             kCFStringEncodingUTF8);
+                let key_cfstring = CFStringCreateWithCString(
+                    kCFAllocatorDefault,
+                    key.as_ptr(),
+                    kCFStringEncodingUTF8,
+                );
                 let value = CFDictionaryGetValue(props, key_cfstring as *const c_void);
 
                 let type_id = CFGetTypeID(value);
                 if type_id == CFStringGetTypeID() {
                     let mut buf = Vec::with_capacity(256);
 
-                    CFStringGetCString(value as CFStringRef,
-                                       buf.as_mut_ptr(),
-                                       256,
-                                       kCFStringEncodingUTF8);
+                    CFStringGetCString(
+                        value as CFStringRef,
+                        buf.as_mut_ptr(),
+                        256,
+                        kCFStringEncodingUTF8,
+                    );
                     let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
                     vec.push(SerialPortInfo {
-                                 port_name: path.to_string(),
-                                 port_type: port_type(modem_service),
-                             });
+                        port_name: path.to_string(),
+                        port_type: port_type(modem_service),
+                    });
                 } else {
-                    return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
+                    return Err(Error::new(
+                        ErrorKind::Unknown,
+                        "Found invalid type for TypeID",
+                    ));
                 }
             } else {
                 return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
@@ -1011,7 +1054,10 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
 /// Enumerating serial ports on non-Linux POSIX platforms is not yet supported
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    Err(Error::new(ErrorKind::Unknown, "Not implemented for this OS"))
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "Not implemented for this OS",
+    ))
 }
 
 /// Returns a list of baud rates officially supported by this platform. It's likely more are
@@ -1019,7 +1065,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
 pub fn available_baud_rates() -> Vec<u32> {
     let mut vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800];
     #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
+                target_os = "netbsd", target_os = "openbsd"))]
     vec.push(7200);
     vec.push(9600);
     #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
