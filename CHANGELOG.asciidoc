@@ -9,8 +9,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 ==== Added
 * Added `examples/hardware_check.rs` for use in debugging library or
   driver issues when using physical serial ports.
-* Added a new function in the trait `SerialPort` : `try_clone` which try to clone 
-  the underlying structure of a serial port to allow full duplex read/write.
+* Added `SerialPort::try_clone` which allows for cloning a port for full-duplex
+  reading and writing.
 
 === [2.1.0] - 2018-02-14
 ==== Added
