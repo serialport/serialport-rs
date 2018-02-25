@@ -69,8 +69,8 @@ macro_rules! data_bits_check {
             println!("FAILED setting {:?}, error: {}", data_bits, e);
         }
         match $port.data_bits() {
-            None => println!("FAILED to retrieve baud rate"),
-            Some(r) if r != data_bits => println!("FAILED, baud rate {:?} does not match set baud rate {:?}",
+            None => println!("FAILED to retrieve data bits"),
+            Some(r) if r != data_bits => println!("FAILED, data bits {:?} does not match set data bits {:?}",
                 r,
                 data_bits),
             Some(_) => (),
@@ -85,8 +85,8 @@ macro_rules! flow_control_check {
             println!("FAILED setting {:?}, error: {}", flow_control, e);
         }
         match $port.flow_control() {
-            None => println!("FAILED to retrieve baud rate"),
-            Some(r) if r != flow_control => println!("FAILED, baud rate {:?} does not match set baud rate {:?}",
+            None => println!("FAILED to retrieve flow control"),
+            Some(r) if r != flow_control => println!("FAILED, flow control {:?} does not match set flow control {:?}",
                 r,
                 flow_control),
             Some(_) => (),
@@ -101,8 +101,8 @@ macro_rules! parity_check {
             println!("FAILED setting {:?}, error: {}", parity, e);
         }
         match $port.parity() {
-            None => println!("FAILED to retrieve baud rate"),
-            Some(r) if r != parity => println!("FAILED, baud rate {:?} does not match set baud rate {:?}",
+            None => println!("FAILED to retrieve parity"),
+            Some(r) if r != parity => println!("FAILED, parity {:?} does not match set parity {:?}",
                 r,
                 parity),
             Some(_) => (),
@@ -117,8 +117,8 @@ macro_rules! stop_bits_check {
             println!("FAILED setting {:?}, error: {}", stop_bits, e);
         }
         match $port.stop_bits() {
-            None => println!("FAILED to retrieve baud rate"),
-            Some(r) if r != stop_bits => println!("FAILED, baud rate {:?} does not match set baud rate {:?}",
+            None => println!("FAILED to retrieve stop bits"),
+            Some(r) if r != stop_bits => println!("FAILED, stop bits {:?} does not match set stop bits {:?}",
                 r,
                 stop_bits),
             Some(_) => (),
