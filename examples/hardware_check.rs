@@ -50,14 +50,15 @@ macro_rules! baud_rate_check {
     ( $port:ident, $baud:path ) => {
         let baud_rate = $baud;
         if let Err(e) = $port.set_baud_rate(baud_rate) {
-            println!("FAILED setting {:?}, error: {}", baud_rate, e);
+            println!("  {:?}: FAILED ({})", baud_rate, e);
         }
         match $port.baud_rate() {
-            None => println!("FAILED to retrieve baud rate"),
-            Some(r) if r != baud_rate => println!("FAILED, baud rate {:?} does not match set baud rate {:?}",
+            None => println!("  {:?}: FAILED (error retrieving baud rate)", baud_rate),
+            Some(r) if r != baud_rate => println!("  {:?}: FAILED (baud rate {:?} does not match set baud rate {:?})",
+                baud_rate,
                 r,
                 baud_rate),
-            Some(_) => (),
+            Some(_) => println!("  {:?}: success", baud_rate),
         }
     };
 }
@@ -66,14 +67,16 @@ macro_rules! data_bits_check {
     ( $port:ident, $data_bits:path ) => {
         let data_bits = $data_bits;
         if let Err(e) = $port.set_data_bits(data_bits) {
-            println!("FAILED setting {:?}, error: {}", data_bits, e);
-        }
-        match $port.data_bits() {
-            None => println!("FAILED to retrieve data bits"),
-            Some(r) if r != data_bits => println!("FAILED, data bits {:?} does not match set data bits {:?}",
-                r,
-                data_bits),
-            Some(_) => (),
+            println!("  {:?}: FAILED ({})", data_bits, e);
+        } else {
+            match $port.data_bits() {
+                None => println!("FAILED to retrieve data bits"),
+                Some(r) if r != data_bits => println!("  {:?}: FAILED (data bits {:?} does not match set data bits {:?})",
+                    data_bits,
+                    r,
+                    data_bits),
+                Some(_) => println!("  {:?}: success", data_bits),
+            }
         }
     };
 }
@@ -82,14 +85,16 @@ macro_rules! flow_control_check {
     ( $port:ident, $flow_control:path ) => {
         let flow_control = $flow_control;
         if let Err(e) = $port.set_flow_control(flow_control) {
-            println!("FAILED setting {:?}, error: {}", flow_control, e);
-        }
-        match $port.flow_control() {
-            None => println!("FAILED to retrieve flow control"),
-            Some(r) if r != flow_control => println!("FAILED, flow control {:?} does not match set flow control {:?}",
-                r,
-                flow_control),
-            Some(_) => (),
+            println!("  {:?}: FAILED ({})", flow_control, e);
+        } else {
+            match $port.flow_control() {
+                None => println!("FAILED to retrieve flow control"),
+                Some(r) if r != flow_control => println!("  {:?}: FAILED (flow control {:?} does not match set flow control {:?})",
+                    flow_control,
+                    r,
+                    flow_control),
+                Some(_) => println!("  {:?}: success", flow_control),
+            }
         }
     };
 }
@@ -98,14 +103,16 @@ macro_rules! parity_check {
     ( $port:ident, $parity:path ) => {
         let parity = $parity;
         if let Err(e) = $port.set_parity(parity) {
-            println!("FAILED setting {:?}, error: {}", parity, e);
-        }
-        match $port.parity() {
-            None => println!("FAILED to retrieve parity"),
-            Some(r) if r != parity => println!("FAILED, parity {:?} does not match set parity {:?}",
-                r,
-                parity),
-            Some(_) => (),
+            println!("  {:?}: FAILED ({})", parity, e);
+        } else {
+            match $port.parity() {
+                None => println!("FAILED to retrieve parity"),
+                Some(r) if r != parity => println!("  {:?}: FAILED (parity {:?} does not match set parity {:?})",
+                    parity,
+                    r,
+                    parity),
+                Some(_) => println!("  {:?}: success", parity),
+            }
         }
     };
 }
@@ -114,14 +121,15 @@ macro_rules! stop_bits_check {
     ( $port:ident, $stop_bits:path ) => {
         let stop_bits = $stop_bits;
         if let Err(e) = $port.set_stop_bits(stop_bits) {
-            println!("FAILED setting {:?}, error: {}", stop_bits, e);
-        }
-        match $port.stop_bits() {
-            None => println!("FAILED to retrieve stop bits"),
-            Some(r) if r != stop_bits => println!("FAILED, stop bits {:?} does not match set stop bits {:?}",
-                r,
-                stop_bits),
-            Some(_) => (),
+            println!("  {:?}: FAILED ({})", stop_bits, e);
+        } else {
+            match $port.stop_bits() {
+                None => println!("FAILED to retrieve stop bits"),
+                Some(r) if r != stop_bits => println!("FAILED, stop bits {:?} does not match set stop bits {:?}",
+                    r,
+                    stop_bits),
+                Some(_) => println!("  {:?}: success", stop_bits),
+            }
         }
     };
 }
@@ -130,39 +138,34 @@ fn test_single_port(port: &mut serialport::SerialPort) {
     println!("Testing '{}':", port.port_name().unwrap());
 
     // Test setting standard baud rates
-    print!("  Setting standard baud rates...");
+    println!("Testing baud rates...");
     baud_rate_check!(port, BaudRate::Baud9600);
     baud_rate_check!(port, BaudRate::Baud38400);
     baud_rate_check!(port, BaudRate::Baud115200);
-    println!("success");
 
     // Test setting the data bits
-    print!("  Setting data bits...");
+    println!("Testing data bits...");
     data_bits_check!(port, DataBits::Five);
     data_bits_check!(port, DataBits::Six);
     data_bits_check!(port, DataBits::Seven);
     data_bits_check!(port, DataBits::Eight);
-    println!("success");
 
     // Test setting flow control
-    print!("  Setting flow control...");
+    println!("Testing flow control...");
     flow_control_check!(port, FlowControl::Software);
     flow_control_check!(port, FlowControl::Hardware);
     flow_control_check!(port, FlowControl::None);
-    println!("success");
 
     // Test setting parity
-    print!("  Setting parity...");
+    println!("Testing parity...");
     parity_check!(port, Parity::Odd);
     parity_check!(port, Parity::Even);
     parity_check!(port, Parity::None);
-    println!("success");
 
     // Test setting stop bits
-    print!("  Setting stop bits...");
+    println!("Testing stop bits...");
     stop_bits_check!(port, StopBits::Two);
     stop_bits_check!(port, StopBits::One);
-    println!("success");
 
 }
 
