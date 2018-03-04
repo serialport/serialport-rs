@@ -180,7 +180,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port2.set_all(&port_settings).expect("Resetting port2 to sane defaults failed");
 
     let msg = "Test Message";
-    let mut buf = [0u8; 128];
+    let mut buf = [0u8; 12];
 
     // Test sending strings from port1 to port2 and back at 115200,8,n,1
     print!("  Transmitting at 115200 from port1 to port2...");
@@ -188,12 +188,8 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    let nbytes = port2.read(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Read message length differs from sent message.");
-
-    assert_eq!(str::from_utf8(&buf[..nbytes]).unwrap(),
+    port2.read_exact(&mut buf).expect("Unable to read bytes.");
+    assert_eq!(str::from_utf8(&buf).unwrap(),
                msg,
                "Received message does not match sent");
     println!("success");
@@ -204,32 +200,22 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    let nbytes = port1.read(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Read message length differs from sent message.");
-
-    assert_eq!(str::from_utf8(&buf[..nbytes]).unwrap(),
+    port1.read_exact(&mut buf).expect("Unable to read bytes.");
+    assert_eq!(str::from_utf8(&buf).unwrap(),
                msg,
                "Received message does not match sent");
     println!("success");
 
     // Test sending strings from port1 to port2 and back at 57600,8,n,1
     port1.set_baud_rate(BaudRate::Baud57600).expect("Setting port1's baud rate to 57600 failed");
-    port1.set_timeout(Duration::from_millis(200)).expect("Setting port1's timeout to .2s failed");
     port2.set_baud_rate(BaudRate::Baud57600).expect("Setting port2's baud rate to 57600 failed");
-    port2.set_timeout(Duration::from_millis(200)).expect("Setting port2's timeout to .2s failed");
     print!("  Transmitting at 57600 from port1 to port2...");
     let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    let nbytes = port2.read(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Read message length differs from sent message.");
-
-    assert_eq!(str::from_utf8(&buf[..nbytes]).unwrap(),
+    port2.read_exact(&mut buf).expect("Unable to read bytes.");
+    assert_eq!(str::from_utf8(&buf).unwrap(),
                msg,
                "Received message does not match sent");
     println!("success");
@@ -239,12 +225,8 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    let nbytes = port1.read(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Read message length differs from sent message.");
-
-    assert_eq!(str::from_utf8(&buf[..nbytes]).unwrap(),
+    port1.read_exact(&mut buf).expect("Unable to read bytes.");
+    assert_eq!(str::from_utf8(&buf).unwrap(),
                msg,
                "Received message does not match sent");
     println!("success");
