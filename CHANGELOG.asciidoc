@@ -14,6 +14,14 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Added `SerialPort::try_clone` which allows for cloning a port for full-duplex
   reading and writing.
 
+==== Changed
+* Removed configuration caching for serial ports. The underlying implementations
+  for all platforms cached a configuration struct so that modifying the port
+  settings involved a single switch into kernel space. This has been removed so
+  now two system calls are needed for every configuration change. This is
+  probably a slight performance regression, but should allow the new
+  `SerialPort::try_clone` interface to work as people expect.
+
 ==== Fixed
 * `TTYPort::into_raw_fd` will now work as expected. It previously closed the
   port so the returned file descriptor would be invalid.
