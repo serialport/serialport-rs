@@ -7,7 +7,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
 
-=== [2.2.0] - 2018-03-13
+=== [2.3.0] - 2018-03-13
 ==== Added
 * Added `examples/hardware_check.rs` for use in debugging library or
   driver issues when using physical serial ports.
@@ -25,6 +25,9 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 ==== Fixed
 * `TTYPort::into_raw_fd` will now work as expected. It previously closed the
   port so the returned file descriptor would be invalid.
+
+=== [2.2.0] - 2018-03-13
+Unreleased, happened due to a user error using `cargo-release`
 
 === [2.1.0] - 2018-02-14
 ==== Added
