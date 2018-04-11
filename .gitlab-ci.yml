@@ -33,6 +33,19 @@ build:stable:
     - cargo update
     - cargo build --verbose
 
+build:stable-i686:
+    image: "i386/debian:stable-slim"
+    stage: build
+    script:
+    - export RUST_ARCHIVE=rust-1.20.0-i686-unknown-linux-gnu.tar.xz
+    - export RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
+    - curl -fsOSL $RUST_DOWNLOAD_URL
+    - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
+    - tar -xf $RUST_ARCHIVE --strip-components=1
+    - ./install.sh
+    - cargo update
+    - cargo build --verbose
+
 test:rustfmt:
     image: "debian:stable-slim"
     stage: test
