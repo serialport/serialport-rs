@@ -182,52 +182,97 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let msg = "Test Message";
     let mut buf = [0u8; 12];
 
-    // Test sending strings from port1 to port2 and back at 115200,8,n,1
-    print!("  Transmitting at 115200 from port1 to port2...");
+    // Test sending strings from port1 to port2
+    println!("  Transmitting from {} to {}...", port1.port_name().unwrap(), port2.port_name().unwrap());
+    print!("     At 115200,8,n,1,noflow...");
     let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    port2.read_exact(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(str::from_utf8(&buf).unwrap(),
-               msg,
-               "Received message does not match sent");
-    println!("success");
-
-    // Test sending a string from port2 to port1 at 115200,8,n,1
-    print!("  Transmitting at 115200 from port2 to port1...");
-    let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Write message length differs from sent message.");
-    port1.read_exact(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(str::from_utf8(&buf).unwrap(),
-               msg,
-               "Received message does not match sent");
-    println!("success");
-
-    // Test sending strings from port1 to port2 and back at 57600,8,n,1
+    if port2.read_exact(&mut buf).is_err() {
+        println!("FAILED");
+    } else {
+        assert_eq!(str::from_utf8(&buf).unwrap(),
+                   msg,
+                   "Received message does not match sent");
+        println!("success");
+    }
     port1.set_baud_rate(BaudRate::Baud57600).expect("Setting port1's baud rate to 57600 failed");
     port2.set_baud_rate(BaudRate::Baud57600).expect("Setting port2's baud rate to 57600 failed");
-    print!("  Transmitting at 57600 from port1 to port2...");
+    print!("     At 57600,8,n,1,noflow...");
     let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    port2.read_exact(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(str::from_utf8(&buf).unwrap(),
-               msg,
-               "Received message does not match sent");
-    println!("success");
+    if port2.read_exact(&mut buf).is_err() {
+        println!("FAILED");
+    } else {
+        assert_eq!(str::from_utf8(&buf).unwrap(),
+                   msg,
+                   "Received message does not match sent");
+        println!("success");
+    }
+    port1.set_baud_rate(BaudRate::Baud9600).expect("Setting port1's baud rate to 9600 failed");
+    port2.set_baud_rate(BaudRate::Baud9600).expect("Setting port2's baud rate to 9600 failed");
+    print!("     At 9600,8,n,1,noflow...");
+    let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
+    assert_eq!(nbytes,
+               msg.len(),
+               "Write message length differs from sent message.");
+    if port2.read_exact(&mut buf).is_err() {
+        println!("FAILED");
+    } else {
+        assert_eq!(str::from_utf8(&buf).unwrap(),
+                   msg,
+                   "Received message does not match sent");
+        println!("success");
+    }
 
-    print!("  Transmitting at 57600 from port2 to port1...");
+    // Test sending strings from port2 to port1
+    port1.set_baud_rate(BaudRate::Baud115200).expect("Setting port1's baud rate to 115200 failed");
+    port2.set_baud_rate(BaudRate::Baud115200).expect("Setting port2's baud rate to 115200 failed");
+    println!("  Transmitting from {} to {}...", port2.port_name().unwrap(), port1.port_name().unwrap());
+    print!("     At 115200,8,n,1,noflow...");
     let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(nbytes,
                msg.len(),
                "Write message length differs from sent message.");
-    port1.read_exact(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(str::from_utf8(&buf).unwrap(),
-               msg,
-               "Received message does not match sent");
-    println!("success");
+    if port1.read_exact(&mut buf).is_err() {
+        println!("FAILED");
+    } else {
+        assert_eq!(str::from_utf8(&buf).unwrap(),
+                   msg,
+                   "Received message does not match sent");
+        println!("success");
+    }
+    port1.set_baud_rate(BaudRate::Baud57600).expect("Setting port1's baud rate to 57600 failed");
+    port2.set_baud_rate(BaudRate::Baud57600).expect("Setting port2's baud rate to 57600 failed");
+    print!("     At 57600,8,n,1,noflow...");
+    let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
+    assert_eq!(nbytes,
+               msg.len(),
+               "Write message length differs from sent message.");
+    if port1.read_exact(&mut buf).is_err() {
+        println!("FAILED");
+    } else {
+        assert_eq!(str::from_utf8(&buf).unwrap(),
+                   msg,
+                   "Received message does not match sent");
+        println!("success");
+    }
+    port1.set_baud_rate(BaudRate::Baud9600).expect("Setting port1's baud rate to 9600 failed");
+    port2.set_baud_rate(BaudRate::Baud9600).expect("Setting port2's baud rate to 9600 failed");
+    print!("     At 9600,8,n,1,noflow...");
+    let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
+    assert_eq!(nbytes,
+               msg.len(),
+               "Write message length differs from sent message.");
+    if port1.read_exact(&mut buf).is_err() {
+        println!("FAILED");
+    } else {
+        assert_eq!(str::from_utf8(&buf).unwrap(),
+                   msg,
+                   "Received message does not match sent");
+        println!("success");
+    }
 }
