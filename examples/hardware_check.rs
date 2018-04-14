@@ -29,8 +29,7 @@ fn main() {
             .add_argument("port1", Store, "Port 1 name")
             .required();
         ap.refer(&mut port2_name)
-            .add_argument("port2", Store, "Port 2 name")
-            .required();
+            .add_argument("port2", Store, "Port 2 name");
         ap.parse_args_or_exit();
     }
 
@@ -38,12 +37,14 @@ fn main() {
     let mut port1 = serialport::open(&port1_name).unwrap();
     test_single_port(&mut *port1);
 
-    // Run single-port tests on port2
-    let mut port2 = serialport::open(&port2_name).unwrap();
-    test_single_port(&mut *port2);
+    if port2_name != "" {
+        // Run single-port tests on port2
+        let mut port2 = serialport::open(&port2_name).unwrap();
+        test_single_port(&mut *port2);
 
-    // Test loopback pair
-    test_dual_ports(&mut *port1, &mut *port2);
+        // Test loopback pair
+        test_dual_ports(&mut *port1, &mut *port2);
+    }
 }
 
 macro_rules! baud_rate_check {
