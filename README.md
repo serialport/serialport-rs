@@ -62,6 +62,24 @@ Tier 1 supports means this library is build- and run-tested and is regularly use
 be pretty bug-free. Tier 2 means it's only build- and run-tested, but no developer uses this as
 their primary development environment.
 
+Hardware Support
+================
+
+This library has been developed to support all serial port devices across all
+supported platforms. To determine how well your platform is supported, please
+run the `hardware_check` example provided with this library. It will test the
+driver to confirm that all possible settings are supported for a port.
+Additionally, it will test that data transmission is correct for those settings
+if you have two ports physically configured to communicate. If you experience
+problems with your devices, please file a bug and identify the hardware, OS,
+and driver in use.
+
+Known issues:
+
+|    Hardware   |   OS  |        Driver           |                                      Issues                                        |
+| ------------- | ----- | ----------------------- | ---------------------------------------------------------------------------------- |
+| FTDI TTL-232R | Linux | ftdi_sio, Linux 4.14.11 | Hardware doesn't support 5 or 6 data bits, but the driver lies about supporting 5. |
+
 Licensing
 =========
 
