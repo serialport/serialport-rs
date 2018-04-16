@@ -8,14 +8,14 @@ mod raw {
     use nix::libc as libc;
     ioctl!(bad none tiocexcl with libc::TIOCEXCL);
     ioctl!(bad none tiocnxcl with libc::TIOCNXCL);
-    ioctl!(bad read tiocmget with libc::TIOCMGET; u8);
-    ioctl!(bad write_ptr tiocmbic with libc::TIOCMBIC; u8);
-    ioctl!(bad write_ptr tiocmbis with libc::TIOCMBIS; u8);
+    ioctl!(bad read tiocmget with libc::TIOCMGET; libc::c_int);
+    ioctl!(bad write_ptr tiocmbic with libc::TIOCMBIC; libc::c_int);
+    ioctl!(bad write_ptr tiocmbis with libc::TIOCMBIS; libc::c_int);
 }
 
 bitflags!{
     /// Flags to indicate which wires in a serial connection to use
-    pub struct SerialLines: i32 {
+    pub struct SerialLines: libc::c_int {
         const DATA_SET_READY = libc::TIOCM_DSR;
         const DATA_TERMINAL_READY = libc::TIOCM_DTR;
         const REQUEST_TO_SEND = libc::TIOCM_RTS;
@@ -37,15 +37,16 @@ pub fn tiocnxcl(fd: RawFd) -> ::Result<()> {
 
 pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
     let mut status = unsafe { mem::uninitialized() };
-    unsafe { raw::tiocmget(fd, &mut status) }.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
+    let x = unsafe { raw::tiocmget(fd, &mut status) };
+    x.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
 }
 
 pub fn tiocmbic(fd: RawFd, status: SerialLines) -> ::Result<()> {
-    let bits = status.bits() as u8;
+    let bits = status.bits() as libc::c_int;
     unsafe { raw::tiocmbic(fd, &bits) }.map(|_| ()).map_err(|e| e.into())
 }
 
 pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
-    let bits = status.bits() as u8;
+    let bits = status.bits() as libc::c_int;
     unsafe { raw::tiocmbis(fd, &bits) }.map(|_| ()).map_err(|e| e.into())
 }
