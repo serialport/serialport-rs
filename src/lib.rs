@@ -59,7 +59,7 @@ use std::time::Duration;
 /// use serialport::prelude::*;
 /// ```
 pub mod prelude {
-    pub use {BaudRate, DataBits, FlowControl, Parity, StopBits};
+    pub use {DataBits, FlowControl, Parity, StopBits};
     pub use {SerialPort, SerialPortInfo, SerialPortSettings};
 }
 
@@ -155,325 +155,6 @@ impl From<Error> for io::Error {
     }
 }
 
-/// Serial port baud rates.
-///
-/// ## Portability
-///
-/// The `BaudRate` variants with numeric suffixes, e.g., `Baud9600`, indicate standard baud rates
-/// that are widely-supported on many systems. While non-standard baud rates can be set with
-/// `BaudOther`, their behavior is system-dependent. Some systems may not support arbitrary baud
-/// rates. Using the standard baud rates is more likely to result in portable applications.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
-pub enum BaudRate {
-    /** 50 baud. */
-    #[cfg(not(windows))]
-    Baud50,
-    /** 75 baud. */
-    #[cfg(not(windows))]
-    Baud75,
-    /** 110 baud. */
-    Baud110,
-    /** 134 baud. */
-    #[cfg(not(windows))]
-    Baud134,
-    /** 150 baud. */
-    #[cfg(not(windows))]
-    Baud150,
-    /** 200 baud. */
-    #[cfg(not(windows))]
-    Baud200,
-    /** 300 baud. */
-    Baud300,
-    /** 600 baud. */
-    Baud600,
-    /** 1200 baud. */
-    Baud1200,
-    /** 1800 baud. */
-    #[cfg(not(windows))]
-    Baud1800,
-    /** 2400 baud. */
-    Baud2400,
-    /** 4800 baud. */
-    Baud4800,
-    /** 7200 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
-    Baud7200,
-    /** 9600 baud. */
-    Baud9600,
-    /** 14,400 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd", windows))]
-    Baud14400,
-    /** 19,200 baud. */
-    Baud19200,
-    /** 28,800 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
-    Baud28800,
-    /** 38,400 baud. */
-    Baud38400,
-    /** 57,600 baud. */
-    Baud57600,
-    /** 76,800 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
-    Baud76800,
-    /** 115,200 baud. */
-    Baud115200,
-    /** 128,000 baud. */
-    #[cfg(windows)]
-    Baud128000,
-    /** 230,400 baud. */
-    #[cfg(not(windows))]
-    Baud230400,
-    /** 256,000 baud. */
-    #[cfg(windows)]
-    Baud256000,
-    /** 460,800 baud. */
-    #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-    Baud460800,
-    /** 500,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud500000,
-    /** 576,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud576000,
-    /** 921,600 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-    Baud921600,
-    /** 1,000,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud1000000,
-    /** 1,152,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud1152000,
-    /** 1,500,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud1500000,
-    /** 2,000,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud2000000,
-    /** 2,500,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud2500000,
-    /** 3,000,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud3000000,
-    /** 3,500,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud3500000,
-    /** 4,000,000 baud. */
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    Baud4000000,
-
-    /// Non-standard baud rates.
-    ///
-    /// `BaudOther` can be used to set non-standard baud rates by setting its member to be the
-    /// desired baud rate.
-    ///
-    /// ```
-    /// # use serialport::BaudRate::BaudOther;
-    /// BaudOther(4_000_000); // 4,000,000 baud
-    /// ```
-    ///
-    /// Non-standard baud rates may not be supported on all systems.
-    BaudOther(u32),
-}
-
-impl BaudRate {
-    /// Returns all cross-platform baud rates
-    pub fn standard_rates() -> Vec<u32> {
-        vec![110, 300, 600, 1200, 2400, 4800, 9600, 19_200, 38_400, 57_600, 115_200]
-    }
-
-    /// Returns all available baud rates for the current platform
-    pub fn platform_rates() -> Vec<u32> {
-        #[cfg(unix)]
-        return posix::available_baud_rates();
-
-        #[cfg(windows)]
-        return windows::available_baud_rates();
-
-        #[cfg(not(any(unix, windows)))]
-        Err(Error::new(ErrorKind::Unknown,
-                       "available_ports() not implemented for platform"))
-    }
-}
-
-impl From<u32> for BaudRate {
-    /// Creates a `BaudRate` for a particular speed.
-    ///
-    /// This function can be used to select a `BaudRate` variant from an integer containing the
-    /// desired baud rate.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// # use serialport::BaudRate;
-    /// assert_eq!(BaudRate::Baud9600, BaudRate::from(9600));
-    /// assert_eq!(BaudRate::BaudOther(50000), BaudRate::from(50000));
-    /// assert_eq!(BaudRate::Baud9600, 9600u32.into());
-    /// assert_eq!(BaudRate::BaudOther(50000), 50000u32.into());
-    /// ```
-    fn from(speed: u32) -> BaudRate {
-        match speed {
-            #[cfg(not(windows))]
-            50 => BaudRate::Baud50,
-            #[cfg(not(windows))]
-            75 => BaudRate::Baud75,
-            110 => BaudRate::Baud110,
-            #[cfg(not(windows))]
-            134 => BaudRate::Baud134,
-            #[cfg(not(windows))]
-            150 => BaudRate::Baud150,
-            #[cfg(not(windows))]
-            200 => BaudRate::Baud200,
-            300 => BaudRate::Baud300,
-            600 => BaudRate::Baud600,
-            1200 => BaudRate::Baud1200,
-            #[cfg(not(windows))]
-            1800 => BaudRate::Baud1800,
-            2400 => BaudRate::Baud2400,
-            4800 => BaudRate::Baud4800,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            7200 => BaudRate::Baud7200,
-            9600 => BaudRate::Baud9600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd", windows))]
-            14_400 => BaudRate::Baud14400,
-            19_200 => BaudRate::Baud19200,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            28_800 => BaudRate::Baud28800,
-            38_400 => BaudRate::Baud38400,
-            57_600 => BaudRate::Baud57600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            76_800 => BaudRate::Baud76800,
-            115_200 => BaudRate::Baud115200,
-            #[cfg(windows)]
-            128_000 => BaudRate::Baud128000,
-            #[cfg(not(windows))]
-            230_400 => BaudRate::Baud230400,
-            #[cfg(windows)]
-            256_000 => BaudRate::Baud256000,
-            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-            460_800 => BaudRate::Baud460800,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            500_000 => BaudRate::Baud500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            576_000 => BaudRate::Baud576000,
-            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-            921_600 => BaudRate::Baud921600,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            1_000_000 => BaudRate::Baud1000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            1_152_000 => BaudRate::Baud1152000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            1_500_000 => BaudRate::Baud1500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            2_000_000 => BaudRate::Baud2000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            2_500_000 => BaudRate::Baud2500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            3_000_000 => BaudRate::Baud3000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            3_500_000 => BaudRate::Baud3500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            4_000_000 => BaudRate::Baud4000000,
-            n => BaudRate::BaudOther(n),
-        }
-    }
-}
-
-impl From<BaudRate> for u32 {
-    /// Converts a `BaudRate` into an integer.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// # use serialport::BaudRate;
-    /// assert_eq!(9600u32, u32::from(BaudRate::Baud9600));
-    /// assert_eq!(115200u32, u32::from(BaudRate::Baud115200));
-    /// assert_eq!(4000000u32, u32::from(BaudRate::BaudOther(4000000)));
-    /// assert_eq!(9600u32, BaudRate::Baud9600.into());
-    /// assert_eq!(115200u32, BaudRate::Baud115200.into());
-    /// assert_eq!(4000000u32, BaudRate::BaudOther(4000000).into());
-    /// ```
-    fn from(speed: BaudRate) -> u32 {
-        match speed {
-            #[cfg(not(windows))]
-            BaudRate::Baud50 => 50,
-            #[cfg(not(windows))]
-            BaudRate::Baud75 => 75,
-            BaudRate::Baud110 => 110,
-            #[cfg(not(windows))]
-            BaudRate::Baud134 => 134,
-            #[cfg(not(windows))]
-            BaudRate::Baud150 => 150,
-            #[cfg(not(windows))]
-            BaudRate::Baud200 => 200,
-            BaudRate::Baud300 => 300,
-            BaudRate::Baud600 => 600,
-            BaudRate::Baud1200 => 1200,
-            #[cfg(not(windows))]
-            BaudRate::Baud1800 => 1800,
-            BaudRate::Baud2400 => 2400,
-            BaudRate::Baud4800 => 4800,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud7200 => 7200,
-            BaudRate::Baud9600 => 9600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd", windows))]
-            BaudRate::Baud14400 => 14_400,
-            BaudRate::Baud19200 => 19_200,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud28800 => 28_800,
-            BaudRate::Baud38400 => 38_400,
-            BaudRate::Baud57600 => 57_600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud76800 => 76_800,
-            BaudRate::Baud115200 => 115_200,
-            #[cfg(windows)]
-            BaudRate::Baud128000 => 128_000,
-            #[cfg(not(windows))]
-            BaudRate::Baud230400 => 230_400,
-            #[cfg(windows)]
-            BaudRate::Baud256000 => 256_000,
-            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-            BaudRate::Baud460800 => 460_800,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud500000 => 500_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud576000 => 576_000,
-            #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-            BaudRate::Baud921600 => 921_600,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1000000 => 1_000_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1152000 => 1_152_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1500000 => 1_500_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2000000 => 2_000_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2500000 => 2_500_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3000000 => 3_000_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3500000 => 3_500_000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud4000000 => 4_000_000,
-            BaudRate::BaudOther(n) => n,
-        }
-    }
-}
-
 /// Number of bits per character.
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum DataBits {
@@ -540,7 +221,7 @@ pub enum FlowControl {
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct SerialPortSettings {
     /// The baud rate in symbols-per-second
-    pub baud_rate: BaudRate,
+    pub baud_rate: u32,
     /// Number of bits used to represent a character sent on the line
     pub data_bits: DataBits,
     /// The type of signalling to use for controlling data transfer
@@ -556,7 +237,7 @@ pub struct SerialPortSettings {
 impl Default for SerialPortSettings {
     fn default() -> SerialPortSettings {
         SerialPortSettings {
-            baud_rate: BaudRate::Baud9600,
+            baud_rate: 9600,
             data_bits: DataBits::Eight,
             flow_control: FlowControl::None,
             parity: Parity::None,
@@ -584,10 +265,10 @@ pub trait SerialPort: Send + io::Read + io::Write {
 
     /// Returns the current baud rate.
     ///
-    /// This function returns `None` if the baud rate could not be determined. This may occur if
-    /// the hardware is in an uninitialized state. Setting a baud rate with `set_baud_rate()`
-    /// should initialize the baud rate to a supported value.
-    fn baud_rate(&self) -> Option<BaudRate>;
+    /// This may return a value different from the last specified baud rate depending on the
+    /// platform as some will return the actual device baud rate rather than the last specified
+    /// baud rate.
+    fn baud_rate(&self) -> ::Result<u32>;
 
     /// Returns the character size.
     ///
@@ -595,7 +276,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// if the hardware is in an uninitialized state or is using a non-standard character size.
     /// Setting a baud rate with `set_char_size()` should initialize the character size to a
     /// supported value.
-    fn data_bits(&self) -> Option<DataBits>;
+    fn data_bits(&self) -> ::Result<DataBits>;
 
     /// Returns the flow control mode.
     ///
@@ -603,14 +284,14 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// occur if the hardware is in an uninitialized state or is using an unsupported flow control
     /// mode. Setting a flow control mode with `set_flow_control()` should initialize the flow
     /// control mode to a supported value.
-    fn flow_control(&self) -> Option<FlowControl>;
+    fn flow_control(&self) -> ::Result<FlowControl>;
 
     /// Returns the parity-checking mode.
     ///
     /// This function returns `None` if the parity mode could not be determined. This may occur if
     /// the hardware is in an uninitialized state or is using a non-standard parity mode. Setting
     /// a parity mode with `set_parity()` should initialize the parity mode to a supported value.
-    fn parity(&self) -> Option<Parity>;
+    fn parity(&self) -> ::Result<Parity>;
 
     /// Returns the number of stop bits.
     ///
@@ -618,7 +299,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// occur if the hardware is in an uninitialized state or is using an unsupported stop bit
     /// configuration. Setting the number of stop bits with `set_stop-bits()` should initialize the
     /// stop bits to a supported value.
-    fn stop_bits(&self) -> Option<StopBits>;
+    fn stop_bits(&self) -> ::Result<StopBits>;
 
     /// Returns the current timeout.
     fn timeout(&self) -> Duration;
@@ -637,7 +318,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// If the implementation does not support the requested baud rate, this function may return an
     /// `InvalidInput` error. Even if the baud rate is accepted by `set_baud_rate()`, it may not be
     /// supported by the underlying hardware.
-    fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()>;
+    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()>;
 
     /// Sets the character size.
     fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()>;
@@ -737,18 +418,18 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn read_carrier_detect(&mut self) -> ::Result<bool>;
 
     // Misc methods
-    
+
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
     /// [tokio-serial](https://crates.io/crates/tokio-serial).
-    /// 
+    ///
     /// Also, you must be very carefull when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
     /// objects can cause some nasty behavior.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// This function returns an error if the serial port couldn't be cloned.
     fn try_clone(&self) -> ::Result<Box<SerialPort>>;
 }
@@ -833,7 +514,7 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 /// use std::time::Duration;
 ///
 /// let s = SerialPortSettings {
-///     baud_rate: BaudRate::Baud9600,
+///     baud_rate: 9600,
 ///     data_bits: DataBits::Eight,
 ///     flow_control: FlowControl::None,
 ///     parity: Parity::None,
@@ -878,29 +559,4 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     #[cfg(not(any(unix, windows)))]
     Err(Error::new(ErrorKind::Unknown,
                    "available_ports() not implemented for platform"))
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_platform_rates() {
-        use BaudRate;
-
-        for rate in BaudRate::platform_rates().iter() {
-            if let BaudRate::BaudOther(n) = BaudRate::from(*rate) {
-                assert!(false, "BaudOther({}) not a platform rate", n);
-            }
-        }
-    }
-
-    #[test]
-    fn test_standard_rates() {
-        use BaudRate;
-
-        for rate in BaudRate::standard_rates().iter() {
-            if let BaudRate::BaudOther(n) = BaudRate::from(*rate) {
-                assert!(false, "BaudOther({}) not a standard rate", n);
-            }
-        }
-    }
 }

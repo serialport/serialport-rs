@@ -13,16 +13,15 @@ use cf::*;
 use IOKit_sys::*;
 use posix::ioctl;
 #[cfg(target_os = "macos")]
-use nix::libc::{c_char, c_void};
+use nix::libc::{c_char, c_void, speed_t};
 #[cfg(target_os = "linux")]
 use libudev;
-use nix::{self, unistd};
+use nix::{self, libc, unistd};
 use nix::fcntl::fcntl;
-use nix::sys::termios::SetArg::TCSANOW;
-use nix::sys::termios::{tcgetattr, tcsetattr, Termios};
 
-use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
-     SerialPortType, StopBits, UsbPortInfo};
+use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
+#[cfg(any(target_os = "android", target_os = "ios", target_os = "linux", target_os = "macos"))]
+use {SerialPortType, UsbPortInfo};
 use {Error, ErrorKind};
 
 /// Convenience method for removing exclusive access from
@@ -74,19 +73,18 @@ impl TTYPort {
 
         use nix::fcntl::OFlag;
         use nix::fcntl::FcntlArg::F_SETFL;
-        use nix::sys::termios::ControlFlags;
-        use nix::sys::termios::{cfmakeraw, tcgetattr, tcsetattr, tcflush};
-        use nix::sys::termios::SetArg::TCSANOW;
-        use nix::sys::termios::FlushArg::TCIOFLUSH;
+        use nix::libc::{self, cfmakeraw, tcgetattr, tcsetattr, tcflush};
 
         let fd = nix::fcntl::open(path,
                                   OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
                                   nix::sys::stat::Mode::empty())?;
 
-        let mut termios = tcgetattr(fd).map_err(|e| {
-            close(fd);
-            e
-        })?;
+        let mut termios = unsafe { mem::uninitialized() };
+        let res = unsafe { tcgetattr(fd, &mut termios) };
+        if let Err(e) = nix::errno::Errno::result(res) {
+             close(fd);
+             return Err(e.into());
+        }
 
         // If any of these steps fail, then we should abort creation of the
         // TTYPort and ensure the file descriptor is closed.
@@ -94,26 +92,27 @@ impl TTYPort {
         {
             // setup TTY for binary serial port access
             // Enable reading from the port and ignore all modem control lines
-            termios.control_flags.insert(ControlFlags::CREAD | ControlFlags::CLOCAL);
-            // Enable raw mode with disables any implicit processing of the input or output data streams
+            termios.c_cflag |= libc::CREAD | libc::CLOCAL;
+            // Enable raw mode which disables any implicit processing of the input or output data streams
             // This also sets no timeout period and a read will block until at least one character is
             // available.
-            cfmakeraw(&mut termios);
+            unsafe { cfmakeraw(&mut termios) };
 
             // write settings to TTY
-            tcsetattr(fd, TCSANOW, &termios)?;
+            unsafe { tcsetattr(fd, libc::TCSANOW, &termios) };
 
             // Read back settings from port and confirm they were applied correctly
-            let actual_termios = tcgetattr(fd)?;
+            let mut actual_termios = unsafe { mem::uninitialized() };
+            unsafe { tcgetattr(fd, &mut actual_termios) };
 
-            if actual_termios.input_flags != termios.input_flags ||
-               actual_termios.output_flags != termios.output_flags ||
-               actual_termios.local_flags != termios.local_flags ||
-               actual_termios.control_flags != termios.control_flags {
+            if actual_termios.c_iflag != termios.c_iflag ||
+               actual_termios.c_oflag != termios.c_oflag ||
+               actual_termios.c_lflag != termios.c_lflag ||
+               actual_termios.c_cflag != termios.c_cflag {
                 return Err(Error::new(ErrorKind::Unknown, "Settings did not apply correctly"));
             };
 
-            tcflush(fd, TCIOFLUSH)?;
+            unsafe { tcflush(fd, libc::TCIOFLUSH) };
 
             // get exclusive access to device
             ioctl::tiocexcl(fd)?;
@@ -145,6 +144,7 @@ impl TTYPort {
 
         Ok(port)
     }
+
 
     /// Returns the exclusivity of the port
     ///
@@ -258,12 +258,39 @@ impl TTYPort {
         Ok((master_tty, slave_tty))
     }
 
-    fn get_termios(&self) -> ::Result<Termios> {
-        tcgetattr(self.fd).map_err(|e| e.into())
+    #[cfg(any(target_os = "dragonflybsd",
+              target_os = "freebsd",
+              target_os = "ios",
+              target_os = "macos",
+              target_os = "netbsd",
+              target_os = "openbsd"))]
+    fn get_termios(&self) -> ::Result<libc::termios> {
+        let mut termios = unsafe { mem::uninitialized() };
+        let res = unsafe { libc::tcgetattr(self.fd, &mut termios) };
+        nix::errno::Errno::result(res)?;
+        Ok(termios)
     }
 
-    fn set_termios(&self, termios: &Termios) -> ::Result<()> {
-        tcsetattr(self.fd, TCSANOW, &termios).map_err(|e| e.into())
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    fn get_termios(&self) -> ::Result<libc::termios2> {
+        ioctl::tcgets2(self.fd)
+    }
+
+    #[cfg(any(target_os = "dragonflybsd",
+              target_os = "freebsd",
+              target_os = "ios",
+              target_os = "macos",
+              target_os = "netbsd",
+              target_os = "openbsd"))]
+    fn set_termios(&self, termios: &libc::termios) -> ::Result<()> {
+        let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, termios) };
+        nix::errno::Errno::result(res)?;
+        Ok(())
+    }
+
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    fn set_termios(&self, termios2: &libc::termios2) -> ::Result<()> {
+        ioctl::tcsets2(self.fd, &termios2)
     }
 }
 
@@ -300,12 +327,14 @@ impl FromRawFd for TTYPort {
         };
 
         // It is not trivial to get the file path corresponding to a file descriptor.
-        // We'll punt and set it None here.
+        // We'll punt on it and set it to `None` here.
         TTYPort {
             fd: fd,
             timeout: Duration::from_millis(100),
             exclusive: exclusive,
             port_name: None,
+            // On Mac & iOS we can't read the baud rate, so we'll set it to 0 indicating that it's
+            // unknown.
         }
     }
 }
@@ -348,6 +377,7 @@ impl SerialPort for TTYPort {
     }
 
     /// Returns a struct with all port settings
+    // FIXME: Change this to only use a single termios read & write
     fn settings(&self) -> SerialPortSettings {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
@@ -359,139 +389,80 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn baud_rate(&self) -> Option<BaudRate> {
-        use nix::sys::termios::{cfgetospeed, cfgetispeed};
-        use nix::sys::termios::BaudRate::*;
+    /// Returns the port's baud rate
+    ///
+    /// On some platforms this will be the actual device baud rate, which may differ from the
+    /// desired baud rate.
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    fn baud_rate(&self) -> ::Result<u32> {
+        let termios2 = ioctl::tcgets2(self.fd)?;
 
-        let termios = match self.get_termios() {
-            Ok(t) => t,
-            Err(_) => return None,
-        };
-        let ospeed = cfgetospeed(&termios);
-        let ispeed = cfgetispeed(&termios);
+        assert!(termios2.c_ospeed == termios2.c_ispeed);
 
-        if ospeed != ispeed {
-            return None;
-        }
+        Ok(termios2.c_ospeed as u32)
+    }
 
-        match (ospeed as nix::libc::speed_t).into() {
-            B50 => Some(BaudRate::Baud50),
-            B75 => Some(BaudRate::Baud75),
-            B110 => Some(BaudRate::Baud110),
-            B134 => Some(BaudRate::Baud134),
-            B150 => Some(BaudRate::Baud150),
-            B200 => Some(BaudRate::Baud200),
-            B300 => Some(BaudRate::Baud300),
-            B600 => Some(BaudRate::Baud600),
-            B1200 => Some(BaudRate::Baud1200),
-            B1800 => Some(BaudRate::Baud1800),
-            B2400 => Some(BaudRate::Baud2400),
-            B4800 => Some(BaudRate::Baud4800),
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B7200 => Some(BaudRate::Baud7200),
-            B9600 => Some(BaudRate::Baud9600),
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B14400 => Some(BaudRate::Baud14400),
-            B19200 => Some(BaudRate::Baud19200),
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B28800 => Some(BaudRate::Baud28800),
-            B38400 => Some(BaudRate::Baud38400),
-            B57600 => Some(BaudRate::Baud57600),
-            #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "openbsd"))]
-            B76800 => Some(BaudRate::Baud76800),
-            B115200 => Some(BaudRate::Baud115200),
-            B230400 => Some(BaudRate::Baud230400),
-            #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
-            B460800 => Some(BaudRate::Baud460800),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B500000 => Some(BaudRate::Baud500000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B576000 => Some(BaudRate::Baud576000),
-            // FIXME: Re-enable Baud921600 once nix > 0.10.0 is released
-            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux", target_os = "netbsd"))]
-            B921600 => Some(BaudRate::BaudOther(921_600)),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1000000 => Some(BaudRate::Baud1000000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1152000 => Some(BaudRate::Baud1152000),
-            #[cfg(any(target_os = "android",target_os = "linux"))]
-            B1500000 => Some(BaudRate::Baud1500000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B2000000 => Some(BaudRate::Baud2000000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B2500000 => Some(BaudRate::Baud2500000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B3000000 => Some(BaudRate::Baud3000000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B3500000 => Some(BaudRate::Baud3500000),
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B4000000 => Some(BaudRate::Baud4000000),
-            _ => None,
+    /// Returns the port's baud rate
+    ///
+    /// On some platforms this will be the actual device baud rate, which may differ from the
+    /// desired baud rate.
+    #[cfg(any(target_os = "dragonflybsd",
+              target_os = "freebsd",
+              target_os = "ios",
+              target_os = "macos",
+              target_os = "netbsd",
+              target_os = "openbsd"))]
+    fn baud_rate(&self) -> ::Result<u32> {
+        let termios = self.get_termios()?;
+        let ospeed = unsafe { libc::cfgetospeed(&termios) };
+        let ispeed = unsafe { libc::cfgetispeed(&termios) };
+
+        assert!(ospeed == ispeed);
+
+        Ok(ospeed as u32)
+    }
+
+    fn data_bits(&self) -> ::Result<DataBits> {
+        let termios = self.get_termios()?;
+        match termios.c_cflag & libc::CSIZE {
+            libc::CS8 => Ok(DataBits::Eight),
+            libc::CS7 => Ok(DataBits::Seven),
+            libc::CS6 => Ok(DataBits::Six),
+            libc::CS5 => Ok(DataBits::Five),
+            _ => Err(Error::new(ErrorKind::Unknown, "Invalid data bits setting encountered")),
         }
     }
 
-    fn data_bits(&self) -> Option<DataBits> {
-        use nix::sys::termios::ControlFlags;
-
-        let termios = match self.get_termios() {
-            Ok(t) => t,
-            Err(_) => return None,
-        };
-        match termios.control_flags & ControlFlags::CSIZE {
-            ControlFlags::CS8 => Some(DataBits::Eight),
-            ControlFlags::CS7 => Some(DataBits::Seven),
-            ControlFlags::CS6 => Some(DataBits::Six),
-            ControlFlags::CS5 => Some(DataBits::Five),
-
-            _ => None,
-        }
-    }
-
-    fn flow_control(&self) -> Option<FlowControl> {
-        use nix::sys::termios::{ControlFlags, InputFlags};
-
-        let termios = match self.get_termios() {
-            Ok(t) => t,
-            Err(_) => return None,
-        };
-        if termios.control_flags.contains(ControlFlags::CRTSCTS) {
-            Some(FlowControl::Hardware)
-        } else if termios.input_flags.intersects(InputFlags::IXON | InputFlags::IXOFF) {
-            Some(FlowControl::Software)
+    fn flow_control(&self) -> ::Result<FlowControl> {
+        let termios = self.get_termios()?;
+        if termios.c_cflag & libc::CRTSCTS == libc::CRTSCTS {
+            Ok(FlowControl::Hardware)
+        } else if termios.c_iflag & (libc::IXON | libc::IXOFF) == (libc::IXON | libc::IXOFF) {
+            Ok(FlowControl::Software)
         } else {
-            Some(FlowControl::None)
+            Ok(FlowControl::None)
         }
     }
 
-    fn parity(&self) -> Option<Parity> {
-        use nix::sys::termios::ControlFlags;
-
-        let termios = match self.get_termios() {
-            Ok(t) => t,
-            Err(_) => return None,
-        };
-        if termios.control_flags.contains(ControlFlags::PARENB) {
-            if termios.control_flags.contains(ControlFlags::PARODD) {
-                Some(Parity::Odd)
+    fn parity(&self) -> ::Result<Parity> {
+        let termios = self.get_termios()?;
+        if termios.c_cflag & libc::PARENB == libc::PARENB {
+            if termios.c_cflag & libc::PARODD == libc::PARODD {
+                Ok(Parity::Odd)
             } else {
-                Some(Parity::Even)
+                Ok(Parity::Even)
             }
         } else {
-            Some(Parity::None)
+            Ok(Parity::None)
         }
     }
 
-    fn stop_bits(&self) -> Option<StopBits> {
-        use nix::sys::termios::ControlFlags;
-
-        let termios = match self.get_termios() {
-            Ok(t) => t,
-            Err(_) => return None,
-        };
-        if termios.control_flags.contains(ControlFlags::CSTOPB) {
-            Some(StopBits::Two)
+    fn stop_bits(&self) -> ::Result<StopBits> {
+        let termios = self.get_termios()?;
+        if termios.c_cflag & libc::CSTOPB == libc::CSTOPB {
+            Ok(StopBits::Two)
         } else {
-            Some(StopBits::One)
+            Ok(StopBits::One)
         }
     }
 
@@ -499,155 +470,119 @@ impl SerialPort for TTYPort {
         self.timeout
     }
 
+    // FIXME: Make this read & write the termios struct only once
     fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
-        self.set_baud_rate(settings.baud_rate)?;
         self.set_data_bits(settings.data_bits)?;
         self.set_flow_control(settings.flow_control)?;
         self.set_parity(settings.parity)?;
         self.set_stop_bits(settings.stop_bits)?;
         self.set_timeout(settings.timeout)?;
 
+        // This needs to happen last, because on OS X, the baud rate gets
+        // reset everytime the termios struct is rewritten.
+        self.set_baud_rate(settings.baud_rate)?;
+
         Ok(())
     }
 
-    fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
-        use nix::sys::termios::cfsetspeed;
-        use nix::sys::termios::BaudRate::*;
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+        let mut termios2 = ioctl::tcgets2(self.fd)?;
+        termios2.c_cflag &= !nix::libc::CBAUD;
+        termios2.c_cflag |= nix::libc::BOTHER;
+        termios2.c_ispeed = baud_rate;
+        termios2.c_ospeed = baud_rate;
 
+        ioctl::tcsets2(self.fd, &termios2)
+    }
+
+    #[cfg(any(target_os = "dragonflybsd",
+              target_os = "freebsd",
+              target_os = "netbsd",
+              target_os = "openbsd"))]
+    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
         let mut termios = self.get_termios()?;
-        let baud = match baud_rate {
-            BaudRate::Baud50 => B50,
-            BaudRate::Baud75 => B75,
-            BaudRate::Baud110 => B110,
-            BaudRate::Baud134 => B134,
-            BaudRate::Baud150 => B150,
-            BaudRate::Baud200 => B200,
-            BaudRate::Baud300 => B300,
-            BaudRate::Baud600 => B600,
-            BaudRate::Baud1200 => B1200,
-            BaudRate::Baud1800 => B1800,
-            BaudRate::Baud2400 => B2400,
-            BaudRate::Baud4800 => B4800,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                        target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud7200 => B7200,
-            BaudRate::Baud9600 => B9600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                        target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud14400 => B14400,
-            BaudRate::Baud19200 => B19200,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                        target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud28800 => B28800,
-            BaudRate::Baud38400 => B38400,
-            BaudRate::Baud57600 => B57600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                        target_os = "netbsd", target_os = "openbsd"))]
-            BaudRate::Baud76800 => B76800,
-            BaudRate::Baud115200 => B115200,
-            BaudRate::Baud230400 => B230400,
-            #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-            BaudRate::Baud460800 => B460800,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud500000 => B500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud576000 => B576000,
-            // FIXME: Re-enable Baud921600 for FreeBSD & NetBSD once nix > 0.10.0 is released
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud921600 => B921600,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1000000 => B1000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1152000 => B1152000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud1500000 => B1500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2000000 => B2000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud2500000 => B2500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3000000 => B3000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud3500000 => B3500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            BaudRate::Baud4000000 => B4000000,
-
-            BaudRate::BaudOther(_) => return Err(nix::Error::from_errno(nix::errno::Errno::EINVAL).into()),
-        };
-
-        cfsetspeed(&mut termios, baud)?;
+        let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate) };
+        nix::errno::Errno::result(res)?;
         self.set_termios(&termios)
     }
 
-    fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
-        use nix::sys::termios::ControlFlags;
-
-        let size = match data_bits {
-            DataBits::Five => ControlFlags::CS5,
-            DataBits::Six => ControlFlags::CS6,
-            DataBits::Seven => ControlFlags::CS7,
-            DataBits::Eight => ControlFlags::CS8,
-        };
-
-        let mut termios = self.get_termios()?;
-        termios.control_flags.remove(ControlFlags::CSIZE);
-        termios.control_flags.insert(size);
-        self.set_termios(&termios)
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+        let vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 7200, 9600,
+                       14_400, 19_200, 28_800, 38_400, 57_600, 76_800, 115_200, 230_400];
+        if vec.contains(&baud_rate) {
+            let mut termios = self.get_termios()?;
+            let baud_rate: speed_t = baud_rate as speed_t;
+            let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate) };
+            nix::errno::Errno::result(res)?;
+            self.set_termios(&termios)
+        } else {
+            Err(Error::new(ErrorKind::InvalidInput, "invalid baud rate"))
+        }
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
-        use nix::sys::termios::{ControlFlags, InputFlags};
-
         let mut termios = self.get_termios()?;
         match flow_control {
             FlowControl::None => {
-                termios.input_flags.remove(InputFlags::IXON | InputFlags::IXOFF);
-                termios.control_flags.remove(ControlFlags::CRTSCTS);
+                termios.c_iflag &= !(libc::IXON | libc::IXOFF);
+                termios.c_cflag &= !libc::CRTSCTS;
             }
             FlowControl::Software => {
-                termios.input_flags.insert(InputFlags::IXON | InputFlags::IXOFF);
-                termios.control_flags.remove(ControlFlags::CRTSCTS);
+                termios.c_iflag |= libc::IXON | libc::IXOFF;
+                termios.c_cflag &= libc::CRTSCTS;
             }
             FlowControl::Hardware => {
-                termios.input_flags.remove(InputFlags::IXON | InputFlags::IXOFF);
-                termios.control_flags.insert(ControlFlags::CRTSCTS);
+                termios.c_iflag &= !(libc::IXON | libc::IXOFF);
+                termios.c_cflag |= libc::CRTSCTS;
             }
         };
         self.set_termios(&termios)
     }
 
     fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
-        use nix::sys::termios::{ControlFlags, InputFlags};
-
         let mut termios = self.get_termios()?;
         match parity {
             Parity::None => {
-                termios.control_flags.remove(ControlFlags::PARENB | ControlFlags::PARODD);
-                termios.input_flags.remove(InputFlags::INPCK);
-                termios.input_flags.insert(InputFlags::IGNPAR);
+                termios.c_cflag &= !(libc::PARENB | libc::PARODD);
+                termios.c_iflag &= !libc::INPCK;
+                termios.c_iflag |= libc::IGNPAR;
             }
             Parity::Odd => {
-                termios.control_flags.insert(ControlFlags::PARENB | ControlFlags::PARODD);
-                termios.input_flags.insert(InputFlags::INPCK);
-                termios.input_flags.remove(InputFlags::IGNPAR);
+                termios.c_cflag |= libc::PARENB | libc::PARODD;
+                termios.c_iflag |= libc::INPCK;
+                termios.c_iflag &= !libc::IGNPAR;
             }
             Parity::Even => {
-                termios.control_flags.remove(ControlFlags::PARODD);
-                termios.control_flags.insert(ControlFlags::PARENB);
-                termios.input_flags.insert(InputFlags::INPCK);
-                termios.input_flags.remove(InputFlags::IGNPAR);
+                termios.c_cflag &= !libc::PARODD;
+                termios.c_cflag |= libc::PARENB;
+                termios.c_iflag |= libc::INPCK;
+                termios.c_iflag &= !libc::IGNPAR;
             }
         };
         self.set_termios(&termios)
     }
 
-    fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
-        use nix::sys::termios::ControlFlags;
+    fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
+        let size = match data_bits {
+            DataBits::Five => libc::CS5,
+            DataBits::Six => libc::CS6,
+            DataBits::Seven => libc::CS7,
+            DataBits::Eight => libc::CS8,
+        };
 
         let mut termios = self.get_termios()?;
+        termios.c_cflag &= !libc::CSIZE;
+        termios.c_cflag |= size;
+        self.set_termios(&termios)
+    }
+
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
+        let mut termios = self.get_termios()?;
         match stop_bits {
-            StopBits::One => termios.control_flags.remove(ControlFlags::CSTOPB),
-            StopBits::Two => termios.control_flags.insert(ControlFlags::CSTOPB),
+            StopBits::One => termios.c_cflag &= !libc::CSTOPB,
+            StopBits::Two => termios.c_cflag |= libc::CSTOPB,
         };
         self.set_termios(&termios)
     }
@@ -721,7 +656,7 @@ fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
 }
 
 #[cfg(target_os = "linux")]
-fn port_type(d: &libudev::Device) -> ::Result<SerialPortType> {
+fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
@@ -733,8 +668,8 @@ fn port_type(d: &libudev::Device) -> ::Result<SerialPortType> {
                 product: udev_property_as_string(d, "ID_MODEL"),
             }))
         }
-        Some("pci") => Ok(SerialPortType::PciPort),
-        _ => Ok(SerialPortType::Unknown),
+        Some("pci") => Ok(::SerialPortType::PciPort),
+        _ => Ok(::SerialPortType::Unknown),
     }
 }
 
@@ -872,7 +807,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
 #[cfg(target_os = "macos")]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
-fn port_type(service: io_object_t) -> SerialPortType {
+fn port_type(service: io_object_t) -> ::SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
     if let Some(usb_device) = get_parent_device_by_type(service, kIOUSBDeviceClassName()) {
         SerialPortType::UsbPort(UsbPortInfo {
@@ -885,9 +820,9 @@ fn port_type(service: io_object_t) -> SerialPortType {
             product: get_string_property(usb_device, "USB Product Name"),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
-        SerialPortType::BluetoothPort
+        ::SerialPortType::BluetoothPort
     } else {
-        SerialPortType::PciPort
+        ::SerialPortType::PciPort
     }
 }
 
@@ -1026,55 +961,6 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         ErrorKind::Unknown,
         "Not implemented for this OS",
     ))
-}
-
-/// Returns a list of baud rates officially supported by this platform. It's likely more are
-/// actually supported by the hardware however.
-pub fn available_baud_rates() -> Vec<u32> {
-    let mut vec = vec![50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800];
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(7200);
-    vec.push(9600);
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(14_400);
-    vec.push(19_200);
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(28_800);
-    vec.push(38_400);
-    vec.push(57_600);
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
-    vec.push(76_800);
-    vec.push(115_200);
-    vec.push(230_400);
-    #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "linux"))]
-    vec.push(460_800);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(500_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(576_000);
-    #[cfg(any(target_os = "android", target_os = "linux", target_os = "netbsd"))]
-    vec.push(921_600);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(1_000_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(1_152_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(1_500_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(2_000_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(2_500_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(3_000_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(3_500_000);
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    vec.push(4_000_000);
-    vec
 }
 
 #[test]
