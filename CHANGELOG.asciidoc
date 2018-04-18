@@ -6,6 +6,12 @@ The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
+==== Changed
+* Most port configuration methods now return a `Result<()>`.
+
+==== Removed
+* The `BaudRate` enum was removed in favor of a `u32` in order to support
+  arbitrary baud rates on all platforms.
 
 === [2.3.0] - 2018-03-13
 ==== Added
@@ -23,8 +29,9 @@ and this project adheres to http://semver.org/[Semantic Versioning].
   `SerialPort::try_clone` interface to work as people expect.
 
 ==== Fixed
-* `TTYPort::into_raw_fd` will now work as expected. It previously closed the
-  port so the returned file descriptor would be invalid.
+* `TTYPort::into_raw_fd` will now work as expected. It previously closed
+  the port so the returned file descriptor would be invalid.
+* 921600 baud is now supported on NetBSD and FreeBSD.
 
 === [2.2.0] - 2018-03-13
 Unreleased, happened due to a user error using `cargo-release`

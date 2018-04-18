@@ -20,7 +20,7 @@ use winapi::um::winbase::*;
 use winapi::um::winnt::{DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, KEY_READ};
 use winapi::um::winreg::*;
 
-use {BaudRate, DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
+use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
      StopBits};
 use {Error, ErrorKind};
 
@@ -269,80 +269,49 @@ impl SerialPort for COMPort {
         self.read_pin(MS_RLSD_ON)
     }
 
-    fn baud_rate(&self) -> Option<BaudRate> {
-        let dcb = match self.get_dcb() {
-            Ok(d) => d,
-            Err(_) => return None,
-        };
-        match dcb.BaudRate {
-            CBR_110 => Some(BaudRate::Baud110),
-            CBR_300 => Some(BaudRate::Baud300),
-            CBR_600 => Some(BaudRate::Baud600),
-            CBR_1200 => Some(BaudRate::Baud1200),
-            CBR_2400 => Some(BaudRate::Baud2400),
-            CBR_4800 => Some(BaudRate::Baud4800),
-            CBR_9600 => Some(BaudRate::Baud9600),
-            CBR_14400 => Some(BaudRate::Baud14400),
-            CBR_19200 => Some(BaudRate::Baud19200),
-            CBR_38400 => Some(BaudRate::Baud38400),
-            CBR_57600 => Some(BaudRate::Baud57600),
-            CBR_115200 => Some(BaudRate::Baud115200),
-            CBR_128000 => Some(BaudRate::Baud128000),
-            CBR_256000 => Some(BaudRate::Baud256000),
-            n => Some(BaudRate::BaudOther(n as u32)),
-        }
+    fn baud_rate(&self) -> ::Result<u32> {
+        let dcb = self.get_dcb()?;
+        Ok(dcb.BaudRate as u32)
     }
 
-    fn data_bits(&self) -> Option<DataBits> {
-        let dcb = match self.get_dcb() {
-            Ok(d) => d,
-            Err(_) => return None,
-        };
+    fn data_bits(&self) -> ::Result<DataBits> {
+        let dcb = self.get_dcb()?;
         match dcb.ByteSize {
-            5 => Some(DataBits::Five),
-            6 => Some(DataBits::Six),
-            7 => Some(DataBits::Seven),
-            8 => Some(DataBits::Eight),
-            _ => None,
+            5 => Ok(DataBits::Five),
+            6 => Ok(DataBits::Six),
+            7 => Ok(DataBits::Seven),
+            8 => Ok(DataBits::Eight),
+            _ => Err(Error::new(ErrorKind::Unknown, "Invalid data bits setting encountered")),
         }
     }
 
-    fn parity(&self) -> Option<Parity> {
-        let dcb = match self.get_dcb() {
-            Ok(d) => d,
-            Err(_) => return None,
-        };
+    fn parity(&self) -> ::Result<Parity> {
+        let dcb = self.get_dcb()?;
         match dcb.Parity {
-            ODDPARITY => Some(Parity::Odd),
-            EVENPARITY => Some(Parity::Even),
-            NOPARITY => Some(Parity::None),
-            _ => None,
+            ODDPARITY => Ok(Parity::Odd),
+            EVENPARITY => Ok(Parity::Even),
+            NOPARITY => Ok(Parity::None),
+            _ => Err(Error::new(ErrorKind::Unknown, "Invalid parity bits setting encountered")),
         }
     }
 
-    fn stop_bits(&self) -> Option<StopBits> {
-        let dcb = match self.get_dcb() {
-            Ok(d) => d,
-            Err(_) => return None,
-        };
+    fn stop_bits(&self) -> ::Result<StopBits> {
+        let dcb = self.get_dcb()?;
         match dcb.StopBits {
-            TWOSTOPBITS => Some(StopBits::Two),
-            ONESTOPBIT => Some(StopBits::One),
-            _ => None,
+            TWOSTOPBITS => Ok(StopBits::Two),
+            ONESTOPBIT => Ok(StopBits::One),
+            _ => Err(Error::new(ErrorKind::Unknown, "Invalid stop bits setting encountered")),
         }
     }
 
-    fn flow_control(&self) -> Option<FlowControl> {
-        let dcb = match self.get_dcb() {
-            Ok(d) => d,
-            Err(_) => return None,
-        };
+    fn flow_control(&self) -> ::Result<FlowControl> {
+        let dcb = self.get_dcb()?;
         if dcb.fOutxCtsFlow() != 0 || dcb.fRtsControl() != 0 {
-            Some(FlowControl::Hardware)
+            Ok(FlowControl::Hardware)
         } else if dcb.fOutX() != 0 || dcb.fInX() != 0 {
-            Some(FlowControl::Software)
+            Ok(FlowControl::Software)
         } else {
-            Some(FlowControl::None)
+            Ok(FlowControl::None)
         }
     }
 
@@ -357,25 +326,9 @@ impl SerialPort for COMPort {
         Ok(())
     }
 
-    fn set_baud_rate(&mut self, baud_rate: BaudRate) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
         let mut dcb = self.get_dcb()?;
-        dcb.BaudRate = match baud_rate {
-            BaudRate::Baud110 => CBR_110,
-            BaudRate::Baud300 => CBR_300,
-            BaudRate::Baud600 => CBR_600,
-            BaudRate::Baud1200 => CBR_1200,
-            BaudRate::Baud2400 => CBR_2400,
-            BaudRate::Baud4800 => CBR_4800,
-            BaudRate::Baud9600 => CBR_9600,
-            BaudRate::Baud14400 => CBR_14400,
-            BaudRate::Baud19200 => CBR_19200,
-            BaudRate::Baud38400 => CBR_38400,
-            BaudRate::Baud57600 => CBR_57600,
-            BaudRate::Baud115200 => CBR_115200,
-            BaudRate::Baud128000 => CBR_128000,
-            BaudRate::Baud256000 => CBR_256000,
-            BaudRate::BaudOther(n) => n as DWORD,
-        };
+        dcb.BaudRate = baud_rate as DWORD;
 
         self.set_dcb(&dcb)
     }
@@ -718,10 +671,4 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         }
     }
     Ok(ports)
-}
-
-/// Return a list of offically-supported baud rates. It is likely that the hardware supports
-/// more baud rates than this (many support arbitrary baud rates).
-pub fn available_baud_rates() -> Vec<u32> {
-    vec![110, 300, 600, 1200, 2400, 4800, 9600, 14_400, 19_200, 38_400, 57_600, 115_200, 128_000, 256_000]
 }
