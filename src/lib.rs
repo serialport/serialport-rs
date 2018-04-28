@@ -58,7 +58,7 @@ use std::time::Duration;
 /// use serialport::prelude::*;
 /// ```
 pub mod prelude {
-    pub use {DataBits, FlowControl, Parity, StopBits};
+    pub use {ClearBuffer, DataBits, FlowControl, Parity, StopBits};
     pub use {SerialPort, SerialPortInfo, SerialPortSettings};
 }
 
@@ -214,6 +214,19 @@ pub enum FlowControl {
 
     /// Flow control using RTS/CTS signals.
     Hardware,
+}
+
+/// Specifies which buffer or buffers to purge when calling [`clear`].
+///
+/// [`clear`]: trait.SerialPort.html#tymethod.clear
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ClearBuffer {
+    /// Specify to clear data received but not read
+    Input,
+    /// Specify to clear data written but not yet transmitted
+    Output,
+    /// Specify to clear both data received and data not yet transmitted
+    All,
 }
 
 /// A struct containing all serial port settings
@@ -415,6 +428,36 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// * `NoDevice` if the device was disconnected.
     /// * `Io` for any other type of I/O error.
     fn read_carrier_detect(&mut self) -> ::Result<bool>;
+
+    /// Gets the number of bytes available to be read from the input buffer.
+    ///
+    /// # Errors
+    ///
+    /// This function may return the following errors:
+    ///
+    /// * `NoDevice` if the device was disconnected.
+    /// * `Io` for any other type of I/O error.
+    fn bytes_to_read(&self) -> ::Result<u32>;
+
+    /// Get the number of bytes written to the output buffer, awaiting transmission.
+    ///
+    /// # Errors
+    ///
+    /// This function may return the following errors:
+    ///
+    /// * `NoDevice` if the device was disconnected.
+    /// * `Io` for any other type of I/O error.
+    fn bytes_to_write(&self) -> ::Result<u32>;
+
+    /// Discards all bytes from the serial driver's input buffer and/or output buffer.
+    ///
+    /// # Errors
+    ///
+    /// This function may return the following errors:
+    ///
+    /// * `NoDevice` if the device was disconnected.
+    /// * `Io` for any other type of I/O error.
+    fn clear(&self, buffer_to_clear: ClearBuffer) -> ::Result<()>;
 
     // Misc methods
 

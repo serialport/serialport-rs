@@ -9,6 +9,31 @@ mod raw {
     ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
     ioctl_none_bad!(tiocnxcl, libc::TIOCNXCL);
     ioctl_read_bad!(tiocmget, libc::TIOCMGET, libc::c_int);
+
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    ioctl_read_bad!(fionread, libc::FIONREAD, libc::c_int);
+
+    // See: /usr/include/sys/filio.h
+    #[cfg(any(target_os = "dragonfly",
+              target_os = "freebsd",
+              target_os = "ios",
+              target_os = "macos",
+              target_os = "netbsd",
+              target_os = "openbsd"))]
+    ioctl_read!(fionread, b'f', 127, libc::c_int);
+
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    ioctl_read_bad!(tiocoutq, libc::TIOCOUTQ, libc::c_int);
+
+    // See: /usr/include/sys/ttycom.h
+    #[cfg(any(target_os = "dragonfly",
+              target_os = "freebsd",
+              target_os = "ios",
+              target_os = "macos",
+              target_os = "netbsd",
+              target_os = "openbsd"))]
+    ioctl_read!(tiocoutq, b't', 115, libc::c_int);
+
     ioctl_write_ptr_bad!(tiocmbic, libc::TIOCMBIC, libc::c_int);
     ioctl_write_ptr_bad!(tiocmbis, libc::TIOCMBIS, libc::c_int);
     ioctl_read!(
@@ -49,6 +74,20 @@ pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
     let mut status = unsafe { mem::uninitialized() };
     let x = unsafe { raw::tiocmget(fd, &mut status) };
     x.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
+}
+
+pub fn fionread(fd: RawFd) -> ::Result<u32> {
+    let mut retval: libc::c_int = 0;
+    unsafe { raw::fionread(fd, &mut retval) }
+        .map(|_| retval as u32)
+        .map_err(|e| e.into())
+}
+
+pub fn tiocoutq(fd: RawFd) -> ::Result<u32> {
+    let mut retval: libc::c_int = 0;
+    unsafe { raw::tiocoutq(fd, &mut retval) }
+        .map(|_| retval as u32)
+        .map_err(|e| e.into())
 }
 
 pub fn tiocmbic(fd: RawFd, status: SerialLines) -> ::Result<()> {

@@ -783,6 +783,28 @@ impl SerialPort for TTYPort {
         self.read_pin(SerialLines::DATA_CARRIER_DETECT)
     }
 
+    fn bytes_to_read(&self) -> ::Result<u32> {
+        ioctl::fionread(self.fd)
+    }
+
+    fn bytes_to_write(&self) -> ::Result<u32> {
+        ioctl::tiocoutq(self.fd)
+    }
+
+    fn clear(&self, buffer_to_clear: ::ClearBuffer) -> ::Result<()> {
+        let buffer_id = match buffer_to_clear {
+            ::ClearBuffer::Input => libc::TCIFLUSH,
+            ::ClearBuffer::Output => libc::TCOFLUSH,
+            ::ClearBuffer::All => libc::TCIOFLUSH,
+        };
+
+        let res = unsafe { nix::libc::tcflush(self.fd, buffer_id) };
+
+        nix::errno::Errno::result(res)
+            .map(|_| ())
+            .map_err(|e| e.into())
+    }
+
     fn try_clone(&self) -> ::Result<Box<SerialPort>> {
         let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD(self.fd))?;
         Ok(Box::new(TTYPort {
