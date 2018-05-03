@@ -586,7 +586,15 @@ impl PortDevice {
                              &mut port_name_len)
         };
         unsafe { RegCloseKey(hkey) };
-        String::from_utf8_lossy(&port_name_buffer[0..port_name_len as usize]).into_owned()
+
+        let mut port_name = &port_name_buffer[0..port_name_len as usize];
+
+        // Strip any nul bytes from the end of the buffer
+        while port_name.last().map_or(false, |c| *c == b'\0') {
+            port_name = &port_name[..port_name.len() - 1];
+        }
+
+        String::from_utf8_lossy(port_name).into_owned()
     }
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
