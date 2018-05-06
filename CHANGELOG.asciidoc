@@ -8,6 +8,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 === [UNRELEASED]
 ==== Changed
 * Most port configuration methods now return a `Result<()>`.
+* Renamed `SerialPort::port_name()` to `name()`.
 
 ==== Removed
 * The `BaudRate` enum was removed in favor of a `u32` in order to support

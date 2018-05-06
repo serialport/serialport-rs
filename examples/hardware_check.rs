@@ -136,7 +136,7 @@ macro_rules! stop_bits_check {
 }
 
 fn test_single_port(port: &mut serialport::SerialPort) {
-    println!("Testing '{}':", port.port_name().unwrap());
+    println!("Testing '{}':", port.name().unwrap());
 
     // Test setting standard baud rates
     println!("Testing baud rates...");
@@ -177,7 +177,7 @@ fn test_single_port(port: &mut serialport::SerialPort) {
 }
 
 fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::SerialPort) {
-    println!("Testing paired ports '{}' and '{}':", port1.port_name().unwrap(), port2.port_name().unwrap());
+    println!("Testing paired ports '{}' and '{}':", port1.name().unwrap(), port2.name().unwrap());
 
     // Make sure both ports are set to sane defaults
     let mut port_settings: SerialPortSettings = Default::default();
@@ -190,7 +190,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let mut buf = [0u8; 12];
 
     // Test sending strings from port1 to port2
-    println!("  Transmitting from {} to {}...", port1.port_name().unwrap(), port2.port_name().unwrap());
+    println!("  Transmitting from {} to {}...", port1.name().unwrap(), port2.name().unwrap());
     port1.set_baud_rate(2000000).expect("Setting port1's baud rate to 2000000 failed");
     port2.set_baud_rate(2000000).expect("Setting port2's baud rate to 2000000 failed");
     print!("     At 2000000,8,n,1,noflow...");
@@ -304,7 +304,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port2.set_flow_control(FlowControl::None).unwrap();
     port1.set_baud_rate(2000000).expect("Setting port1's baud rate to 2000000 failed");
     port2.set_baud_rate(2000000).expect("Setting port2's baud rate to 2000000 failed");
-    println!("  Transmitting from {} to {}...", port2.port_name().unwrap(), port1.port_name().unwrap());
+    println!("  Transmitting from {} to {}...", port2.name().unwrap(), port1.name().unwrap());
     print!("     At 2000000,8,n,1,noflow...");
     let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(nbytes,

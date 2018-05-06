@@ -19,10 +19,10 @@ fn main() {
     // Master ptty has no associated path on the filesystem.
     println!("Master ptty fd: {}, path: {:?}",
              master.as_raw_fd(),
-             master.port_name());
+             master.name());
     println!("Slave  ptty fd: {}, path: {:?}",
              slave.as_raw_fd(),
-             slave.port_name());
+             slave.name());
 
     // Receive buffer.
     let mut buf = [0u8; 512];
