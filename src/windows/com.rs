@@ -667,6 +667,12 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         for mut port_device in port_devices {
             let port_name = port_device.port_name();
 
+            debug_assert!(
+                port_name.as_bytes().last().map_or(true, |c| *c != b'\0'),
+                "port_name has a trailing nul: {:?}",
+                port_name
+            );
+
             // This technique also returns parallel ports, so we filter these out.
             if port_name.starts_with("LPT") {
                 continue;
