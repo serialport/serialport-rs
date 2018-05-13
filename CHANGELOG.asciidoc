@@ -13,6 +13,9 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * The `BaudRate` enum was removed in favor of a `u32` in order to support
   arbitrary baud rates on all platforms.
 
+==== Fixed
+* On Windows, the `port_name` field on `SerialPortInfo` included a trailing nul byte character.
+
 === [2.3.0] - 2018-03-13
 ==== Added
 * Added `examples/hardware_check.rs` for use in debugging library or
