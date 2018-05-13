@@ -586,7 +586,15 @@ impl PortDevice {
                              &mut port_name_len)
         };
         unsafe { RegCloseKey(hkey) };
-        String::from_utf8_lossy(&port_name_buffer[0..port_name_len as usize]).into_owned()
+
+        let mut port_name = &port_name_buffer[0..port_name_len as usize];
+
+        // Strip any nul bytes from the end of the buffer
+        while port_name.last().map_or(false, |c| *c == b'\0') {
+            port_name = &port_name[..port_name.len() - 1];
+        }
+
+        String::from_utf8_lossy(port_name).into_owned()
     }
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
@@ -658,6 +666,12 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
         let port_devices = PortDevices::new(&guid);
         for mut port_device in port_devices {
             let port_name = port_device.port_name();
+
+            debug_assert!(
+                port_name.as_bytes().last().map_or(true, |c| *c != b'\0'),
+                "port_name has a trailing nul: {:?}",
+                port_name
+            );
 
             // This technique also returns parallel ports, so we filter these out.
             if port_name.starts_with("LPT") {
