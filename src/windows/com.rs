@@ -196,7 +196,7 @@ impl io::Write for COMPort {
 }
 
 impl SerialPort for COMPort {
-    fn port_name(&self) -> Option<String> {
+    fn name(&self) -> Option<String> {
         self.port_name.clone()
     }
 
@@ -566,7 +566,7 @@ impl PortDevice {
     }
 
     // Retrieves the port name (i.e. COM6) associated with this device.
-    pub fn port_name(&mut self) -> String {
+    pub fn name(&mut self) -> String {
         let hkey = unsafe {
             SetupDiOpenDevRegKey(self.hdi,
                                  &mut self.devinfo_data,
@@ -665,7 +665,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     for guid in get_ports_guids()? {
         let port_devices = PortDevices::new(&guid);
         for mut port_device in port_devices {
-            let port_name = port_device.port_name();
+            let port_name = port_device.name();
 
             debug_assert!(
                 port_name.as_bytes().last().map_or(true, |c| *c != b'\0'),

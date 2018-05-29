@@ -258,7 +258,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     ///
     /// This name may not be the canonical device name and instead be shorthand.
     /// Additionally it may not exist for virtual ports.
-    fn port_name(&self) -> Option<String>;
+    fn name(&self) -> Option<String>;
 
     /// Returns a struct with the current port settings
     fn settings(&self) -> SerialPortSettings;

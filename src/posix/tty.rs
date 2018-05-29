@@ -372,7 +372,7 @@ impl io::Write for TTYPort {
 }
 
 impl SerialPort for TTYPort {
-    fn port_name(&self) -> Option<String> {
+    fn name(&self) -> Option<String> {
         self.port_name.clone()
     }
 
