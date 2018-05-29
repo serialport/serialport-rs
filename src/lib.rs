@@ -309,7 +309,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// Applies all settings for a struct. This isn't guaranteed to involve only
     /// a single call into the driver, though that may be done on some
     /// platforms.
-    fn set_all(&mut self, &SerialPortSettings) -> ::Result<()>;
+    fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()>;
 
     /// Sets the baud rate.
     ///
