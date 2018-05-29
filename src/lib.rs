@@ -16,10 +16,7 @@
 //! Using the platform-specific `open*()` functions will return the platform-specific port object
 //! which allows access to platform-specific functionality.
 
-#![deny(missing_docs,
-        missing_debug_implementations,
-        missing_copy_implementations,
-        unused)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, unused)]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
@@ -27,13 +24,15 @@
 #[cfg(target_os = "linux")]
 extern crate libudev;
 #[cfg(unix)]
-#[macro_use] extern crate nix;
+#[macro_use]
+extern crate nix;
 #[cfg(unix)]
-#[macro_use] extern crate bitflags;
-#[cfg(target_os = "macos")]
-extern crate IOKit_sys;
+#[macro_use]
+extern crate bitflags;
 #[cfg(target_os = "macos")]
 extern crate CoreFoundation_sys as cf;
+#[cfg(target_os = "macos")]
+extern crate IOKit_sys;
 #[cfg(target_os = "macos")]
 extern crate mach;
 
@@ -80,7 +79,7 @@ pub type Result<T> = std::result::Result<T, ::Error>;
 ///
 /// This list is intended to grow over time and it is not recommended to
 /// exhaustively match against it.
-#[derive(Debug,Clone,Copy,PartialEq,Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     /// The device is not available.
     ///
@@ -156,7 +155,7 @@ impl From<Error> for io::Error {
 }
 
 /// Number of bits per character.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DataBits {
     /// 5 bits per character
     Five,
@@ -180,7 +179,7 @@ pub enum DataBits {
 ///
 /// Parity checking is disabled by setting `None`, in which case parity bits are not
 /// transmitted.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -195,7 +194,7 @@ pub enum Parity {
 /// Number of stop bits.
 ///
 /// Stop bits are transmitted after every character.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StopBits {
     /// One stop bit.
     One,
@@ -205,7 +204,7 @@ pub enum StopBits {
 }
 
 /// Flow control modes.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FlowControl {
     /// No flow control.
     None,
@@ -218,7 +217,7 @@ pub enum FlowControl {
 }
 
 /// A struct containing all serial port settings
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SerialPortSettings {
     /// The baud rate in symbols-per-second
     pub baud_rate: u32,
@@ -434,7 +433,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn try_clone(&self) -> ::Result<Box<SerialPort>>;
 }
 
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Contains all possible USB information about a `SerialPort`
 pub struct UsbPortInfo {
     /// Vendor ID
@@ -449,7 +448,7 @@ pub struct UsbPortInfo {
     pub product: Option<String>,
 }
 
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The physical type of a `SerialPort`
 pub enum SerialPortType {
     /// The serial port is connected via USB
@@ -463,7 +462,7 @@ pub enum SerialPortType {
 }
 
 /// A device-independent implementation of serial port information.
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
@@ -493,18 +492,21 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 
     #[cfg(unix)]
     return match posix::TTYPort::open(Path::new(port), &Default::default()) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(windows)]
     return match windows::COMPort::open(Path::new(port), &Default::default()) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "open() not implemented for platform",
+    ))
 }
 
 /// Opens the serial port specified by the device path with the given settings.
@@ -523,26 +525,30 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 /// };
 /// serialport::open_with_settings("/dev/ttyUSB0", &s);
 /// ```
-pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T,
-                                                    settings: &SerialPortSettings)
-                                                    -> ::Result<Box<SerialPort>> {
+pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(
+    port: &T,
+    settings: &SerialPortSettings,
+) -> ::Result<Box<SerialPort>> {
     // This is written with explicit returns because of:
     // https://github.com/rust-lang/rust/issues/38337
 
     #[cfg(unix)]
     return match posix::TTYPort::open(Path::new(port), settings) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(windows)]
     return match windows::COMPort::open(port, settings) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "open() not implemented for platform",
+    ))
 }
 
 /// Returns a list of all serial ports on system
@@ -557,6 +563,8 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     return windows::available_ports();
 
     #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown,
-                   "available_ports() not implemented for platform"))
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "available_ports() not implemented for platform",
+    ))
 }

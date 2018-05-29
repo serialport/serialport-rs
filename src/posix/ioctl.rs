@@ -1,11 +1,11 @@
 use std::mem;
 use std::os::unix::io::RawFd;
 
-use nix::libc as libc;
+use nix::libc;
 
 // These are wrapped in a module because they're `pub` by default
 mod raw {
-    use nix::libc as libc;
+    use nix::libc;
     ioctl!(bad none tiocexcl with libc::TIOCEXCL);
     ioctl!(bad none tiocnxcl with libc::TIOCNXCL);
     ioctl!(bad read tiocmget with libc::TIOCMGET; libc::c_int);
@@ -34,11 +34,15 @@ bitflags!{
 }
 
 pub fn tiocexcl(fd: RawFd) -> ::Result<()> {
-    unsafe { raw::tiocexcl(fd) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocexcl(fd) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn tiocnxcl(fd: RawFd) -> ::Result<()> {
-    unsafe { raw::tiocnxcl(fd) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocnxcl(fd) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
@@ -49,12 +53,16 @@ pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
 
 pub fn tiocmbic(fd: RawFd, status: SerialLines) -> ::Result<()> {
     let bits = status.bits() as libc::c_int;
-    unsafe { raw::tiocmbic(fd, &bits) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocmbic(fd, &bits) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
     let bits = status.bits() as libc::c_int;
-    unsafe { raw::tiocmbis(fd, &bits) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocmbis(fd, &bits) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -68,5 +76,7 @@ pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> ::Result<()> {
-    unsafe { raw::tcsets2(fd, options) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tcsets2(fd, options) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }

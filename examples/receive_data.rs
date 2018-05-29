@@ -1,8 +1,8 @@
 extern crate argparse;
 extern crate serialport;
 
-use std::time::Duration;
 use std::io::{self, Write};
+use std::time::Duration;
 
 use argparse::{ArgumentParser, Store};
 use serialport::prelude::*;

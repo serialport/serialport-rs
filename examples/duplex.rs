@@ -16,11 +16,10 @@ extern crate serialport;
 use serialport::{available_ports, open};
 use std::io;
 use std::io::Write;
-use std::{mem, thread};
 use std::time::Duration;
+use std::{mem, thread};
 
 fn main() {
-
     // Open the first serialport available.
     let mut serialport = open(&available_ports().expect("No serial port")[0].port_name)
         .expect("Failed to open serial port");
@@ -29,21 +28,22 @@ fn main() {
     let mut clone = serialport.try_clone().expect("Failed to clone");
 
     // Send out 4 bytes every second
-    thread::spawn(move || {
-        loop {
-            clone.write(&[5, 6, 7, 8]).expect("Failed to write to serial port");
-            thread::sleep(Duration::from_millis(1000));
-        }
+    thread::spawn(move || loop {
+        clone
+            .write(&[5, 6, 7, 8])
+            .expect("Failed to write to serial port");
+        thread::sleep(Duration::from_millis(1000));
     });
 
     // Read the four bytes back from the cloned port
     let mut buffer: [u8; 1] = unsafe { mem::uninitialized() };
     loop {
         match serialport.read(&mut buffer) {
-            Ok(bytes) => if bytes == 1 { println!("Received: {:?}",buffer); },
+            Ok(bytes) => if bytes == 1 {
+                println!("Received: {:?}", buffer);
+            },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-            Err(e) => eprintln!("{:?}",e),
+            Err(e) => eprintln!("{:?}", e),
         }
     }
 }
-

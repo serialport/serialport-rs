@@ -1,9 +1,9 @@
 use regex::Regex;
 
 use std::ffi::{CStr, CString, OsStr};
-use std::{io, mem, ptr};
 use std::os::windows::prelude::*;
 use std::time::Duration;
+use std::{io, mem, ptr};
 
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
@@ -17,11 +17,11 @@ use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::setupapi::*;
 use winapi::um::winbase::*;
-use winapi::um::winnt::{DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, KEY_READ};
+use winapi::um::winnt::{DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE,
+                        HANDLE, KEY_READ};
 use winapi::um::winreg::*;
 
-use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings,
-     StopBits};
+use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
 
 /// A serial port implementation for Windows COM ports.
@@ -54,9 +54,10 @@ impl COMPort {
     ///    the device is already in use.
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other I/O error while opening or initializing the device.
-    pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T,
-                                          settings: &SerialPortSettings)
-                                          -> ::Result<COMPort> {
+    pub fn open<T: AsRef<OsStr> + ?Sized>(
+        port: &T,
+        settings: &SerialPortSettings,
+    ) -> ::Result<COMPort> {
         let mut name = Vec::<u16>::new();
 
         name.extend(OsStr::new("\\\\.\\").encode_wide());
@@ -64,13 +65,15 @@ impl COMPort {
         name.push(0);
 
         let handle = unsafe {
-            CreateFileW(name.as_ptr(),
-                        GENERIC_READ | GENERIC_WRITE,
-                        0,
-                        ptr::null_mut(),
-                        OPEN_EXISTING,
-                        FILE_ATTRIBUTE_NORMAL,
-                        0 as HANDLE)
+            CreateFileW(
+                name.as_ptr(),
+                GENERIC_READ | GENERIC_WRITE,
+                0,
+                ptr::null_mut(),
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                0 as HANDLE,
+            )
         };
 
         if handle != INVALID_HANDLE_VALUE {
@@ -153,18 +156,23 @@ impl io::Read for COMPort {
         let mut len: DWORD = 0;
 
         match unsafe {
-                  ReadFile(self.handle,
-                           buf.as_mut_ptr() as LPVOID,
-                           buf.len() as DWORD,
-                           &mut len,
-                           ptr::null_mut())
-              } {
+            ReadFile(
+                self.handle,
+                buf.as_mut_ptr() as LPVOID,
+                buf.len() as DWORD,
+                &mut len,
+                ptr::null_mut(),
+            )
+        } {
             0 => Err(io::Error::last_os_error()),
             _ => {
                 if len != 0 {
                     Ok(len as usize)
                 } else {
-                    Err(io::Error::new(io::ErrorKind::TimedOut, "Operation timed out"))
+                    Err(io::Error::new(
+                        io::ErrorKind::TimedOut,
+                        "Operation timed out",
+                    ))
                 }
             }
         }
@@ -176,12 +184,14 @@ impl io::Write for COMPort {
         let mut len: DWORD = 0;
 
         match unsafe {
-                  WriteFile(self.handle,
-                            buf.as_ptr() as LPVOID,
-                            buf.len() as DWORD,
-                            &mut len,
-                            ptr::null_mut())
-              } {
+            WriteFile(
+                self.handle,
+                buf.as_ptr() as LPVOID,
+                buf.len() as DWORD,
+                &mut len,
+                ptr::null_mut(),
+            )
+        } {
             0 => Err(io::Error::last_os_error()),
             _ => Ok(len as usize),
         }
@@ -210,8 +220,7 @@ impl SerialPort for COMPort {
         SerialPortSettings {
             baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
             data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
-            flow_control: self.flow_control()
-                .expect("Couldn't retrieve flow control"),
+            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
             parity: self.parity().expect("Couldn't retrieve parity"),
             stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
             timeout: self.timeout,
@@ -281,7 +290,10 @@ impl SerialPort for COMPort {
             6 => Ok(DataBits::Six),
             7 => Ok(DataBits::Seven),
             8 => Ok(DataBits::Eight),
-            _ => Err(Error::new(ErrorKind::Unknown, "Invalid data bits setting encountered")),
+            _ => Err(Error::new(
+                ErrorKind::Unknown,
+                "Invalid data bits setting encountered",
+            )),
         }
     }
 
@@ -291,7 +303,10 @@ impl SerialPort for COMPort {
             ODDPARITY => Ok(Parity::Odd),
             EVENPARITY => Ok(Parity::Even),
             NOPARITY => Ok(Parity::None),
-            _ => Err(Error::new(ErrorKind::Unknown, "Invalid parity bits setting encountered")),
+            _ => Err(Error::new(
+                ErrorKind::Unknown,
+                "Invalid parity bits setting encountered",
+            )),
         }
     }
 
@@ -300,7 +315,10 @@ impl SerialPort for COMPort {
         match dcb.StopBits {
             TWOSTOPBITS => Ok(StopBits::Two),
             ONESTOPBIT => Ok(StopBits::One),
-            _ => Err(Error::new(ErrorKind::Unknown, "Invalid stop bits setting encountered")),
+            _ => Err(Error::new(
+                ErrorKind::Unknown,
+                "Invalid stop bits setting encountered",
+            )),
         }
     }
 
@@ -393,17 +411,19 @@ impl SerialPort for COMPort {
     }
 
     fn try_clone(&self) -> ::Result<Box<SerialPort>> {
-        let process_handle: HANDLE = unsafe {GetCurrentProcess()};
+        let process_handle: HANDLE = unsafe { GetCurrentProcess() };
         let mut cloned_handle: HANDLE;
         unsafe {
             cloned_handle = mem::uninitialized();
-            DuplicateHandle(process_handle,
-                            self.handle,
-                            process_handle,
-                            &mut cloned_handle,
-                            0,
-                            TRUE,
-                            DUPLICATE_SAME_ACCESS);
+            DuplicateHandle(
+                process_handle,
+                self.handle,
+                process_handle,
+                &mut cloned_handle,
+                0,
+                TRUE,
+                DUPLICATE_SAME_ACCESS,
+            );
             if cloned_handle != INVALID_HANDLE_VALUE {
                 Ok(Box::new(COMPort {
                     handle: cloned_handle,
@@ -438,14 +458,18 @@ fn get_ports_guids() -> ::Result<Vec<GUID>> {
     // Find out how many GUIDs are associated with "Ports". Initially we assume
     // that there is only 1. num_guids will tell us how many there actually are.
     let res = unsafe {
-        SetupDiClassGuidsFromNameA(ports_class_name.as_ptr(),
-                                   guids.as_mut_ptr(),
-                                   guids.len() as DWORD,
-                                   &mut num_guids)
+        SetupDiClassGuidsFromNameA(
+            ports_class_name.as_ptr(),
+            guids.as_mut_ptr(),
+            guids.len() as DWORD,
+            &mut num_guids,
+        )
     };
     if res == FALSE {
-        return Err(Error::new(ErrorKind::Unknown,
-                              "Unable to determine number of Ports GUIDs"));
+        return Err(Error::new(
+            ErrorKind::Unknown,
+            "Unable to determine number of Ports GUIDs",
+        ));
     }
     if num_guids == 0 {
         // We got a successful result of no GUIDs, so pop the placeholder that
@@ -460,13 +484,18 @@ fn get_ports_guids() -> ::Result<Vec<GUID>> {
             guids.push(GUID_NULL);
         }
         let res = unsafe {
-            SetupDiClassGuidsFromNameA(ports_class_name.as_ptr(),
-                                       guids.as_mut_ptr(),
-                                       guids.len() as DWORD,
-                                       &mut num_guids)
+            SetupDiClassGuidsFromNameA(
+                ports_class_name.as_ptr(),
+                guids.as_mut_ptr(),
+                guids.len() as DWORD,
+                &mut num_guids,
+            )
         };
         if res == FALSE {
-            return Err(Error::new(ErrorKind::Unknown, "Unable to retrieve Ports GUIDs"));
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "Unable to retrieve Ports GUIDs",
+            ));
         }
     }
     Ok(guids)
@@ -545,11 +574,13 @@ impl PortDevice {
     fn instance_id(&mut self) -> Option<String> {
         let mut result_buf = [0i8; MAX_PATH];
         let res = unsafe {
-            SetupDiGetDeviceInstanceIdA(self.hdi,
-                                        &mut self.devinfo_data,
-                                        result_buf.as_mut_ptr(),
-                                        (result_buf.len() - 1) as DWORD,
-                                        ptr::null_mut())
+            SetupDiGetDeviceInstanceIdA(
+                self.hdi,
+                &mut self.devinfo_data,
+                result_buf.as_mut_ptr(),
+                (result_buf.len() - 1) as DWORD,
+                ptr::null_mut(),
+            )
         };
         if res == FALSE {
             // Try to retrieve hardware id property.
@@ -558,32 +589,36 @@ impl PortDevice {
             let end_of_buffer = result_buf.len() - 1;
             result_buf[end_of_buffer] = 0;
             Some(unsafe {
-                     CStr::from_ptr(result_buf.as_ptr())
-                         .to_string_lossy()
-                         .into_owned()
-                 })
+                CStr::from_ptr(result_buf.as_ptr())
+                    .to_string_lossy()
+                    .into_owned()
+            })
         }
     }
 
     // Retrieves the port name (i.e. COM6) associated with this device.
     pub fn name(&mut self) -> String {
         let hkey = unsafe {
-            SetupDiOpenDevRegKey(self.hdi,
-                                 &mut self.devinfo_data,
-                                 DICS_FLAG_GLOBAL,
-                                 0,
-                                 DIREG_DEV,
-                                 KEY_READ)
+            SetupDiOpenDevRegKey(
+                self.hdi,
+                &mut self.devinfo_data,
+                DICS_FLAG_GLOBAL,
+                0,
+                DIREG_DEV,
+                KEY_READ,
+            )
         };
         let mut port_name_buffer = [0u8; MAX_PATH];
         let mut port_name_len = port_name_buffer.len() as DWORD;
         unsafe {
-            RegQueryValueExA(hkey,
-                             CString::new("PortName").unwrap().as_ptr(),
-                             ptr::null_mut(),
-                             ptr::null_mut(),
-                             port_name_buffer.as_mut_ptr(),
-                             &mut port_name_len)
+            RegQueryValueExA(
+                hkey,
+                CString::new("PortName").unwrap().as_ptr(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                port_name_buffer.as_mut_ptr(),
+                &mut port_name_len,
+            )
         };
         unsafe { RegCloseKey(hkey) };
 
@@ -606,24 +641,21 @@ impl PortDevice {
             //  BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
             //  FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
 
-            let re = Regex::new(concat!(r"VID_(?P<vid>[[:xdigit:]]{4})",
-                                        r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
-                                        r"([\\+](?P<serial>\w+))?"))
-                    .unwrap();
+            let re = Regex::new(concat!(
+                r"VID_(?P<vid>[[:xdigit:]]{4})",
+                r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
+                r"([\\+](?P<serial>\w+))?"
+            )).unwrap();
             if let Some(caps) = re.captures(&hardware_id) {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
                         return ::SerialPortType::UsbPort(::UsbPortInfo {
-                                                             vid: vid,
-                                                             pid: pid,
-                                                             serial_number: caps.get(4)
-                                                                 .map(|m| {
-                                                                          m.as_str().to_string()
-                                                                      }),
-                                                             manufacturer: self.property(SPDRP_MFG),
-                                                             product:
-                                                                 self.property(SPDRP_FRIENDLYNAME),
-                                                         });
+                            vid: vid,
+                            pid: pid,
+                            serial_number: caps.get(4).map(|m| m.as_str().to_string()),
+                            manufacturer: self.property(SPDRP_MFG),
+                            product: self.property(SPDRP_FRIENDLYNAME),
+                        });
                     }
                 }
             }
@@ -636,13 +668,15 @@ impl PortDevice {
     fn property(&mut self, property_id: DWORD) -> Option<String> {
         let mut result_buf: [CHAR; MAX_PATH] = [0; MAX_PATH];
         let res = unsafe {
-            SetupDiGetDeviceRegistryPropertyA(self.hdi,
-                                              &mut self.devinfo_data,
-                                              property_id,
-                                              ptr::null_mut(),
-                                              result_buf.as_mut_ptr() as PBYTE,
-                                              (result_buf.len() - 1) as DWORD,
-                                              ptr::null_mut())
+            SetupDiGetDeviceRegistryPropertyA(
+                self.hdi,
+                &mut self.devinfo_data,
+                property_id,
+                ptr::null_mut(),
+                result_buf.as_mut_ptr() as PBYTE,
+                (result_buf.len() - 1) as DWORD,
+                ptr::null_mut(),
+            )
         };
         if res == FALSE {
             if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
@@ -652,10 +686,10 @@ impl PortDevice {
         let end_of_buffer = result_buf.len() - 1;
         result_buf[end_of_buffer] = 0;
         Some(unsafe {
-                 CStr::from_ptr(result_buf.as_ptr())
-                     .to_string_lossy()
-                     .into_owned()
-             })
+            CStr::from_ptr(result_buf.as_ptr())
+                .to_string_lossy()
+                .into_owned()
+        })
     }
 }
 
@@ -679,9 +713,9 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
             }
 
             ports.push(::SerialPortInfo {
-                           port_name: port_name,
-                           port_type: port_device.port_type(),
-                       });
+                port_name: port_name,
+                port_type: port_device.port_type(),
+            });
         }
     }
     Ok(ports)

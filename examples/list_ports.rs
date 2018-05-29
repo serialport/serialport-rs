@@ -3,7 +3,6 @@ extern crate serialport;
 use serialport::SerialPortType;
 
 fn main() {
-
     if let Ok(ports) = serialport::available_ports() {
         match ports.len() {
             0 => println!("No ports found."),
@@ -16,12 +15,18 @@ fn main() {
                 SerialPortType::UsbPort(info) => {
                     println!("    Type: USB");
                     println!("    VID:{:04x} PID:{:04x}", info.vid, info.pid);
-                    println!("     Serial Number: {}",
-                             info.serial_number.as_ref().map_or("", String::as_str));
-                    println!("      Manufacturer: {}",
-                             info.manufacturer.as_ref().map_or("", String::as_str));
-                    println!("           Product: {}",
-                             info.product.as_ref().map_or("", String::as_str));
+                    println!(
+                        "     Serial Number: {}",
+                        info.serial_number.as_ref().map_or("", String::as_str)
+                    );
+                    println!(
+                        "      Manufacturer: {}",
+                        info.manufacturer.as_ref().map_or("", String::as_str)
+                    );
+                    println!(
+                        "           Product: {}",
+                        info.product.as_ref().map_or("", String::as_str)
+                    );
                 }
                 SerialPortType::BluetoothPort => {
                     println!("    Type: Bluetooth");
@@ -37,5 +42,4 @@ fn main() {
     } else {
         print!("Error listing serial ports");
     }
-
 }
