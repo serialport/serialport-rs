@@ -128,7 +128,7 @@ impl TTYPort {
         })?;
 
         let mut port = TTYPort {
-            fd: fd,
+            fd,
             timeout: Duration::new(0, 0), // This is overwritten by the subsequent call to `set_all()`
             exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
@@ -329,9 +329,9 @@ impl FromRawFd for TTYPort {
         // It is not trivial to get the file path corresponding to a file descriptor.
         // We'll punt on it and set it to `None` here.
         TTYPort {
-            fd: fd,
+            fd,
             timeout: Duration::from_millis(100),
-            exclusive: exclusive,
+            exclusive,
             port_name: None,
             // On Mac & iOS we can't read the baud rate, so we'll set it to 0 indicating that it's
             // unknown.
@@ -663,7 +663,7 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
             Ok(SerialPortType::UsbPort(UsbPortInfo {
                 vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
                 pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
-                serial_number: serial_number,
+                serial_number,
                 manufacturer: udev_property_as_string(d, "ID_VENDOR"),
                 product: udev_property_as_string(d, "ID_MODEL"),
             }))

@@ -113,7 +113,7 @@ impl Error {
     /// Instantiates a new error
     pub fn new<T: Into<String>>(kind: ErrorKind, description: T) -> Self {
         Error {
-            kind: kind,
+            kind,
             description: description.into(),
         }
     }
