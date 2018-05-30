@@ -1,9 +1,9 @@
 #![cfg(unix)]
 extern crate serialport;
 
-use std::io::{Read, Write};
-use serialport::posix::TTYPort;
 use serialport::SerialPort;
+use serialport::posix::TTYPort;
+use std::io::{Read, Write};
 
 // Test that cloning a port works as expected
 #[test]
@@ -53,4 +53,3 @@ fn test_try_clone_move() {
     // The thread should have already ended, but we'll make sure here anyways.
     loopback.join().unwrap();
 }
-

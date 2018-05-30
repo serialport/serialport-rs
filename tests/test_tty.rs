@@ -15,36 +15,54 @@ use serialport::posix::TTYPort;
 fn test_ttyport_pair() {
     // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
-    master.set_timeout(Duration::from_millis(10)).expect("Unable to set timeout on the master");
-    slave.set_timeout(Duration::from_millis(10)).expect("Unable to set timeout on the slave");
+    master
+        .set_timeout(Duration::from_millis(10))
+        .expect("Unable to set timeout on the master");
+    slave
+        .set_timeout(Duration::from_millis(10))
+        .expect("Unable to set timeout on the slave");
 
     // Test file descriptors.
-    assert!(master.as_raw_fd() > 0,
-            "Invalid file descriptor on master ptty");
-    assert!(slave.as_raw_fd() > 0,
-            "Invalid file descriptor on slae ptty");
-    assert_ne!(master.as_raw_fd(),
-               slave.as_raw_fd(),
-               "master and slave ptty's share the same file descriptor.");
+    assert!(
+        master.as_raw_fd() > 0,
+        "Invalid file descriptor on master ptty"
+    );
+    assert!(
+        slave.as_raw_fd() > 0,
+        "Invalid file descriptor on slae ptty"
+    );
+    assert_ne!(
+        master.as_raw_fd(),
+        slave.as_raw_fd(),
+        "master and slave ptty's share the same file descriptor."
+    );
 
     let msg = "Test Message";
     let mut buf = [0u8; 128];
 
     // Write the string on the master
-    let nbytes = master.write(msg.as_bytes()).expect("Unable to write bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Write message length differs from sent message.");
+    let nbytes = master
+        .write(msg.as_bytes())
+        .expect("Unable to write bytes.");
+    assert_eq!(
+        nbytes,
+        msg.len(),
+        "Write message length differs from sent message."
+    );
 
     // Read it on the slave
     let nbytes = slave.read(&mut buf).expect("Unable to read bytes.");
-    assert_eq!(nbytes,
-               msg.len(),
-               "Read message length differs from sent message.");
+    assert_eq!(
+        nbytes,
+        msg.len(),
+        "Read message length differs from sent message."
+    );
 
-    assert_eq!(str::from_utf8(&buf[..nbytes]).unwrap(),
-               msg,
-               "Received message does not match sent");
+    assert_eq!(
+        str::from_utf8(&buf[..nbytes]).unwrap(),
+        msg,
+        "Received message does not match sent"
+    );
 }
 
 #[test]

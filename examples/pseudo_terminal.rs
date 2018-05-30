@@ -4,12 +4,11 @@ extern crate serialport;
 
 #[cfg(unix)]
 fn main() {
-
-    use std::io::{Write, Read};
+    use std::io::{Read, Write};
     use std::os::unix::prelude::*;
-    use std::time;
-    use std::thread;
     use std::str;
+    use std::thread;
+    use std::time;
 
     use serialport::SerialPort;
     use serialport::posix::TTYPort;
@@ -17,12 +16,16 @@ fn main() {
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create pseudo-terminal pair");
 
     // Master ptty has no associated path on the filesystem.
-    println!("Master ptty fd: {}, path: {:?}",
-             master.as_raw_fd(),
-             master.name());
-    println!("Slave  ptty fd: {}, path: {:?}",
-             slave.as_raw_fd(),
-             slave.name());
+    println!(
+        "Master ptty fd: {}, path: {:?}",
+        master.as_raw_fd(),
+        master.name()
+    );
+    println!(
+        "Slave  ptty fd: {}, path: {:?}",
+        slave.as_raw_fd(),
+        slave.name()
+    );
 
     // Receive buffer.
     let mut buf = [0u8; 512];
@@ -46,7 +49,6 @@ fn main() {
         println!("Slave Rx:  {}", msg_recvd);
         thread::sleep(time::Duration::from_secs(1));
     }
-
 }
 
 #[cfg(not(unix))]
