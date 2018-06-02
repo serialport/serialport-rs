@@ -6,16 +6,19 @@ The format is based on http://keepachangelog.com/[Keep a Changelog]
 and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
+==== Added
+* Arbitrary baud rates are now supported on BSDs, Linux, and Windows.
+
 ==== Changed
 * Most port configuration methods now return a `Result<()>`.
 * Renamed `SerialPort::port_name()` to `name()`.
 
 ==== Removed
-* The `BaudRate` enum was removed in favor of a `u32` in order to support
-  arbitrary baud rates on all platforms.
+* The `BaudRate` enum was removed in favor of a `u32`.
 
 ==== Fixed
-* On Windows, the `port_name` field on `SerialPortInfo` included a trailing nul byte character.
+* On Windows, the `port_name` field on `SerialPortInfo` included an extraneous trailing nul byte
+  character.
 
 === [2.3.0] - 2018-03-13
 ==== Added
