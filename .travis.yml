@@ -3,8 +3,9 @@ language: rust
 os: osx
 
 rust:
-  - 1.20.0
   - stable
+
+cache: cargo
 
 env:
   global:
@@ -13,7 +14,24 @@ env:
 
 matrix:
   fast_finish: true
+  include:
+  - env: TARGET=aarch64-apple-ios DISABLE_TESTS=1
+    os: osx
+  - env: TARGET=armv7-apple-ios DISABLE_TESTS=1
+    os: osx
+  - env: TARGET=armv7s-apple-ios DISABLE_TESTS=1
+    os: osx
+  - env: TARGET=i386-apple-ios DISABLE_TESTS=1
+    os: osx
+  - env: TARGET=x86_64-apple-ios DISABLE_TESTS=1
+    os: osx
+  - env: TARGET=i686-apple-darwin
+    os: osx
+  - env: TARGET=x86_64-apple-darwin
+    os: osx
 
 script:
-  - cargo build --verbose
-  - cargo test --verbose
+  - rustup target add $TARGET || true # Ignore failures when the target and toolchain are the same
+  - cargo update
+  - cargo build --verbose --target=$TARGET
+  - if [[ -z $DISABLE_TESTS ]]; then cargo test --verbose; fi
