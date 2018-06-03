@@ -1,10 +1,10 @@
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
 use libudev;
 use nix;
 
 use std::io;
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
 impl From<libudev::Error> for ::Error {
     fn from(e: libudev::Error) -> ::Error {
         let description = e.description().to_string();

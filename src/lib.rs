@@ -21,7 +21,7 @@
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
 extern crate libudev;
 #[cfg(unix)]
 #[macro_use]
@@ -556,13 +556,13 @@ pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(
 /// It is not guaranteed that these ports exist or are available even if they're
 /// returned by this function.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    #[cfg(unix)]
+    #[cfg(all(unix, not(target_env = "musl")))]
     return posix::available_ports();
 
     #[cfg(windows)]
     return windows::available_ports();
 
-    #[cfg(not(any(unix, windows)))]
+    #[cfg(any(not(any(unix, windows)), target_env = "musl"))]
     Err(Error::new(
         ErrorKind::Unknown,
         "available_ports() not implemented for platform",
