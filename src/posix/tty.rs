@@ -21,7 +21,7 @@ use IOKit_sys::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
-#[cfg(any(target_os = "android", target_os = "ios", target_os = "linux", target_os = "macos"))]
+#[cfg(any(target_os = "ios", target_os = "linux", target_os = "macos"))]
 use {SerialPortType, UsbPortInfo};
 
 /// Convenience method for removing exclusive access from
