@@ -8,6 +8,22 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 === [UNRELEASED]
 ==== Added
 * Arbitrary baud rates are now supported on BSDs, Linux, and Windows.
+* Added Tier 1 support for `{i586|i686|x86_64}-unknown-linux-musl`
+* Added Tier 2 support for:
+  * `{arm|armv7}-linux-androideabi`
+  * `i686-linux-android`
+  * `{i686|x86_64}-unknown-freebsd`
+  * `arm-unknown-linux-musleabi`
+  * `armv7-unknown-linux-musleabihf`
+  * `{mips64|mips64el}-unknown-linux-gnuabi64`
+  * `{aarch64|mips|mipsel|powerpc64|powerpc64le|powerpc|s390x}-unknown-linux-gnu`
+  * `{mips|mipsel}-unknown-linux-musl`
+  * `x86_64-unknown-netbsd`
+* Added Tier 3 support for:
+  * `{aarch64|x86_64}-linux-android`
+  * `aarch64-unknown-linux-musl`
+  * `sparc64-unknown-linux-gnu`,
+  * `x86_64-unknown-linux-gnux32`
 
 ==== Changed
 * Most port configuration methods now return a `Result<()>`.

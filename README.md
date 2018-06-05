@@ -49,20 +49,65 @@ For GNU Linux `pkg-config` and `libudev` headers are required (`pkg-config` and 
 Platform Support
 ================
 
-Operating system support is as follows:
+Platform support is broken into three tiers:
+
+ * Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
+ * Tier 2 - Builds for this target are run in CI. Failures during the build blocks the inclusion of new code. Tests may be run, but failures in tests don't block the inclusion of new code.
+ * Tier 3 - Builds for this target are run in CI. Failures during the build do not block the inclusion of new code. Testing may be run, but failures in tests don't block the inclusion of new code.
+
 
 Tier 1:
 
-  * Linux, i686 & x86_64
+ * Linux
+   * `i586-unknown-linux-musl`
+   * `i686-unknown-linux-gnu`
+   * `i686-unknown-linux-musl`
+   * `x86_64-unknown-linux-gnu`
+   * `x86_64-unknown-linux-musl`
+ * MacOS/iOS
+   * `i686-apple-darwin`
+   * `x86_64-apple-darwin`
+ * Windows
+   * `i686-pc-windows-gnu`
+   * `i686-pc-windows-msvc`
+   * `x86_64-pc-windows-gnu`
+   * `x86_64-pc-windows-msvc`
 
 Tier 2:
 
-  * Windows 7+, i686 & x86_64
-  * Mac OS X
+ * Android
+   * `arm-linux-androideabi`
+   * `armv7-linux-androideabi`
+   * `i686-linux-android`
+ * FreeBSD
+   * `i686-unknown-freebsd`
+   * `x86_64-unknown-freebsd`
+ * Linux
+   * `aarch64-unknown-linux-gnu`
+   * `arm-unknown-linux-musleabi`
+   * `armv7-unknown-linux-musleabihf`
+   * `mips64-unknown-linux-gnuabi64`
+   * `mips64el-unknown-linux-gnuabi64`
+   * `mips-unknown-linux-gnu`
+   * `mips-unknown-linux-musl`
+   * `mipsel-unknown-linux-gnu`
+   * `mipsel-unknown-linux-musl`
+   * `powerpc64-unknown-linux-gnu`
+   * `powerpc64le-unknown-linux-gnu`
+   * `powerpc-unknown-linux-gnu`
+   * `s390x-unknown-linux-gnu`
+ * NetBSD
+   * `x86_64-unknown-netbsd`
 
-Tier 1 supports means this library is build- and run-tested and is regularly used so this should
-be pretty bug-free. Tier 2 means it's only build- and run-tested, but no developer uses this as
-their primary development environment.
+Tier 3:
+
+ * Android
+   * `aarch64-linux-android`
+   * `x86_64-linux-android`
+ * Linux
+   * `aarch64-unknown-linux-musl`
+   * `sparc64-unknown-linux-gnu`
+   * `x86_64-unknown-linux-gnux32`
 
 Hardware Support
 ================
