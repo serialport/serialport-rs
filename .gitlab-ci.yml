@@ -22,9 +22,9 @@ stages:
     - apt-get -qq update
     - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -qq -y install build-essential curl git pkg-config $EXTRA_PACKAGES
     - export PATH="/root/.cargo/bin:$PATH"
-    script:
     - rustup target add $TARGET || true # Ignore failures when the target and toolchain are the same
     - cargo update
+    script:
     - cargo build --target=$TARGET
     - if [[ -z $DISABLE_TESTS ]]; then cargo build --examples --target=$TARGET; fi
     - if [[ -z $DISABLE_TESTS ]]; then cargo build --tests --target=$TARGET; fi
@@ -283,33 +283,9 @@ x86_64-unknown-linux-musl:
         TARGET: x86_64-unknown-linux-musl
 
 rustfmt:
-    image: "debian:stable-slim"
+    image: "rust:latest" # Use the latest rust to get the newest rustfmt
     stage: lint
     allow_failure: true
     script:
-    - export RUST_ARCHIVE=rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-    - export RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
-    - curl -fsOSL $RUST_DOWNLOAD_URL
-    - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
-    - tar -xzf $RUST_ARCHIVE --strip-components=1
-    - ./install.sh
-    - cargo update
-    - cargo build --verbose
-    - cargo install rustfmt-nightly
+    - rustup component add rustfmt-preview
     - cargo fmt -- --write-mode=diff
-
-clippy:
-    image: "debian:stable-slim"
-    stage: lint
-    allow_failure: true
-    script:
-    - export RUST_ARCHIVE=rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-    - export RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
-    - curl -fsOSL $RUST_DOWNLOAD_URL
-    - curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c -
-    - tar -xzf $RUST_ARCHIVE --strip-components=1
-    - ./install.sh
-    - cargo update
-    - cargo build --verbose
-    - cargo install clippy
-    - cargo clippy -- -D warnings # Turn all warnings into errors
