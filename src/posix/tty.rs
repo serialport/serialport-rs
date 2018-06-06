@@ -460,15 +460,12 @@ impl SerialPort for TTYPort {
 
     // FIXME: Make this read & write the termios struct only once
     fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
+        self.set_baud_rate(settings.baud_rate)?;
         self.set_data_bits(settings.data_bits)?;
         self.set_flow_control(settings.flow_control)?;
         self.set_parity(settings.parity)?;
         self.set_stop_bits(settings.stop_bits)?;
         self.set_timeout(settings.timeout)?;
-
-        // This needs to happen last, because on OS X, the baud rate gets
-        // reset everytime the termios struct is rewritten.
-        self.set_baud_rate(settings.baud_rate)?;
 
         Ok(())
     }
