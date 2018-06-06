@@ -502,7 +502,7 @@ impl SerialPort for TTYPort {
         if vec.contains(&baud_rate) {
             let mut termios = self.get_termios()?;
             let baud_rate: speed_t = baud_rate as speed_t;
-            let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate) };
+            let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate.into()) };
             nix::errno::Errno::result(res)?;
             self.set_termios(&termios)
         } else {
