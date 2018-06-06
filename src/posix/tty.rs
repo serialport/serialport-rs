@@ -8,8 +8,6 @@ use std::time::Duration;
 use std::{io, mem};
 
 #[cfg(target_os = "macos")]
-use IOKit_sys::*;
-#[cfg(target_os = "macos")]
 use cf::*;
 #[cfg(target_os = "linux")]
 use libudev;
@@ -18,6 +16,8 @@ use nix::fcntl::fcntl;
 use nix::libc::{c_char, c_void, speed_t};
 use nix::{self, libc, unistd};
 use posix::ioctl;
+#[cfg(target_os = "macos")]
+use IOKit_sys::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
@@ -232,12 +232,26 @@ impl TTYPort {
         nix::pty::unlockpt(&next_pty_fd)?;
 
         // Get the path of the attached slave ptty
-        #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "emscripten",
-                      target_os = "fuchsia")))]
+        #[cfg(
+            not(
+                any(
+                    target_os = "linux",
+                    target_os = "android",
+                    target_os = "emscripten",
+                    target_os = "fuchsia"
+                )
+            )
+        )]
         let ptty_name = unsafe { nix::pty::ptsname(&next_pty_fd)? };
 
-        #[cfg(any(target_os = "linux", target_os = "android", target_os = "emscripten",
-                  target_os = "fuchsia"))]
+        #[cfg(
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_os = "emscripten",
+                target_os = "fuchsia"
+            )
+        )]
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
         // Open the slave port using default settings
@@ -256,8 +270,16 @@ impl TTYPort {
         Ok((master_tty, slave_tty))
     }
 
-    #[cfg(any(target_os = "dragonflybsd", target_os = "freebsd", target_os = "ios",
-              target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "dragonflybsd",
+            target_os = "freebsd",
+            target_os = "ios",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     fn get_termios(&self) -> ::Result<libc::termios> {
         let mut termios = unsafe { mem::uninitialized() };
         let res = unsafe { libc::tcgetattr(self.fd, &mut termios) };
@@ -270,8 +292,16 @@ impl TTYPort {
         ioctl::tcgets2(self.fd)
     }
 
-    #[cfg(any(target_os = "dragonflybsd", target_os = "freebsd", target_os = "ios",
-              target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "dragonflybsd",
+            target_os = "freebsd",
+            target_os = "ios",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     fn set_termios(&self, termios: &libc::termios) -> ::Result<()> {
         let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, termios) };
         nix::errno::Errno::result(res)?;
@@ -395,8 +425,16 @@ impl SerialPort for TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
-    #[cfg(any(target_os = "dragonflybsd", target_os = "freebsd", target_os = "ios",
-              target_os = "macos", target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "dragonflybsd",
+            target_os = "freebsd",
+            target_os = "ios",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     fn baud_rate(&self) -> ::Result<u32> {
         let termios = self.get_termios()?;
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
@@ -481,8 +519,14 @@ impl SerialPort for TTYPort {
         ioctl::tcsets2(self.fd, &termios2)
     }
 
-    #[cfg(any(target_os = "dragonflybsd", target_os = "freebsd", target_os = "netbsd",
-              target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "dragonflybsd",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
         let mut termios = self.get_termios()?;
         let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate) };
@@ -814,10 +858,10 @@ fn port_type(service: io_object_t) -> ::SerialPortType {
 /// Scans the system for serial ports and returns a list of them.
 /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    use IOKit_sys::*;
     use cf::*;
     use mach::kern_return::KERN_SUCCESS;
     use mach::port::{mach_port_t, MACH_PORT_NULL};
+    use IOKit_sys::*;
 
     let mut vec = Vec::new();
     unsafe {
