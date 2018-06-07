@@ -34,12 +34,30 @@ fn main() {
     }
 
     // Run single-port tests on port1
-    let mut port1 = serialport::open(&port1_name).unwrap();
+    let mut port1 = match serialport::open(&port1_name) {
+        Err(_) => {
+            println!(
+                "Port \"{}\" unavailable. Check that it isn't being used by another program.",
+                port1_name
+            );
+            ::std::process::exit(1);
+        },
+        Ok(p) => p,
+    };
     test_single_port(&mut *port1);
 
     if port2_name != "" {
         // Run single-port tests on port2
-        let mut port2 = serialport::open(&port2_name).unwrap();
+        let mut port2 = match serialport::open(&port2_name) {
+            Err(_) => {
+                println!(
+                    "Port \"{}\" unavailable. Check that it isn't being used by another program.",
+                    port2_name
+                );
+                ::std::process::exit(1);
+            },
+            Ok(p) => p,
+        };
         test_single_port(&mut *port2);
 
         // Test loopback pair
