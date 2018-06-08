@@ -194,6 +194,21 @@ fn test_single_port(port: &mut serialport::SerialPort) {
     println!("Testing stop bits...");
     stop_bits_check!(port, StopBits::Two);
     stop_bits_check!(port, StopBits::One);
+
+    // Test transmitting data
+    println!("Testing data transmission...");
+    // Make sure the port has sane defaults
+    let port_settings: SerialPortSettings = Default::default();
+    port
+        .set_all(&port_settings)
+        .expect("Resetting port to sane defaults failed");
+    let msg = "Test Message";
+    let nbytes = port.write(msg.as_bytes()).expect("Unable to write bytes.");
+    assert_eq!(
+        nbytes,
+        msg.len(),
+        "Write message length differs from sent message."
+    );
 }
 
 fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::SerialPort) {
