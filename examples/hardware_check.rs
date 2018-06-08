@@ -162,14 +162,14 @@ fn test_single_port(port: &mut serialport::SerialPort) {
     // Test setting standard baud rates
     println!("Testing baud rates...");
     baud_rate_check!(port, 9600);
-    baud_rate_check!(port, 38400);
-    baud_rate_check!(port, 115200);
+    baud_rate_check!(port, 38_400);
+    baud_rate_check!(port, 115_200);
 
     // Test setting non-standard baud rates
     println!("Testing non-standard baud rates...");
-    baud_rate_check!(port, 10000);
-    baud_rate_check!(port, 600000);
-    baud_rate_check!(port, 1800000);
+    baud_rate_check!(port, 10_000);
+    baud_rate_check!(port, 600_000);
+    baud_rate_check!(port, 1_800_000);
 
     // Test setting the data bits
     println!("Testing data bits...");
@@ -206,7 +206,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     // Make sure both ports are set to sane defaults
     let mut port_settings: SerialPortSettings = Default::default();
     port_settings.timeout = Duration::from_millis(100);
-    port_settings.baud_rate = 115200;
+    port_settings.baud_rate = 115_200;
     port1
         .set_all(&port_settings)
         .expect("Resetting port1 to sane defaults failed");
