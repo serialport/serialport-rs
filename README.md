@@ -159,8 +159,3 @@ Acknowledgments
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from.
-
-Additionally I'd like to acknowledge the following people who have made contributions:
-
-  * Dave Hylands
-  * Zac Berkowitz
