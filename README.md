@@ -32,6 +32,20 @@ corresponding `TTYPort` and `COMPort` structs, both of which implement the `Seri
 the platform-specific `open*()` functions will return the platform-specific port object which
 allows access to platform-specific functionality.
 
+Examples
+========
+
+There are several included examples, which both demonstrate the functionality of this library and
+serve to help debug software or hardware errors.
+
+ * *duplex* - Tests that a port can be successfully cloned.
+ * *hardware\_check* - Checks port/driver functionality for a single port or a pair of ports connected
+   to each other.
+ * *heartbeat* - Transmits data regularly on a port.
+ * *list_ports* - Lists available serial ports.
+ * *pseudo_terminal* - Unix only. Tests that a pseudo-terminal pair can be created.
+ * *receive_data* - Print data received on a port.
+
 Rationale
 =========
 
