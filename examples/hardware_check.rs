@@ -522,6 +522,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port1.set_flow_control(FlowControl::Software).unwrap();
     port2.set_flow_control(FlowControl::Software).unwrap();
     print!("     At 9600,8,n,1,softflow...");
+    std::io::stdout().flush().unwrap();
     let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(
         nbytes,
@@ -541,6 +542,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port1.set_flow_control(FlowControl::Hardware).unwrap();
     port2.set_flow_control(FlowControl::Hardware).unwrap();
     print!("     At 9600,8,n,1,hardflow...");
+    std::io::stdout().flush().unwrap();
     let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
     assert_eq!(
         nbytes,
