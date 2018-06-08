@@ -242,12 +242,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok()
         && port2.set_baud_rate(baud_rate).is_ok() {
-        let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
-        assert_eq!(
-            nbytes,
-            msg.len(),
-            "Write message length differs from sent message."
-        );
+        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -266,12 +261,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok()
         && port2.set_baud_rate(baud_rate).is_ok() {
-        let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
-        assert_eq!(
-            nbytes,
-            msg.len(),
-            "Write message length differs from sent message."
-        );
+        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -290,12 +280,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok()
         && port2.set_baud_rate(baud_rate).is_ok() {
-        let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
-        assert_eq!(
-            nbytes,
-            msg.len(),
-            "Write message length differs from sent message."
-        );
+        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -314,12 +299,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok()
         && port2.set_baud_rate(baud_rate).is_ok() {
-        let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
-        assert_eq!(
-            nbytes,
-            msg.len(),
-            "Write message length differs from sent message."
-        );
+        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -338,12 +318,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok()
         && port2.set_baud_rate(baud_rate).is_ok() {
-        let nbytes = port1.write(msg.as_bytes()).expect("Unable to write bytes.");
-        assert_eq!(
-            nbytes,
-            msg.len(),
-            "Write message length differs from sent message."
-        );
+        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -363,12 +338,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port2.set_flow_control(FlowControl::Software).unwrap();
     print!("     At 9600,8,n,1,softflow...");
     std::io::stdout().flush().unwrap();
-    let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
-    assert_eq!(
-        nbytes,
-        msg.len(),
-        "Write message length differs from sent message."
-    );
+    port2.write_all(msg.as_bytes()).expect("Unable to write bytes.");
     if port1.read_exact(&mut buf).is_err() {
         println!("FAILED");
     } else {
@@ -383,12 +353,7 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port2.set_flow_control(FlowControl::Hardware).unwrap();
     print!("     At 9600,8,n,1,hardflow...");
     std::io::stdout().flush().unwrap();
-    let nbytes = port2.write(msg.as_bytes()).expect("Unable to write bytes.");
-    assert_eq!(
-        nbytes,
-        msg.len(),
-        "Write message length differs from sent message."
-    );
+    port2.write_all(msg.as_bytes()).expect("Unable to write bytes.");
     if port1.read_exact(&mut buf).is_err() {
         println!("FAILED");
     } else {
