@@ -14,6 +14,7 @@ extern crate serialport;
 
 use argparse::{ArgumentParser, Store};
 
+use std::io::Write;
 use std::str;
 use std::time::Duration;
 
@@ -196,23 +197,19 @@ fn test_single_port(port: &mut serialport::SerialPort) {
     stop_bits_check!(port, StopBits::One);
 
     // Test transmitting data
-    println!("Testing data transmission...");
+    print!("Testing data transmission...");
+    std::io::stdout().flush().unwrap();
     // Make sure the port has sane defaults
     let port_settings: SerialPortSettings = Default::default();
     port
         .set_all(&port_settings)
         .expect("Resetting port to sane defaults failed");
     let msg = "Test Message";
-    let nbytes = port.write(msg.as_bytes()).expect("Unable to write bytes.");
-    assert_eq!(
-        nbytes,
-        msg.len(),
-        "Write message length differs from sent message."
-    );
+    port.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    println!("DONE");
 }
 
 fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::SerialPort) {
-    use std::io::Write;
 
     println!(
         "Testing paired ports '{}' and '{}':",
