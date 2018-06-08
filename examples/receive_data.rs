@@ -27,21 +27,29 @@ fn main() {
     if let Ok(rate) = baud_rate.parse::<u32>() {
         settings.baud_rate = rate.into();
     } else {
-        println!("Error: Invalid baud rate '{}' specified", baud_rate);
-        return;
+        eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
+        ::std::process::exit(1);
     }
 
-    if let Ok(mut port) = serialport::open_with_settings(&port_name, &settings) {
-        let mut serial_buf: Vec<u8> = vec![0; 1000];
-        println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
-        loop {
-            match port.read(serial_buf.as_mut_slice()) {
-                Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                Err(e) => eprintln!("{:?}", e),
+    match serialport::open_with_settings(&port_name, &settings) {
+        Ok(mut port) => {
+            let mut serial_buf: Vec<u8> = vec![0; 1000];
+            println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
+            loop {
+                match port.read(serial_buf.as_mut_slice()) {
+                    Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
+                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                    Err(e) => eprintln!("{:?}", e),
+                }
             }
-        }
-    } else {
-        println!("Error: Port '{}' not available", &port_name);
+        },
+        Err(e) => {
+            eprintln!(
+                "Failed to open \"{}\". Error: {}",
+                port_name,
+                e
+            );
+            ::std::process::exit(1);
+        },
     }
 }

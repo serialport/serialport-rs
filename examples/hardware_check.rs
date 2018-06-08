@@ -35,10 +35,11 @@ fn main() {
 
     // Run single-port tests on port1
     let mut port1 = match serialport::open(&port1_name) {
-        Err(_) => {
-            println!(
-                "Port \"{}\" unavailable. Check that it isn't being used by another program.",
-                port1_name
+        Err(e) => {
+            eprintln!(
+                "Failed to open \"{}\". Error: {}",
+                port2_name,
+                e
             );
             ::std::process::exit(1);
         },
@@ -49,10 +50,11 @@ fn main() {
     if port2_name != "" {
         // Run single-port tests on port2
         let mut port2 = match serialport::open(&port2_name) {
-            Err(_) => {
-                println!(
-                    "Port \"{}\" unavailable. Check that it isn't being used by another program.",
-                    port2_name
+            Err(e) => {
+                eprintln!(
+                    "Failed to open \"{}\". Error: {}",
+                    port2_name,
+                    e
                 );
                 ::std::process::exit(1);
             },
