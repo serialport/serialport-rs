@@ -46,13 +46,6 @@ serve to help debug software or hardware errors.
  * *pseudo_terminal* - Unix only. Tests that a pseudo-terminal pair can be created.
  * *receive_data* - Print data received on a port.
 
-Rationale
-=========
-
-This library started as a fork of the [serial-rs](https://github.com/dcuddeback/serial-rs)
-library because `serial-rs` was slow to include enumeration support. Additionally I found its API a
-bit cumbersome as I was more familiar with `QSerialPort`'s API.
-
 Dependencies
 ============
 
