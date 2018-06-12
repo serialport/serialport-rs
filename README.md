@@ -44,6 +44,8 @@ Dependencies
 
 Rust versions 1.20 and higher are supported.
 
+For GNU Linux `pkg-config` and `libudev` headers are required (`pkg-config` and `libudev-dev` on Ubuntu respectively).
+
 Platform Support
 ================
 
