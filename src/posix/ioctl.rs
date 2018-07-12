@@ -1,11 +1,11 @@
 use std::mem;
 use std::os::unix::io::RawFd;
 
-use nix::libc as libc;
+use nix::libc;
 
 // These are wrapped in a module because they're `pub` by default
 mod raw {
-    use nix::libc as libc;
+    use nix::libc;
     ioctl!(bad none tiocexcl with libc::TIOCEXCL);
     ioctl!(bad none tiocnxcl with libc::TIOCNXCL);
     ioctl!(bad read tiocmget with libc::TIOCMGET; u8);
@@ -28,24 +28,34 @@ bitflags!{
 }
 
 pub fn tiocexcl(fd: RawFd) -> ::Result<()> {
-    unsafe { raw::tiocexcl(fd) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocexcl(fd) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn tiocnxcl(fd: RawFd) -> ::Result<()> {
-    unsafe { raw::tiocnxcl(fd) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocnxcl(fd) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
     let mut status = unsafe { mem::uninitialized() };
-    unsafe { raw::tiocmget(fd, &mut status) }.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
+    unsafe { raw::tiocmget(fd, &mut status) }
+        .map(SerialLines::from_bits_truncate)
+        .map_err(|e| e.into())
 }
 
 pub fn tiocmbic(fd: RawFd, status: SerialLines) -> ::Result<()> {
     let bits = status.bits() as u8;
-    unsafe { raw::tiocmbic(fd, &bits) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocmbic(fd, &bits) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
     let bits = status.bits() as u8;
-    unsafe { raw::tiocmbis(fd, &bits) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::tiocmbis(fd, &bits) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }

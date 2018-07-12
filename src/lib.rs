@@ -16,24 +16,23 @@
 //! Using the platform-specific `open*()` functions will return the platform-specific port object
 //! which allows access to platform-specific functionality.
 
-#![deny(missing_docs,
-        missing_debug_implementations,
-        missing_copy_implementations,
-        unused)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, unused)]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "musl")))]
 extern crate libudev;
 #[cfg(unix)]
-#[macro_use] extern crate nix;
+#[macro_use]
+extern crate nix;
 #[cfg(unix)]
-#[macro_use] extern crate bitflags;
-#[cfg(target_os = "macos")]
-extern crate IOKit_sys;
+#[macro_use]
+extern crate bitflags;
 #[cfg(target_os = "macos")]
 extern crate CoreFoundation_sys as cf;
+#[cfg(target_os = "macos")]
+extern crate IOKit_sys;
 #[cfg(target_os = "macos")]
 extern crate mach;
 
@@ -80,7 +79,7 @@ pub type Result<T> = std::result::Result<T, ::Error>;
 ///
 /// This list is intended to grow over time and it is not recommended to
 /// exhaustively match against it.
-#[derive(Debug,Clone,Copy,PartialEq,Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     /// The device is not available.
     ///
@@ -163,7 +162,7 @@ impl From<Error> for io::Error {
 /// that are widely-supported on many systems. While non-standard baud rates can be set with
 /// `BaudOther`, their behavior is system-dependent. Some systems may not support arbitrary baud
 /// rates. Using the standard baud rates is more likely to result in portable applications.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BaudRate {
     /** 50 baud. */
     #[cfg(not(windows))]
@@ -196,28 +195,57 @@ pub enum BaudRate {
     /** 4800 baud. */
     Baud4800,
     /** 7200 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "freebsd",
+            target_os = "dragonfly",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     Baud7200,
     /** 9600 baud. */
     Baud9600,
     /** 14,400 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd", windows))]
+    #[cfg(
+        any(
+            target_os = "freebsd",
+            target_os = "dragonfly",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd",
+            windows
+        )
+    )]
     Baud14400,
     /** 19,200 baud. */
     Baud19200,
     /** 28,800 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "freebsd",
+            target_os = "dragonfly",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     Baud28800,
     /** 38,400 baud. */
     Baud38400,
     /** 57,600 baud. */
     Baud57600,
     /** 76,800 baud. */
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-              target_os = "netbsd", target_os = "openbsd"))]
+    #[cfg(
+        any(
+            target_os = "freebsd",
+            target_os = "dragonfly",
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        )
+    )]
     Baud76800,
     /** 115,200 baud. */
     Baud115200,
@@ -284,7 +312,9 @@ pub enum BaudRate {
 impl BaudRate {
     /// Returns all cross-platform baud rates
     pub fn standard_rates() -> Vec<u32> {
-        vec![110, 300, 600, 1200, 2400, 4800, 9600, 19_200, 38_400, 57_600, 115_200]
+        vec![
+            110, 300, 600, 1200, 2400, 4800, 9600, 19_200, 38_400, 57_600, 115_200,
+        ]
     }
 
     /// Returns all available baud rates for the current platform
@@ -296,8 +326,10 @@ impl BaudRate {
         return windows::available_baud_rates();
 
         #[cfg(not(any(unix, windows)))]
-        Err(Error::new(ErrorKind::Unknown,
-                       "available_ports() not implemented for platform"))
+        Err(Error::new(
+            ErrorKind::Unknown,
+            "available_ports() not implemented for platform",
+        ))
     }
 }
 
@@ -336,21 +368,50 @@ impl From<u32> for BaudRate {
             1800 => BaudRate::Baud1800,
             2400 => BaudRate::Baud2400,
             4800 => BaudRate::Baud4800,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                )
+            )]
             7200 => BaudRate::Baud7200,
             9600 => BaudRate::Baud9600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd", windows))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                    windows
+                )
+            )]
             14_400 => BaudRate::Baud14400,
             19_200 => BaudRate::Baud19200,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                )
+            )]
             28_800 => BaudRate::Baud28800,
             38_400 => BaudRate::Baud38400,
             57_600 => BaudRate::Baud57600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                )
+            )]
             76_800 => BaudRate::Baud76800,
             115_200 => BaudRate::Baud115200,
             #[cfg(windows)]
@@ -422,21 +483,50 @@ impl From<BaudRate> for u32 {
             BaudRate::Baud1800 => 1800,
             BaudRate::Baud2400 => 2400,
             BaudRate::Baud4800 => 4800,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                )
+            )]
             BaudRate::Baud7200 => 7200,
             BaudRate::Baud9600 => 9600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd", windows))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd",
+                    windows
+                )
+            )]
             BaudRate::Baud14400 => 14_400,
             BaudRate::Baud19200 => 19_200,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                )
+            )]
             BaudRate::Baud28800 => 28_800,
             BaudRate::Baud38400 => 38_400,
             BaudRate::Baud57600 => 57_600,
-            #[cfg(any(target_os = "freebsd", target_os = "dragonfly", target_os = "macos",
-                      target_os = "netbsd", target_os = "openbsd"))]
+            #[cfg(
+                any(
+                    target_os = "freebsd",
+                    target_os = "dragonfly",
+                    target_os = "macos",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                )
+            )]
             BaudRate::Baud76800 => 76_800,
             BaudRate::Baud115200 => 115_200,
             #[cfg(windows)]
@@ -475,7 +565,7 @@ impl From<BaudRate> for u32 {
 }
 
 /// Number of bits per character.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DataBits {
     /// 5 bits per character
     Five,
@@ -499,7 +589,7 @@ pub enum DataBits {
 ///
 /// Parity checking is disabled by setting `None`, in which case parity bits are not
 /// transmitted.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -514,7 +604,7 @@ pub enum Parity {
 /// Number of stop bits.
 ///
 /// Stop bits are transmitted after every character.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StopBits {
     /// One stop bit.
     One,
@@ -524,7 +614,7 @@ pub enum StopBits {
 }
 
 /// Flow control modes.
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FlowControl {
     /// No flow control.
     None,
@@ -537,7 +627,7 @@ pub enum FlowControl {
 }
 
 /// A struct containing all serial port settings
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SerialPortSettings {
     /// The baud rate in symbols-per-second
     pub baud_rate: BaudRate,
@@ -737,23 +827,23 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn read_carrier_detect(&mut self) -> ::Result<bool>;
 
     // Misc methods
-    
+
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
     /// [tokio-serial](https://crates.io/crates/tokio-serial).
-    /// 
+    ///
     /// Also, you must be very carefull when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
     /// objects can cause some nasty behavior.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// This function returns an error if the serial port couldn't be cloned.
     fn try_clone(&self) -> ::Result<Box<SerialPort>>;
 }
 
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Contains all possible USB information about a `SerialPort`
 pub struct UsbPortInfo {
     /// Vendor ID
@@ -768,7 +858,7 @@ pub struct UsbPortInfo {
     pub product: Option<String>,
 }
 
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The physical type of a `SerialPort`
 pub enum SerialPortType {
     /// The serial port is connected via USB
@@ -782,7 +872,7 @@ pub enum SerialPortType {
 }
 
 /// A device-independent implementation of serial port information.
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
@@ -812,18 +902,21 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 
     #[cfg(unix)]
     return match posix::TTYPort::open(Path::new(port), &Default::default()) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(windows)]
     return match windows::COMPort::open(Path::new(port), &Default::default()) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "open() not implemented for platform",
+    ))
 }
 
 /// Opens the serial port specified by the device path with the given settings.
@@ -842,26 +935,30 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> ::Result<Box<SerialPort>> {
 /// };
 /// serialport::open_with_settings("/dev/ttyUSB0", &s);
 /// ```
-pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T,
-                                                    settings: &SerialPortSettings)
-                                                    -> ::Result<Box<SerialPort>> {
+pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(
+    port: &T,
+    settings: &SerialPortSettings,
+) -> ::Result<Box<SerialPort>> {
     // This is written with explicit returns because of:
     // https://github.com/rust-lang/rust/issues/38337
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     return match posix::TTYPort::open(Path::new(port), settings) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(windows)]
     return match windows::COMPort::open(port, settings) {
-               Ok(p) => Ok(Box::new(p)),
-               Err(e) => Err(e),
-           };
+        Ok(p) => Ok(Box::new(p)),
+        Err(e) => Err(e),
+    };
 
     #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown, "open() not implemented for platform"))
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "open() not implemented for platform",
+    ))
 }
 
 /// Returns a list of all serial ports on system
@@ -869,15 +966,17 @@ pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(port: &T,
 /// It is not guaranteed that these ports exist or are available even if they're
 /// returned by this function.
 pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    #[cfg(unix)]
+    #[cfg(all(unix, not(target_env = "musl")))]
     return posix::available_ports();
 
     #[cfg(windows)]
     return windows::available_ports();
 
-    #[cfg(not(any(unix, windows)))]
-    Err(Error::new(ErrorKind::Unknown,
-                   "available_ports() not implemented for platform"))
+    #[cfg(any(not(any(unix, windows)), target_env = "musl"))]
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "available_ports() not implemented for platform",
+    ))
 }
 
 #[cfg(test)]
