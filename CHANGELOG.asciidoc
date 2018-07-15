@@ -7,6 +7,15 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
 ==== Added
+
+==== Changed
+
+==== Fixed
+
+==== Removed
+
+=== [3.0.0] - 2018-07-14
+==== Added
 * Arbitrary baud rates are now supported on BSDs, Linux, and Windows.
 * Added Tier 1 support for `{i586|i686|x86_64}-unknown-linux-musl`
 * Added Tier 2 support for:
