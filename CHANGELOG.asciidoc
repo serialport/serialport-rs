@@ -29,12 +29,12 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Most port configuration methods now return a `Result<()>`.
 * Renamed `SerialPort::port_name()` to `name()`.
 
-==== Removed
-* The `BaudRate` enum was removed in favor of a `u32`.
-
 ==== Fixed
 * On Windows, the `port_name` field on `SerialPortInfo` included an extraneous trailing nul byte
   character.
+
+==== Removed
+* The `BaudRate` enum was removed in favor of a `u32`.
 
 === [2.3.0] - 2018-03-13
 ==== Added
