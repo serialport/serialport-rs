@@ -8,8 +8,8 @@ use std::os::unix::prelude::*;
 use std::str;
 use std::time::Duration;
 
-use serialport::SerialPort;
 use serialport::posix::TTYPort;
+use serialport::SerialPort;
 
 #[test]
 fn test_ttyport_pair() {
@@ -110,7 +110,7 @@ fn test_ttyport_set_standard_baud() {
 
 #[test]
 // Until !30 is merged mac and ios don't support arbitrary baud rates so don't run
-#[cfg_attr(any(target_os = "ios", target_os = "macos"), ignore)]
+#[cfg_attr(any(target_os = "ios", target_os = "macos", target_env = "musl"), ignore)]
 fn test_ttyport_set_nonstandard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once

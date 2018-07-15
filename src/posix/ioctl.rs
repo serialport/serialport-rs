@@ -12,10 +12,10 @@ mod raw {
     ioctl!(bad write_ptr tiocmbic with libc::TIOCMBIC; libc::c_int);
     ioctl!(bad write_ptr tiocmbis with libc::TIOCMBIS; libc::c_int);
     ioctl!(
-        #[cfg(any(target_os = "android", target_os = "linux"))]
+        #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
         read tcgets2 with b'T', 0x2A; libc::termios2);
     ioctl!(
-        #[cfg(any(target_os = "android", target_os = "linux"))]
+        #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
         write_ptr tcsets2 with b'T', 0x2B; libc::termios2);
 }
 
@@ -65,7 +65,15 @@ pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
         .map_err(|e| e.into())
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(
+    any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
+        )
+    )
+)]
 pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
     let mut options = unsafe { mem::uninitialized() };
     match unsafe { raw::tcgets2(fd, &mut options) } {
@@ -74,7 +82,15 @@ pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
     }
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(
+    any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
+        )
+    )
+)]
 pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> ::Result<()> {
     unsafe { raw::tcsets2(fd, options) }
         .map(|_| ())

@@ -12,7 +12,7 @@ fn main() {
     let mut baud_rate = "".to_string();
     {
         let mut ap = ArgumentParser::new();
-        ap.set_description("Read from the given serial port");
+        ap.set_description("Write repeatedly to the given serial port");
         ap.refer(&mut port_name)
             .add_argument("port", Store, "Port name")
             .required();
@@ -33,14 +33,17 @@ fn main() {
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
-            let mut serial_buf: Vec<u8> = vec![0; 1000];
-            println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
+            println!("Writing '.' to {} at {} baud at 1Hz", &port_name, &baud_rate);
             loop {
-                match port.read(serial_buf.as_mut_slice()) {
-                    Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
+                match port.write(".".as_bytes()) {
+                    Ok(_) => {
+                        print!(".");
+                        std::io::stdout().flush().unwrap();
+                    },
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                     Err(e) => eprintln!("{:?}", e),
                 }
+                std::thread::sleep(Duration::from_secs(1));
             }
         },
         Err(e) => {

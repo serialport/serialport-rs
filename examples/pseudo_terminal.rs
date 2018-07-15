@@ -10,8 +10,8 @@ fn main() {
     use std::thread;
     use std::time;
 
-    use serialport::SerialPort;
     use serialport::posix::TTYPort;
+    use serialport::SerialPort;
 
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create pseudo-terminal pair");
 
