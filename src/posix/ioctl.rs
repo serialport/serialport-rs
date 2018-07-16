@@ -6,17 +6,17 @@ use nix::libc;
 // These are wrapped in a module because they're `pub` by default
 mod raw {
     use nix::libc;
-    ioctl!(bad none tiocexcl with libc::TIOCEXCL);
-    ioctl!(bad none tiocnxcl with libc::TIOCNXCL);
-    ioctl!(bad read tiocmget with libc::TIOCMGET; libc::c_int);
-    ioctl!(bad write_ptr tiocmbic with libc::TIOCMBIC; libc::c_int);
-    ioctl!(bad write_ptr tiocmbis with libc::TIOCMBIS; libc::c_int);
-    ioctl!(
+    ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
+    ioctl_none_bad!(tiocnxcl, libc::TIOCNXCL);
+    ioctl_read_bad!(tiocmget, libc::TIOCMGET, libc::c_int);
+    ioctl_write_ptr_bad!(tiocmbic, libc::TIOCMBIC, libc::c_int);
+    ioctl_write_ptr_bad!(tiocmbis, libc::TIOCMBIS, libc::c_int);
+    ioctl_read!(
         #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
-        read tcgets2 with b'T', 0x2A; libc::termios2);
-    ioctl!(
+        tcgets2, b'T', 0x2A, libc::termios2);
+    ioctl_write_ptr!(
         #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
-        write_ptr tcsets2 with b'T', 0x2B; libc::termios2);
+        tcsets2, b'T', 0x2B, libc::termios2);
 }
 
 bitflags!{
