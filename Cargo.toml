@@ -26,7 +26,7 @@ bitflags = "1.0"
 libudev = "0.2.0"
 
 [target."cfg(windows)".dependencies]
-regex = "0.2"
+regex = "1.0"
 
 [target."cfg(windows)".dependencies.winapi]
 version = "0.3"
