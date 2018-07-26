@@ -20,7 +20,7 @@ argparse = "0.2"
 
 [target."cfg(unix)".dependencies]
 nix = "0.11"
-bitflags = "0.9"
+bitflags = "1.0"
 
 [target.'cfg(all(target_os = "linux", not(target_env = "musl")))'.dependencies]
 libudev = "0.2.0"

@@ -15,7 +15,7 @@ use nix::fcntl::fcntl;
 #[cfg(target_os = "macos")]
 use nix::libc::{c_char, c_void};
 use nix::{self, libc, unistd};
-use posix::ioctl;
+use posix::ioctl::{self, SerialLines};
 #[cfg(target_os = "macos")]
 use IOKit_sys::*;
 
@@ -760,27 +760,27 @@ impl SerialPort for TTYPort {
     }
 
     fn write_request_to_send(&mut self, level: bool) -> ::Result<()> {
-        self.set_pin(ioctl::REQUEST_TO_SEND, level)
+        self.set_pin(SerialLines::REQUEST_TO_SEND, level)
     }
 
     fn write_data_terminal_ready(&mut self, level: bool) -> ::Result<()> {
-        self.set_pin(ioctl::DATA_TERMINAL_READY, level)
+        self.set_pin(SerialLines::DATA_TERMINAL_READY, level)
     }
 
     fn read_clear_to_send(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::CLEAR_TO_SEND)
+        self.read_pin(SerialLines::CLEAR_TO_SEND)
     }
 
     fn read_data_set_ready(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::DATA_SET_READY)
+        self.read_pin(SerialLines::DATA_SET_READY)
     }
 
     fn read_ring_indicator(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::RING)
+        self.read_pin(SerialLines::RING)
     }
 
     fn read_carrier_detect(&mut self) -> ::Result<bool> {
-        self.read_pin(ioctl::DATA_CARRIER_DETECT)
+        self.read_pin(SerialLines::DATA_CARRIER_DETECT)
     }
 
     fn try_clone(&self) -> ::Result<Box<SerialPort>> {
