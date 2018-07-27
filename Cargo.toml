@@ -20,13 +20,13 @@ argparse = "0.2"
 
 [target."cfg(unix)".dependencies]
 nix = "0.11"
-bitflags = "0.9"
+bitflags = "1.0"
 
 [target.'cfg(all(target_os = "linux", not(target_env = "musl")))'.dependencies]
 libudev = "0.2.0"
 
 [target."cfg(windows)".dependencies]
-regex = "0.2"
+regex = "1.0"
 
 [target."cfg(windows)".dependencies.winapi]
 version = "0.3"
@@ -35,5 +35,5 @@ features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handlea
 
 [target.'cfg(target_os = "macos")'.dependencies]
 IOKit-sys = "0.1"
-mach = "0.0.5"
+mach = "0.2"
 CoreFoundation-sys = "0.1.3"
