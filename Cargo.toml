@@ -19,7 +19,7 @@ travis-ci = { repository = "Susurrus/serialport-rs" }
 default = ["libudev"]
 
 [dev-dependencies]
-argparse = "0.2"
+clap = "2.32"
 
 [target."cfg(unix)".dependencies]
 nix = "0.12"

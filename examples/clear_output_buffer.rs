@@ -14,7 +14,8 @@
 // 6. Press Ctrl+D (Unix) or Ctrl+Z (Win) to quit
 //
 
-extern crate argparse;
+#[macro_use]
+extern crate clap;
 extern crate serialport;
 
 use std::error::Error;
@@ -23,35 +24,35 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use argparse::{ArgumentParser, Store};
+use clap::{Arg, App, AppSettings};
 use serialport::prelude::*;
 
-const DEFAULT_BLOCK_SIZE: usize = 128;
+const DEFAULT_BLOCK_SIZE: &str = "128";
 
 fn main() {
-    let mut port_name = "".to_string();
-    let mut baud_rate = "".to_string();
-    let mut block_size = DEFAULT_BLOCK_SIZE;
-    {
-        let block_size_help = format!(
-            "The size in bytes of the block of data to write to the port (default: {} bytes)",
-            DEFAULT_BLOCK_SIZE
-        );
-
-        let mut ap = ArgumentParser::new();
-        ap.set_description(
-            "Reports how many bytes are waiting to be sent and allows the user to clear the output buffer"
-        );
-        ap.refer(&mut port_name)
-            .add_argument("port", Store, "Port name")
-            .required();
-        ap.refer(&mut baud_rate)
-            .add_argument("baud", Store, "Baud rate")
-            .required();
-        ap.refer(&mut block_size)
-            .add_argument("block-size", Store, &block_size_help);
-        ap.parse_args_or_exit();
-    }
+    let block_size_help = format!(
+        "The size in bytes of the block of data to write to the port (default: {} bytes)",
+        DEFAULT_BLOCK_SIZE
+    );
+    let matches = App::new("Serialport Example - Clear Input Buffer")
+        .about("Reports how many bytes are waiting to be read and allows the user to clear the output buffer")
+        .setting(AppSettings::DisableVersion)
+        .arg(Arg::with_name("port")
+             .help("The device path to a serial port")
+             .use_delimiter(false)
+             .required(true))
+        .arg(Arg::with_name("baud")
+             .help("The baud rate to connect at")
+             .use_delimiter(false)
+             .required(true))
+        .arg(Arg::with_name("block-size")
+             .help(&block_size_help)
+             .use_delimiter(false)
+             .default_value(DEFAULT_BLOCK_SIZE))
+        .get_matches();
+    let port_name = matches.value_of("port").unwrap();
+    let baud_rate = matches.value_of("baud").unwrap();
+    let block_size = value_t!(matches, "block-size", usize).unwrap_or_else(|e| e.exit());
 
     let exit_code = match run(&port_name, &baud_rate, block_size) {
         Ok(_) => 0,

@@ -15,10 +15,10 @@
 //!  3) With two ports physically connected to each other
 //!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1`
 
-extern crate argparse;
+extern crate clap;
 extern crate serialport;
 
-use argparse::{ArgumentParser, Store, StoreTrue};
+use clap::{Arg, App, AppSettings};
 
 use std::io::Write;
 use std::str;
@@ -27,21 +27,27 @@ use std::time::Duration;
 use serialport::prelude::*;
 
 fn main() {
-    let mut port1_name = "".to_string();
-    let mut port2_name = "".to_string();
-    let mut port1_loopback = false;
-    {
-        let mut ap = ArgumentParser::new();
-        ap.set_description("Test serial ports");
-        ap.refer(&mut port1_name)
-            .add_argument("port1", Store, "Port 1 name")
-            .required();
-        ap.refer(&mut port1_loopback)
-            .add_option(&["-l", "--loopback"], StoreTrue, "Enable loopback tests for port 1 (unavailable when both ports are specified)");
-        ap.refer(&mut port2_name)
-            .add_argument("port2", Store, "Port 2 name");
-        ap.parse_args_or_exit();
-    }
+    let matches = App::new("Serialport Example - Hardware Check")
+        .about("Test hardware capabilities of serial ports")
+        .setting(AppSettings::DisableVersion)
+        .arg(Arg::with_name("port")
+             .help("The device path to a serial port")
+             .use_delimiter(false)
+             .required(true))
+        .arg(Arg::with_name("loopback")
+             .help("Run extra tests if the port is configured for hardware loopback. Mutually exclusive with the --loopback-port option")
+             .use_delimiter(false)
+             .conflicts_with("loopback-port")
+             .long("loopback"))
+        .arg(Arg::with_name("loopback-port")
+             .help("The device path of a second serial port that is connected to the first serial port. Mutually exclusive with the --loopback option.")
+             .use_delimiter(false)
+             .takes_value(true)
+             .long("loopback-port"))
+        .get_matches();
+    let port1_name = matches.value_of("port").unwrap();
+    let port2_name = matches.value_of("loopback-port").unwrap_or("");
+    let port1_loopback = matches.is_present("loopback");
 
     // Loopback mode is only available when a single port is specified
     if port1_loopback && port2_name != "" {
