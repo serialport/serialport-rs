@@ -7,6 +7,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
 ==== Added
+* Added `bytes_to_read()`, `bytes_to_write()`, and `clear()` to `SerialPort`. 
+  Also added example scripts for using them.
 
 ==== Changed
 

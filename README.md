@@ -38,6 +38,8 @@ Examples
 There are several included examples, which both demonstrate the functionality of this library and
 serve to help debug software or hardware errors.
 
+ * *clear_input_buffer* - Demonstrates querying and clearing the driver input buffer
+ * *clear_output_buffer* - Demonstrates querying and clearing the driver output buffer
  * *duplex* - Tests that a port can be successfully cloned.
  * *hardware\_check* - Checks port/driver functionality for a single port or a pair of ports connected
    to each other.

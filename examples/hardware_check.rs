@@ -172,6 +172,25 @@ macro_rules! stop_bits_check {
     };
 }
 
+macro_rules! clear_check {
+    ($port:ident, $buffer_direction:path) => {
+        let buffer_direction = $buffer_direction;
+        match $port.clear(buffer_direction) {
+            Ok(_) => println!("  {:?}: success", buffer_direction),
+            Err(ref e) => println!("  {:?}: FAILED ({})", buffer_direction, e),
+        }
+    };
+}
+
+macro_rules! call_query_method_check {
+    ($port:ident, $func:path) => {
+        match $func($port) {
+            Ok(_) => println!("  {}: success", stringify!($func)),
+            Err(ref e) => println!("  {}: FAILED ({})", stringify!($func), e),
+        }
+    };
+}
+
 fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
     println!("Testing '{}':", port.name().unwrap());
 
@@ -210,6 +229,17 @@ fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
     println!("Testing stop bits...");
     stop_bits_check!(port, StopBits::Two);
     stop_bits_check!(port, StopBits::One);
+
+    // Test bytes to read and write
+    println!("Testing bytes to read and write...");
+    call_query_method_check!(port, SerialPort::bytes_to_write);
+    call_query_method_check!(port, SerialPort::bytes_to_read);
+
+    // Test clearing a buffer
+    println!("Test clearing software buffers...");
+    clear_check!(port, ClearBuffer::Input);
+    clear_check!(port, ClearBuffer::Output);
+    clear_check!(port, ClearBuffer::All);
 
     // Test transmitting data
     print!("Testing data transmission...");
