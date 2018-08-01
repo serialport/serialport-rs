@@ -234,6 +234,14 @@ arm-unknown-linux-musleabi:
         TARGET: arm-unknown-linux-musleabi
         DISABLE_TESTS: 1
 
+armv5te-unknown-linux-musleabi:
+    <<: *build
+    variables:
+        CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-gnueabi-gcc
+        EXTRA_PACKAGES: "gcc-arm-linux-gnueabi"
+        TARGET: armv5te-unknown-linux-musleabi
+        DISABLE_TESTS: 1
+
 armv7-unknown-linux-musleabihf:
     <<: *build
     variables:

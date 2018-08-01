@@ -95,6 +95,7 @@ Tier 2:
    * `aarch64-unknown-linux-gnu`
    * `arm-unknown-linux-musleabi`
    * `armv5te-unknown-linux-gnueabi`
+   * `armv5te-unknown-linux-musleabi`
    * `armv7-unknown-linux-musleabihf`
    * `mips64-unknown-linux-gnuabi64`
    * `mips64el-unknown-linux-gnuabi64`
