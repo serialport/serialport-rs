@@ -27,6 +27,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
   * `arm-unknown-linux-musleabi`
   * `armv7-unknown-linux-musleabihf`
   * `{mips64|mips64el}-unknown-linux-gnuabi64`
+  * `armv5te-unknown-linux-gnueabi`
   * `{aarch64|mips|mipsel|powerpc64|powerpc64le|powerpc|s390x}-unknown-linux-gnu`
   * `{mips|mipsel}-unknown-linux-musl`
   * `x86_64-unknown-netbsd`
