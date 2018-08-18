@@ -296,4 +296,4 @@ rustfmt:
     allow_failure: true
     script:
     - rustup component add rustfmt-preview
-    - cargo fmt -- --write-mode=diff
+    - cargo fmt -- --check
