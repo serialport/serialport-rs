@@ -7,13 +7,13 @@
 //! There are 3 ways to run this example:
 //!
 //!  1) With a single port not connected to an external device:
-//!     `cargo run --example hardware_check /dev/ttyUSB0
+//!     `cargo run --example hardware_check /dev/ttyUSB0`
 //!
 //!  2) With a single port physically connected in loopback mode (RX<->TX)
-//!     `cargo run --example hardware_check /dev/ttyUSB0 --loopback
+//!     `cargo run --example hardware_check /dev/ttyUSB0 --loopback`
 //!
 //!  3) With two ports physically connected to each other
-//!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1
+//!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1`
 
 extern crate argparse;
 extern crate serialport;
