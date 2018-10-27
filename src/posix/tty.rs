@@ -1,4 +1,4 @@
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use std::ffi::OsStr;
 #[cfg(target_os = "macos")]
 use std::ffi::{CStr, CString};
@@ -9,7 +9,7 @@ use std::{io, mem};
 
 #[cfg(target_os = "macos")]
 use cf::*;
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use libudev;
 use nix::fcntl::fcntl;
 #[cfg(target_os = "macos")]
@@ -21,7 +21,7 @@ use IOKit_sys::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
-#[cfg(any(all(target_os = "linux", not(target_env = "musl")), target_os = "macos"))]
+#[cfg(any(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"), target_os = "macos"))]
 use {SerialPortType, UsbPortInfo};
 
 /// Convenience method for removing exclusive access from
@@ -818,7 +818,7 @@ impl SerialPort for TTYPort {
 
 /// Retrieves the udev property value named by `key`. If the value exists, then it will be
 /// converted to a String, otherwise None will be returned.
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
     if let Some(s) = d.property_value(key).and_then(OsStr::to_str) {
         Some(s.to_string())
@@ -831,7 +831,7 @@ fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
 /// string is comprised of hex digits and the integer value of this will be returned as  a u16.
 /// If the property value doesn't exist or doesn't contain valid hex digits, then an error
 /// will be returned.
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
     if let Some(hex_str) = d.property_value(key).and_then(OsStr::to_str) {
         if let Ok(num) = u16::from_str_radix(hex_str, 16) {
@@ -844,7 +844,7 @@ fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
     }
 }
 
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
@@ -862,7 +862,7 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     }
 }
 
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 /// Scans the system for serial ports and returns a list of them.
 /// The `SerialPortInfo` struct contains the name of the port
 /// which can be used for opening it.
@@ -1149,6 +1149,16 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
     Err(Error::new(
         ErrorKind::Unknown,
         "Not implemented for this OS",
+    ))
+}
+
+#[cfg(all(target_os = "linux", not(target_env = "musl"), not(feature = "libudev")))]
+/// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
+/// default feature.
+pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "Serial port enumeration disabled (to enable compile with the 'libudev' feature)",
     ))
 }
 

@@ -21,7 +21,7 @@
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 extern crate libudev;
 #[cfg(unix)]
 #[macro_use]
