@@ -32,6 +32,10 @@ corresponding `TTYPort` and `COMPort` structs, both of which implement the `Seri
 the platform-specific `open*()` functions will return the platform-specific port object which
 allows access to platform-specific functionality.
 
+Serial enumeration on Linux is provided by `libudev`, an external dynamic library that
+is linked against. This dependency can be removed by disabling the `libudev` feature
+during compilation.
+
 Examples
 ========
 

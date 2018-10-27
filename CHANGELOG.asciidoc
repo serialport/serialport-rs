@@ -11,6 +11,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
   Also added example scripts for using them.
 * Added Tier 2 support for:
   * `armv5te-unknown-linux-musleabi`
+* Added "libudev" feature to allow for disabling linking to `libudev` on Linux.
 
 ==== Changed
 
