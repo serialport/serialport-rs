@@ -7,17 +7,20 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
 ==== Added
-* Added `bytes_to_read()`, `bytes_to_write()`, and `clear()` to `SerialPort`.
-  Also added example scripts for using them.
-* Added Tier 2 support for:
-  * `armv5te-unknown-linux-musleabi`
-* Added "libudev" feature to allow for disabling linking to `libudev` on Linux.
 
 ==== Changed
 
 ==== Fixed
 
 ==== Removed
+
+=== [3.1.0] - 2018-11-02
+==== Added
+* Added `bytes_to_read()`, `bytes_to_write()`, and `clear()` to `SerialPort`.
+  Also added example scripts for using them.
+* Added Tier 2 support for:
+  * `armv5te-unknown-linux-musleabi`
+* Added "libudev" feature to allow for disabling linking to `libudev` on Linux.
 
 === [3.0.0] - 2018-07-14
 ==== Added
