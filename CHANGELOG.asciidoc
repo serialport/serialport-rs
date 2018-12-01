@@ -10,6 +10,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 ==== Changed
 * Minimum supported Rust version changed to 1.24.1
+* Made `aarch64-unknown-linux-musl` a Tier-2 supported target
 
 ==== Fixed
 

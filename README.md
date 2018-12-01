@@ -97,6 +97,7 @@ Tier 2:
    * `x86_64-unknown-freebsd`
  * Linux
    * `aarch64-unknown-linux-gnu`
+   * `aarch64-unknown-linux-musl`
    * `arm-unknown-linux-musleabi`
    * `armv5te-unknown-linux-gnueabi`
    * `armv5te-unknown-linux-musleabi`
@@ -120,7 +121,6 @@ Tier 3:
    * `aarch64-linux-android`
    * `x86_64-linux-android`
  * Linux
-   * `aarch64-unknown-linux-musl`
    * `sparc64-unknown-linux-gnu`
    * `x86_64-unknown-linux-gnux32`
 
