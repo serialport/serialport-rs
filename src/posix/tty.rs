@@ -698,7 +698,7 @@ impl SerialPort for TTYPort {
             }
             FlowControl::Software => {
                 termios.c_iflag |= libc::IXON | libc::IXOFF;
-                termios.c_cflag &= libc::CRTSCTS;
+                termios.c_cflag &= !libc::CRTSCTS;
             }
             FlowControl::Hardware => {
                 termios.c_iflag &= !(libc::IXON | libc::IXOFF);
