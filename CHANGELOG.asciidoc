@@ -13,6 +13,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Made `aarch64-unknown-linux-musl` a Tier-2 supported target
 
 ==== Fixed
+* Fixed software flow control for POSIX systems ([!54](https://gitlab.com/susurrus/serialport-rs/merge_requests/54))
 
 ==== Removed
 
