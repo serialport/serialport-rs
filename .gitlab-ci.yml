@@ -252,7 +252,6 @@ armv7-unknown-linux-musleabihf:
 
 aarch64-unknown-linux-musl:
     <<: *build
-    allow_failure: true # Needs another nix release after nix-rust/nix#912 is merged
     variables:
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
         EXTRA_PACKAGES: "gcc-aarch64-linux-gnu"
