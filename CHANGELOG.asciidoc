@@ -9,6 +9,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 ==== Added
 
 ==== Changed
+* Minimum supported Rust version changed to 1.24.1
 
 ==== Fixed
 
