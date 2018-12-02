@@ -1,26 +1,27 @@
-extern crate argparse;
+extern crate clap;
 extern crate serialport;
 
 use std::io::{self, Write};
 use std::time::Duration;
 
-use argparse::{ArgumentParser, Store};
+use clap::{Arg, App, AppSettings};
 use serialport::prelude::*;
 
 fn main() {
-    let mut port_name = "".to_string();
-    let mut baud_rate = "".to_string();
-    {
-        let mut ap = ArgumentParser::new();
-        ap.set_description("Read from the given serial port");
-        ap.refer(&mut port_name)
-            .add_argument("port", Store, "Port name")
-            .required();
-        ap.refer(&mut baud_rate)
-            .add_argument("baud", Store, "Baud rate")
-            .required();
-        ap.parse_args_or_exit();
-    }
+    let matches = App::new("Serialport Example - Heartbeat")
+        .about("Write bytes to a serial port at 1Hz")
+        .setting(AppSettings::DisableVersion)
+        .arg(Arg::with_name("port")
+             .help("The device path to a serial port")
+             .use_delimiter(false)
+             .required(true))
+        .arg(Arg::with_name("baud")
+             .help("The baud rate to connect at")
+             .use_delimiter(false)
+             .required(true))
+        .get_matches();
+    let port_name = matches.value_of("port").unwrap();
+    let baud_rate = matches.value_of("baud").unwrap();
 
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
