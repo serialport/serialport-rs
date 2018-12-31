@@ -24,6 +24,7 @@ clap = "2.32"
 [target."cfg(unix)".dependencies]
 nix = "0.12"
 bitflags = "1.0"
+cfg-if = "0.1"
 
 [target.'cfg(all(target_os = "linux", not(target_env = "musl")))'.dependencies]
 libudev = { version = "0.2.0", optional = true }
