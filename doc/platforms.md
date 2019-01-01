@@ -18,6 +18,21 @@ The Termios2 API on the other hand supports arbitrary baud rates. Instead of usi
 
 The BSDs basically **only** have the Termios2 API, but they call it Termios. It supports arbitrary baud rates out of the gate as the `termios2.c_ispeed` and `termios2.c_ospeed` fields are directly settable to the desired baud rate.
 
+### FreeBSD
+
+ * https://www.freebsd.org/doc/handbook/serial.html
+
+### NetBSD
+
+ * http://netbsd.gw.com/cgi-bin/man-cgi?tty+4.i386+NetBSD-8.0
+ * http://netbsd.gw.com/cgi-bin/man-cgi?com+4.i386+NetBSD-8.0
+ * https://www.netbsd.org/docs/Hardware/Misc/serial.html
+ * https://www.netbsd.org/ports/hp300/faq.html
+
+### OpenBSD
+
+ * https://man.openbsd.org/tty.4
+
 ## Mac OS X and iOS
 
 While OS X and iOS have the heritage of a BSD, they're support is slightly different. In theory they support arbitrary baud rates in their Termios API much like the BSDs, but in practice this doesn't work with many hardware devices as it's dependent on driver support. Instead Apple added the `IOSSIOSPEED` ioctl in OS X 10.4, which can set the baud rate to an arbitrary value. As the oldest OS X version supported by Rust is 10.7, it's available on all Mac platforms.
