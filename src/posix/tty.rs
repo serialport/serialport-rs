@@ -862,43 +862,6 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     }
 }
 
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-/// Scans the system for serial ports and returns a list of them.
-/// The `SerialPortInfo` struct contains the name of the port
-/// which can be used for opening it.
-pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    let mut vec = Vec::new();
-    if let Ok(context) = libudev::Context::new() {
-        let mut enumerator = libudev::Enumerator::new(&context)?;
-        enumerator.match_subsystem("tty")?;
-        let devices = enumerator.scan_devices()?;
-        for d in devices {
-            if let Some(p) = d.parent() {
-                if let Some(devnode) = d.devnode() {
-                    if let Some(path) = devnode.to_str() {
-                        if let Some(driver) = p.driver() {
-                            if driver == "serial8250"
-                                && TTYPort::open(devnode, &Default::default()).is_err()
-                            {
-                                continue;
-                            }
-                        }
-                        // Stop bubbling up port_type errors here so problematic ports are just
-                        // skipped instead of causing no ports to be returned.
-                        if let Ok(pt) = port_type(&d) {
-                            vec.push(SerialPortInfo {
-                                port_name: String::from(path),
-                                port_type: pt,
-                            });
-                        }
-                    }
-                }
-            }
-        }
-    }
-    Ok(vec)
-}
-
 #[cfg(target_os = "macos")]
 fn get_parent_device_by_type(
     device: io_object_t,
@@ -1014,152 +977,211 @@ fn port_type(service: io_object_t) -> ::SerialPortType {
     }
 }
 
-#[cfg(target_os = "macos")]
-/// Scans the system for serial ports and returns a list of them.
-/// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
-pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    use cf::*;
-    use mach::kern_return::KERN_SUCCESS;
-    use mach::port::{mach_port_t, MACH_PORT_NULL};
-    use IOKit_sys::*;
+cfg_if! {
+    if #[cfg(target_os = "macos")] {
+        /// Scans the system for serial ports and returns a list of them.
+        /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
+        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+            use cf::*;
+            use mach::kern_return::KERN_SUCCESS;
+            use mach::port::{mach_port_t, MACH_PORT_NULL};
+            use IOKit_sys::*;
 
-    let mut vec = Vec::new();
-    unsafe {
-        // Create a dictionary for specifying the search terms against the IOService
-        let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue());
-        if classes_to_match.is_null() {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "IOServiceMatching returned a NULL dictionary.",
-            ));
-        }
-
-        // Populate the search dictionary with a single key/value pair indicating that we're
-        // searching for serial devices matching the RS232 device type.
-        let key = CFStringCreateWithCString(
-            kCFAllocatorDefault,
-            kIOSerialBSDTypeKey(),
-            kCFStringEncodingUTF8,
-        );
-        if key.is_null() {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "Failed to allocate key string.",
-            ));
-        }
-        let value = CFStringCreateWithCString(
-            kCFAllocatorDefault,
-            kIOSerialBSDAllTypes(),
-            kCFStringEncodingUTF8,
-        );
-        if value.is_null() {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "Failed to allocate value string.",
-            ));
-        }
-        CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
-
-        // Get an interface to IOKit
-        let mut master_port: mach_port_t = MACH_PORT_NULL;
-        let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
-        if kern_result != KERN_SUCCESS {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                format!("ERROR: {}", kern_result),
-            ));
-        }
-
-        // Run the search.
-        let mut matching_services: io_iterator_t = mem::uninitialized();
-        kern_result = IOServiceGetMatchingServices(
-            kIOMasterPortDefault,
-            classes_to_match,
-            &mut matching_services,
-        );
-        if kern_result != KERN_SUCCESS {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                format!("ERROR: {}", kern_result),
-            ));
-        }
-
-        loop {
-            // Grab the next result.
-            let modem_service = IOIteratorNext(matching_services);
-
-            // Break out if we've reached the end of the iterator
-            if modem_service == MACH_PORT_NULL {
-                break;
-            }
-
-            // Fetch all properties of the current search result item.
-            let mut props = mem::uninitialized();
-            let result = IORegistryEntryCreateCFProperties(
-                modem_service,
-                &mut props,
-                kCFAllocatorDefault,
-                0,
-            );
-            if result == KERN_SUCCESS {
-                // We only care about the IODialinDevice, which is the device path for this port.
-                let key = CString::new("IODialinDevice").unwrap();
-                let key_cfstring = CFStringCreateWithCString(
-                    kCFAllocatorDefault,
-                    key.as_ptr(),
-                    kCFStringEncodingUTF8,
-                );
-                let value = CFDictionaryGetValue(props, key_cfstring as *const c_void);
-
-                let type_id = CFGetTypeID(value);
-                if type_id == CFStringGetTypeID() {
-                    let mut buf = Vec::with_capacity(256);
-
-                    CFStringGetCString(
-                        value as CFStringRef,
-                        buf.as_mut_ptr(),
-                        256,
-                        kCFStringEncodingUTF8,
-                    );
-                    let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
-                    vec.push(SerialPortInfo {
-                        port_name: path.to_string(),
-                        port_type: port_type(modem_service),
-                    });
-                } else {
+            let mut vec = Vec::new();
+            unsafe {
+                // Create a dictionary for specifying the search terms against the IOService
+                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue());
+                if classes_to_match.is_null() {
                     return Err(Error::new(
                         ErrorKind::Unknown,
-                        "Found invalid type for TypeID",
+                        "IOServiceMatching returned a NULL dictionary.",
                     ));
                 }
-            } else {
-                return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
-            }
 
-            // Clean up after we're done processing htis result
-            IOObjectRelease(modem_service);
+                // Populate the search dictionary with a single key/value pair indicating that we're
+                // searching for serial devices matching the RS232 device type.
+                let key = CFStringCreateWithCString(
+                    kCFAllocatorDefault,
+                    kIOSerialBSDTypeKey(),
+                    kCFStringEncodingUTF8,
+                );
+                if key.is_null() {
+                    return Err(Error::new(
+                        ErrorKind::Unknown,
+                        "Failed to allocate key string.",
+                    ));
+                }
+                let value = CFStringCreateWithCString(
+                    kCFAllocatorDefault,
+                    kIOSerialBSDAllTypes(),
+                    kCFStringEncodingUTF8,
+                );
+                if value.is_null() {
+                    return Err(Error::new(
+                        ErrorKind::Unknown,
+                        "Failed to allocate value string.",
+                    ));
+                }
+                CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
+
+                // Get an interface to IOKit
+                let mut master_port: mach_port_t = MACH_PORT_NULL;
+                let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
+                if kern_result != KERN_SUCCESS {
+                    return Err(Error::new(
+                        ErrorKind::Unknown,
+                        format!("ERROR: {}", kern_result),
+                    ));
+                }
+
+                // Run the search.
+                let mut matching_services: io_iterator_t = mem::uninitialized();
+                kern_result = IOServiceGetMatchingServices(
+                    kIOMasterPortDefault,
+                    classes_to_match,
+                    &mut matching_services,
+                );
+                if kern_result != KERN_SUCCESS {
+                    return Err(Error::new(
+                        ErrorKind::Unknown,
+                        format!("ERROR: {}", kern_result),
+                    ));
+                }
+
+                loop {
+                    // Grab the next result.
+                    let modem_service = IOIteratorNext(matching_services);
+
+                    // Break out if we've reached the end of the iterator
+                    if modem_service == MACH_PORT_NULL {
+                        break;
+                    }
+
+                    // Fetch all properties of the current search result item.
+                    let mut props = mem::uninitialized();
+                    let result = IORegistryEntryCreateCFProperties(
+                        modem_service,
+                        &mut props,
+                        kCFAllocatorDefault,
+                        0,
+                    );
+                    if result == KERN_SUCCESS {
+                        // We only care about the IODialinDevice, which is the device path for this port.
+                        let key = CString::new("IODialinDevice").unwrap();
+                        let key_cfstring = CFStringCreateWithCString(
+                            kCFAllocatorDefault,
+                            key.as_ptr(),
+                            kCFStringEncodingUTF8,
+                        );
+                        let value = CFDictionaryGetValue(props, key_cfstring as *const c_void);
+
+                        let type_id = CFGetTypeID(value);
+                        if type_id == CFStringGetTypeID() {
+                            let mut buf = Vec::with_capacity(256);
+
+                            CFStringGetCString(
+                                value as CFStringRef,
+                                buf.as_mut_ptr(),
+                                256,
+                                kCFStringEncodingUTF8,
+                            );
+                            let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
+                            vec.push(SerialPortInfo {
+                                port_name: path.to_string(),
+                                port_type: port_type(modem_service),
+                            });
+                        } else {
+                            return Err(Error::new(
+                                ErrorKind::Unknown,
+                                "Found invalid type for TypeID",
+                            ));
+                        }
+                    } else {
+                        return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
+                    }
+
+                    // Clean up after we're done processing htis result
+                    IOObjectRelease(modem_service);
+                }
+            }
+            Ok(vec)
+        }
+    } else if #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))] {
+        /// Scans the system for serial ports and returns a list of them.
+        /// The `SerialPortInfo` struct contains the name of the port
+        /// which can be used for opening it.
+        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+            let mut vec = Vec::new();
+            if let Ok(context) = libudev::Context::new() {
+                let mut enumerator = libudev::Enumerator::new(&context)?;
+                enumerator.match_subsystem("tty")?;
+                let devices = enumerator.scan_devices()?;
+                for d in devices {
+                    if let Some(p) = d.parent() {
+                        if let Some(devnode) = d.devnode() {
+                            if let Some(path) = devnode.to_str() {
+                                if let Some(driver) = p.driver() {
+                                    if driver == "serial8250"
+                                        && TTYPort::open(devnode, &Default::default()).is_err()
+                                    {
+                                        continue;
+                                    }
+                                }
+                                // Stop bubbling up port_type errors here so problematic ports are just
+                                // skipped instead of causing no ports to be returned.
+                                if let Ok(pt) = port_type(&d) {
+                                    vec.push(SerialPortInfo {
+                                        port_name: String::from(path),
+                                        port_type: pt,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(vec)
+        }
+    } else if #[cfg(all(target_os = "linux", not(target_env = "musl")))] {
+        /// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
+        /// default feature.
+        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+            Err(Error::new(
+                ErrorKind::Unknown,
+                "Serial port enumeration disabled (to enable compile with the 'libudev' feature)",
+            ))
+        }
+    } else if #[cfg(target_os = "freebsd")] {
+        /// Scans the system for serial ports and returns a list of them.
+        /// The `SerialPortInfo` struct contains the name of the port
+        /// which can be used for opening it.
+        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+            let mut vec = Vec::new();
+            let dev_path = Path::new("/dev/");
+            for path in dev_path.read_dir()? {
+                let path = path?;
+                let filename = path.file_name();
+                let filename_string = filename.to_string_lossy();
+                if filename_string.starts_with("cuaU") || filename_string.starts_with("cuau") || filename_string.starts_with("cuad") {
+                    if !filename_string.ends_with(".init") && !filename_string.ends_with(".lock") {
+                        vec.push(SerialPortInfo {
+                            port_name: path.path().to_string_lossy().to_string(),
+                            port_type: ::SerialPortType::Unknown,
+                        });
+                    }
+                }
+            }
+            Ok(vec)
+        }
+    } else {
+        /// Enumerating serial ports on this platform is not supported
+        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+            Err(Error::new(
+                ErrorKind::Unknown,
+                "Not implemented for this OS",
+            ))
         }
     }
-    Ok(vec)
-}
-
-#[cfg(not(any(all(target_os = "linux", not(target_env = "musl")), target_os = "macos")))]
-/// Enumerating serial ports on non-Linux POSIX platforms is not yet supported
-pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    Err(Error::new(
-        ErrorKind::Unknown,
-        "Not implemented for this OS",
-    ))
-}
-
-#[cfg(all(target_os = "linux", not(target_env = "musl"), not(feature = "libudev")))]
-/// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
-/// default feature.
-pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
-    Err(Error::new(
-        ErrorKind::Unknown,
-        "Serial port enumeration disabled (to enable compile with the 'libudev' feature)",
-    ))
 }
 
 #[test]
