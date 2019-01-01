@@ -169,13 +169,6 @@ x86_64-unknown-linux-gnu:
         EXTRA_PACKAGES: libudev-dev
         TARGET: x86_64-unknown-linux-gnu
 
-x86_64-unknown-linux-gnux32:
-    <<: *build
-    allow_failure: true # Needs fixes in nix
-    variables:
-        EXTRA_PACKAGES: libudev-dev
-        TARGET: x86_64-unknown-linux-gnux32
-
 aarch64-linux-android:
     <<: *build
     allow_failure: true # Needs support from nix & libc

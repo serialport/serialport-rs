@@ -122,7 +122,6 @@ Tier 3:
    * `x86_64-linux-android`
  * Linux
    * `sparc64-unknown-linux-gnu`
-   * `x86_64-unknown-linux-gnux32`
 
 Hardware Support
 ================
