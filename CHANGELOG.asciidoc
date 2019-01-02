@@ -7,6 +7,15 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
 ==== Added
+
+==== Changed
+
+==== Fixed
+
+==== Removed
+
+=== [3.2.0] - 2019-01-01
+==== Added
 * Port enumeration is now supported on FreeBSD.
 
 ==== Changed
@@ -17,7 +26,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Fixed software flow control for POSIX systems ([!54](https://gitlab.com/susurrus/serialport-rs/merge_requests/54))
 
 ==== Removed
-* Removed support for the `x86_64-unknown-linux-gnux32`.
+* Removed support for `x86_64-unknown-linux-gnux32`.
 
 === [3.1.0] - 2018-11-02
 ==== Added
