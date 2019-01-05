@@ -7,6 +7,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 === [UNRELEASED]
 ==== Added
+* Added support for arbitrary baud rates on Mac OS X and iOS
 
 ==== Changed
 
