@@ -157,7 +157,7 @@ s390x-unknown-linux-gnu:
 
 sparc64-unknown-linux-gnu:
     <<: *build
-    allow_failure: true # Needs support from nix & libc
+    allow_failure: true # Needs a nix release newer than 0.12
     variables:
         EXTRA_PACKAGES: libudev-dev
         TARGET: sparc64-unknown-linux-gnu
@@ -171,7 +171,6 @@ x86_64-unknown-linux-gnu:
 
 aarch64-linux-android:
     <<: *build
-    allow_failure: true # Needs support from nix & libc
     variables:
         TARGET: aarch64-linux-android
         DISABLE_TESTS: 1
@@ -196,7 +195,6 @@ i686-linux-android:
 
 x86_64-linux-android:
     <<: *build
-    allow_failure: true # Needs fixes in nix and/or libc
     variables:
         TARGET: x86_64-linux-android
         DISABLE_TESTS: 1
@@ -297,7 +295,6 @@ clippy:
         EXTRA_PACKAGES: "libudev-dev"
         TARGET: x86_64-unknown-linux-gnu
     stage: lint
-    allow_failure: true
     script:
     - rustup component add clippy-preview
     - cargo clippy
