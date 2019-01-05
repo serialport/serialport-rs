@@ -32,11 +32,11 @@ extern crate nix;
 #[cfg(unix)]
 #[macro_use]
 extern crate bitflags;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 extern crate CoreFoundation_sys as cf;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 extern crate IOKit_sys;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 extern crate mach;
 
 #[cfg(windows)]

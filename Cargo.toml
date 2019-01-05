@@ -37,7 +37,7 @@ version = "0.3.6"
 features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
             "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt"]
 
-[target.'cfg(target_os = "macos")'.dependencies]
+[target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
 IOKit-sys = "0.1"
 mach = "0.2"
 CoreFoundation-sys = "0.1.3"

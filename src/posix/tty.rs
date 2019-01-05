@@ -1,27 +1,27 @@
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use std::ffi::OsStr;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use std::ffi::{CStr, CString};
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
 use std::{io, mem};
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use cf::*;
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use libudev;
 use nix::fcntl::fcntl;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use nix::libc::{c_char, c_void};
 use nix::{self, libc, unistd};
 use posix::ioctl::{self, SerialLines};
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use IOKit_sys::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
-#[cfg(any(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"), target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "linux", not(target_env = "musl"), feature = "libudev"), target_os = "macos"))]
 use {SerialPortType, UsbPortInfo};
 
 /// Convenience method for removing exclusive access from
@@ -862,7 +862,7 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 fn get_parent_device_by_type(
     device: io_object_t,
     parent_type: *const c_char,
@@ -887,7 +887,7 @@ fn get_parent_device_by_type(
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
 fn get_int_property(
@@ -927,7 +927,7 @@ fn get_int_property(
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Returns a specific property of the given device as a string.
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
     unsafe {
@@ -955,7 +955,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> ::SerialPortType {
@@ -978,7 +978,7 @@ fn port_type(service: io_object_t) -> ::SerialPortType {
 }
 
 cfg_if! {
-    if #[cfg(target_os = "macos")] {
+    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
