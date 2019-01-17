@@ -89,9 +89,11 @@ Tier 1:
 Tier 2:
 
  * Android
+   * `aarch64-linux-android`
    * `arm-linux-androideabi`
    * `armv7-linux-androideabi`
    * `i686-linux-android`
+   * `x86_64-linux-android`
  * FreeBSD
    * `i686-unknown-freebsd`
    * `x86_64-unknown-freebsd`
@@ -112,16 +114,9 @@ Tier 2:
    * `powerpc64le-unknown-linux-gnu`
    * `powerpc-unknown-linux-gnu`
    * `s390x-unknown-linux-gnu`
+   * `sparc64-unknown-linux-gnu`
  * NetBSD
    * `x86_64-unknown-netbsd`
-
-Tier 3:
-
- * Android
-   * `aarch64-linux-android`
-   * `x86_64-linux-android`
- * Linux
-   * `sparc64-unknown-linux-gnu`
 
 Hardware Support
 ================
