@@ -157,7 +157,6 @@ s390x-unknown-linux-gnu:
 
 sparc64-unknown-linux-gnu:
     <<: *build
-    allow_failure: true # Needs a nix release newer than 0.12
     variables:
         EXTRA_PACKAGES: libudev-dev
         TARGET: sparc64-unknown-linux-gnu
