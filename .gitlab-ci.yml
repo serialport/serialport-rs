@@ -282,7 +282,6 @@ x86_64-unknown-linux-musl:
 rustfmt:
     image: "rust:latest" # Use the latest rust to get the newest rustfmt
     stage: lint
-    allow_failure: true
     script:
     - rustup component add rustfmt-preview
     - cargo fmt -- --check
