@@ -110,7 +110,14 @@ fn test_ttyport_set_standard_baud() {
 
 // On mac this fails because you can't set nonstandard baud rates for these virtual ports
 #[test]
-#[cfg_attr(any(target_os = "ios", all(target_os = "linux", target_env = "musl"), target_os = "macos"), ignore)]
+#[cfg_attr(
+    any(
+        target_os = "ios",
+        all(target_os = "linux", target_env = "musl"),
+        target_os = "macos"
+    ),
+    ignore
+)]
 fn test_ttyport_set_nonstandard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once

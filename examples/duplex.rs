@@ -39,9 +39,11 @@ fn main() {
     let mut buffer: [u8; 1] = unsafe { mem::uninitialized() };
     loop {
         match serialport.read(&mut buffer) {
-            Ok(bytes) => if bytes == 1 {
-                println!("Received: {:?}", buffer);
-            },
+            Ok(bytes) => {
+                if bytes == 1 {
+                    println!("Received: {:?}", buffer);
+                }
+            }
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
             Err(e) => eprintln!("{:?}", e),
         }

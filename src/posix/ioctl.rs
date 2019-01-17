@@ -14,42 +14,77 @@ mod raw {
     ioctl_read_bad!(fionread, libc::FIONREAD, libc::c_int);
 
     // See: /usr/include/sys/filio.h
-    #[cfg(any(target_os = "dragonfly",
-              target_os = "freebsd",
-              target_os = "ios",
-              target_os = "macos",
-              target_os = "netbsd",
-              target_os = "openbsd"))]
+    #[cfg(any(
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "ios",
+        target_os = "macos",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
     ioctl_read!(fionread, b'f', 127, libc::c_int);
 
     #[cfg(any(target_os = "android", target_os = "linux"))]
     ioctl_read_bad!(tiocoutq, libc::TIOCOUTQ, libc::c_int);
 
     // See: /usr/include/sys/ttycom.h
-    #[cfg(any(target_os = "dragonfly",
-              target_os = "freebsd",
-              target_os = "ios",
-              target_os = "macos",
-              target_os = "netbsd",
-              target_os = "openbsd"))]
+    #[cfg(any(
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "ios",
+        target_os = "macos",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
     ioctl_read!(tiocoutq, b't', 115, libc::c_int);
 
     ioctl_write_ptr_bad!(tiocmbic, libc::TIOCMBIC, libc::c_int);
     ioctl_write_ptr_bad!(tiocmbis, libc::TIOCMBIS, libc::c_int);
     ioctl_read!(
-        #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
-        tcgets2, b'T', 0x2A, libc::termios2);
+        #[cfg(any(
+            target_os = "android",
+            all(
+                target_os = "linux",
+                not(any(
+                    target_env = "musl",
+                    target_arch = "powerpc",
+                    target_arch = "powerpc64"
+                ))
+            )
+        ))]
+        tcgets2,
+        b'T',
+        0x2A,
+        libc::termios2
+    );
     ioctl_write_ptr!(
-        #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
-        tcsets2, b'T', 0x2B, libc::termios2);
+        #[cfg(any(
+            target_os = "android",
+            all(
+                target_os = "linux",
+                not(any(
+                    target_env = "musl",
+                    target_arch = "powerpc",
+                    target_arch = "powerpc64"
+                ))
+            )
+        ))]
+        tcsets2,
+        b'T',
+        0x2B,
+        libc::termios2
+    );
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     const IOSSIOSPEED: libc::c_ulong = 0x80045402;
     ioctl_write_ptr_bad!(
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        iossiospeed, IOSSIOSPEED, libc::speed_t);
+        iossiospeed,
+        IOSSIOSPEED,
+        libc::speed_t
+    );
 }
 
-bitflags!{
+bitflags! {
     /// Flags to indicate which wires in a serial connection to use
     pub struct SerialLines: libc::c_int {
         const DATA_SET_READY = libc::TIOCM_DSR;
@@ -109,15 +144,17 @@ pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
         .map_err(|e| e.into())
 }
 
-#[cfg(
-    any(
-        target_os = "android",
-        all(
-            target_os = "linux",
-            not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
-        )
+#[cfg(any(
+    target_os = "android",
+    all(
+        target_os = "linux",
+        not(any(
+            target_env = "musl",
+            target_arch = "powerpc",
+            target_arch = "powerpc64"
+        ))
     )
-)]
+))]
 pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
     let mut options = unsafe { mem::uninitialized() };
     match unsafe { raw::tcgets2(fd, &mut options) } {
@@ -126,15 +163,17 @@ pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
     }
 }
 
-#[cfg(
-    any(
-        target_os = "android",
-        all(
-            target_os = "linux",
-            not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
-        )
+#[cfg(any(
+    target_os = "android",
+    all(
+        target_os = "linux",
+        not(any(
+            target_env = "musl",
+            target_arch = "powerpc",
+            target_arch = "powerpc64"
+        ))
     )
-)]
+))]
 pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> ::Result<()> {
     unsafe { raw::tcsets2(fd, options) }
         .map(|_| ())
@@ -143,5 +182,7 @@ pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> ::Result<()> {
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> ::Result<()> {
-    unsafe { raw::iossiospeed(fd, baud_rate) }.map(|_| ()).map_err(|e| e.into())
+    unsafe { raw::iossiospeed(fd, baud_rate) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }

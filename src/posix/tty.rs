@@ -21,7 +21,11 @@ use IOKit_sys::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
-#[cfg(any(target_os = "ios", all(target_os = "linux", not(target_env = "musl"), feature = "libudev"), target_os = "macos"))]
+#[cfg(any(
+    target_os = "ios",
+    all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
+    target_os = "macos"
+))]
 use {SerialPortType, UsbPortInfo};
 
 /// Convenience method for removing exclusive access from
@@ -44,8 +48,8 @@ fn close(fd: RawFd) {
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 fn is_nonstandard_baud(baud: u32) -> bool {
     match baud {
-        0 | 50 | 75 | 110 | 134 | 150 | 200 | 300 | 600 | 1200 | 1800 | 2400 | 4800 | 7200 |
-            9600 | 14400 | 19200 | 28800 | 38400 | 57600 | 76800 | 115200 | 230400 => false,
+        0 | 50 | 75 | 110 | 134 | 150 | 200 | 300 | 600 | 1200 | 1800 | 2400 | 4800 | 7200
+        | 9600 | 14400 | 19200 | 28800 | 38400 | 57600 | 76800 | 115200 | 230400 => false,
         _ => true,
     }
 }
@@ -137,7 +141,8 @@ impl TTYPort {
             fcntl(fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
 
             Ok(())
-        }.map_err(|e: Error| {
+        }
+        .map_err(|e: Error| {
             close(fd);
             e
         })?;
@@ -245,26 +250,20 @@ impl TTYPort {
         nix::pty::unlockpt(&next_pty_fd)?;
 
         // Get the path of the attached slave ptty
-        #[cfg(
-            not(
-                any(
-                    target_os = "linux",
-                    target_os = "android",
-                    target_os = "emscripten",
-                    target_os = "fuchsia"
-                )
-            )
-        )]
+        #[cfg(not(any(
+            target_os = "linux",
+            target_os = "android",
+            target_os = "emscripten",
+            target_os = "fuchsia"
+        )))]
         let ptty_name = unsafe { nix::pty::ptsname(&next_pty_fd)? };
 
-        #[cfg(
-            any(
-                target_os = "linux",
-                target_os = "android",
-                target_os = "emscripten",
-                target_os = "fuchsia"
-            )
-        )]
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "android",
+            target_os = "emscripten",
+            target_os = "fuchsia"
+        ))]
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
         // Open the slave port using default settings
@@ -286,20 +285,22 @@ impl TTYPort {
         Ok((master_tty, slave_tty))
     }
 
-    #[cfg(
-        any(
-            target_os = "dragonflybsd",
-            target_os = "freebsd",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            all(
-                target_os = "linux",
-                any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")
+    #[cfg(any(
+        target_os = "dragonflybsd",
+        target_os = "freebsd",
+        target_os = "ios",
+        target_os = "macos",
+        target_os = "netbsd",
+        target_os = "openbsd",
+        all(
+            target_os = "linux",
+            any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
             )
         )
-    )]
+    ))]
     fn get_termios(&self) -> ::Result<libc::termios> {
         let mut termios = unsafe { mem::uninitialized() };
         let res = unsafe { libc::tcgetattr(self.fd, &mut termios) };
@@ -307,31 +308,35 @@ impl TTYPort {
         Ok(termios)
     }
 
-    #[cfg(
-        any(
-            target_os = "android",
-            all(
-                target_os = "linux",
-                not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
-            )
+    #[cfg(any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
+            ))
         )
-    )]
+    ))]
     fn get_termios(&self) -> ::Result<libc::termios2> {
         ioctl::tcgets2(self.fd)
     }
 
-    #[cfg(
-        any(
-            target_os = "dragonflybsd",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            all(
-                target_os = "linux",
-                any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")
+    #[cfg(any(
+        target_os = "dragonflybsd",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd",
+        all(
+            target_os = "linux",
+            any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
             )
         )
-    )]
+    ))]
     fn set_termios(&self, termios: &libc::termios) -> ::Result<()> {
         let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, termios) };
         nix::errno::Errno::result(res)?;
@@ -365,15 +370,17 @@ impl TTYPort {
         }
     }
 
-    #[cfg(
-        any(
-            target_os = "android",
-            all(
-                target_os = "linux",
-                not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
-            )
+    #[cfg(any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
+            ))
         )
-    )]
+    ))]
     fn set_termios(&self, termios2: &libc::termios2) -> ::Result<()> {
         ioctl::tcsets2(self.fd, &termios2)
     }
@@ -433,7 +440,7 @@ impl FromRawFd for TTYPort {
             // but extract that value anyways as a best-guess of the actual baud rate.
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: get_termios_speed(fd),
-            }
+        }
     }
 }
 
@@ -490,15 +497,17 @@ impl SerialPort for TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
-    #[cfg(
-        any(
-            target_os = "android",
-            all(
-                target_os = "linux",
-                not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
-            )
+    #[cfg(any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
+            ))
         )
-    )]
+    ))]
     fn baud_rate(&self) -> ::Result<u32> {
         let termios2 = ioctl::tcgets2(self.fd)?;
 
@@ -511,14 +520,12 @@ impl SerialPort for TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
-    #[cfg(
-        any(
-            target_os = "dragonflybsd",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        )
-    )]
+    #[cfg(any(
+        target_os = "dragonflybsd",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
     fn baud_rate(&self) -> ::Result<u32> {
         let termios = self.get_termios()?;
 
@@ -543,17 +550,23 @@ impl SerialPort for TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
-    #[cfg(
-        all(
-            target_os = "linux",
-            any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")
+    #[cfg(all(
+        target_os = "linux",
+        any(
+            target_env = "musl",
+            target_arch = "powerpc",
+            target_arch = "powerpc64"
         )
-    )]
+    ))]
     fn baud_rate(&self) -> ::Result<u32> {
-        use self::libc::{B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000,
-                         B4000000, B460800, B500000, B576000, B921600};
-        use self::libc::{B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400,
-                         B300, B38400, B4800, B50, B57600, B600, B75, B9600};
+        use self::libc::{
+            B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000,
+            B460800, B500000, B576000, B921600,
+        };
+        use self::libc::{
+            B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400,
+            B4800, B50, B57600, B600, B75, B9600,
+        };
 
         let termios = self.get_termios()?;
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
@@ -661,15 +674,17 @@ impl SerialPort for TTYPort {
         Ok(())
     }
 
-    #[cfg(
-        any(
-            target_os = "android",
-            all(
-                target_os = "linux",
-                not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64"))
-            )
+    #[cfg(any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
+            ))
         )
-    )]
+    ))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
         let mut termios2 = ioctl::tcgets2(self.fd)?;
         termios2.c_cflag &= !nix::libc::CBAUD;
@@ -681,14 +696,12 @@ impl SerialPort for TTYPort {
     }
 
     // BSDs use the baud rate as the constant value so there's no translation necessary
-    #[cfg(
-        any(
-            target_os = "dragonflybsd",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        )
-    )]
+    #[cfg(any(
+        target_os = "dragonflybsd",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
         let mut termios = self.get_termios()?;
         let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate.into()) };
@@ -696,17 +709,23 @@ impl SerialPort for TTYPort {
         self.set_termios(&termios)
     }
 
-    #[cfg(
-        all(
-            target_os = "linux",
-            any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")
+    #[cfg(all(
+        target_os = "linux",
+        any(
+            target_env = "musl",
+            target_arch = "powerpc",
+            target_arch = "powerpc64"
         )
-    )]
+    ))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
-        use self::libc::{B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000,
-                         B4000000, B460800, B500000, B576000, B921600};
-        use self::libc::{B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400,
-                         B300, B38400, B4800, B50, B57600, B600, B75, B9600};
+        use self::libc::{
+            B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000,
+            B460800, B500000, B576000, B921600,
+        };
+        use self::libc::{
+            B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400,
+            B4800, B50, B57600, B600, B75, B9600,
+        };
 
         let mut termios = self.get_termios()?;
 
