@@ -18,7 +18,7 @@
 extern crate clap;
 extern crate serialport;
 
-use clap::{Arg, App, AppSettings};
+use clap::{App, AppSettings, Arg};
 
 use std::io::Write;
 use std::str;
@@ -58,13 +58,9 @@ fn main() {
     // Run single-port tests on port1
     let mut port1 = match serialport::open(&port1_name) {
         Err(e) => {
-            eprintln!(
-                "Failed to open \"{}\". Error: {}",
-                port2_name,
-                e
-            );
+            eprintln!("Failed to open \"{}\". Error: {}", port2_name, e);
             ::std::process::exit(1);
-        },
+        }
         Ok(p) => p,
     };
     test_single_port(&mut *port1, port1_loopback);
@@ -73,13 +69,9 @@ fn main() {
         // Run single-port tests on port2
         let mut port2 = match serialport::open(&port2_name) {
             Err(e) => {
-                eprintln!(
-                    "Failed to open \"{}\". Error: {}",
-                    port2_name,
-                    e
-                );
+                eprintln!("Failed to open \"{}\". Error: {}", port2_name, e);
                 ::std::process::exit(1);
-            },
+            }
             Ok(p) => p,
         };
         test_single_port(&mut *port2, false);
@@ -252,11 +244,11 @@ fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
     std::io::stdout().flush().unwrap();
     // Make sure the port has sane defaults
     let port_settings: SerialPortSettings = Default::default();
-    port
-        .set_all(&port_settings)
+    port.set_all(&port_settings)
         .expect("Resetting port to sane defaults failed");
     let msg = "Test Message";
-    port.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    port.write_all(msg.as_bytes())
+        .expect("Unable to write bytes.");
     println!("success");
 
     print!("Testing data reception...");
@@ -276,7 +268,6 @@ fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
 }
 
 fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::SerialPort) {
-
     println!(
         "Testing paired ports '{}' and '{}':",
         port1.name().unwrap(),
@@ -306,9 +297,10 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let baud_rate = 2_000_000;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
-    if port1.set_baud_rate(baud_rate).is_ok()
-        && port2.set_baud_rate(baud_rate).is_ok() {
-        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
+        port1
+            .write_all(msg.as_bytes())
+            .expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -325,9 +317,10 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let baud_rate = 115_200;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
-    if port1.set_baud_rate(baud_rate).is_ok()
-        && port2.set_baud_rate(baud_rate).is_ok() {
-        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
+        port1
+            .write_all(msg.as_bytes())
+            .expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -344,9 +337,10 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let baud_rate = 57_600;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
-    if port1.set_baud_rate(baud_rate).is_ok()
-        && port2.set_baud_rate(baud_rate).is_ok() {
-        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
+        port1
+            .write_all(msg.as_bytes())
+            .expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -363,9 +357,10 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let baud_rate = 10_000;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
-    if port1.set_baud_rate(baud_rate).is_ok()
-        && port2.set_baud_rate(baud_rate).is_ok() {
-        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
+        port1
+            .write_all(msg.as_bytes())
+            .expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -382,9 +377,10 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     let baud_rate = 9600;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
-    if port1.set_baud_rate(baud_rate).is_ok()
-        && port2.set_baud_rate(baud_rate).is_ok() {
-        port1.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
+        port1
+            .write_all(msg.as_bytes())
+            .expect("Unable to write bytes.");
         if port2.read_exact(&mut buf).is_err() {
             println!("FAILED");
         } else {
@@ -404,7 +400,9 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port2.set_flow_control(FlowControl::Software).unwrap();
     print!("     At 9600,8,n,1,softflow...");
     std::io::stdout().flush().unwrap();
-    port2.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    port2
+        .write_all(msg.as_bytes())
+        .expect("Unable to write bytes.");
     if port1.read_exact(&mut buf).is_err() {
         println!("FAILED");
     } else {
@@ -419,7 +417,9 @@ fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::S
     port2.set_flow_control(FlowControl::Hardware).unwrap();
     print!("     At 9600,8,n,1,hardflow...");
     std::io::stdout().flush().unwrap();
-    port2.write_all(msg.as_bytes()).expect("Unable to write bytes.");
+    port2
+        .write_all(msg.as_bytes())
+        .expect("Unable to write bytes.");
     if port1.read_exact(&mut buf).is_err() {
         println!("FAILED");
     } else {

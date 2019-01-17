@@ -17,8 +17,9 @@ use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::setupapi::*;
 use winapi::um::winbase::*;
-use winapi::um::winnt::{DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE,
-                        HANDLE, KEY_READ};
+use winapi::um::winnt::{
+    DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, KEY_READ,
+};
 use winapi::um::winreg::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
@@ -681,7 +682,8 @@ impl PortDevice {
                 r"VID_(?P<vid>[[:xdigit:]]{4})",
                 r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
                 r"([\\+](?P<serial>\w+))?"
-            )).unwrap();
+            ))
+            .unwrap();
             if let Some(caps) = re.captures(&hardware_id) {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {

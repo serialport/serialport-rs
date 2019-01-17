@@ -4,8 +4,9 @@ use std::ptr;
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::*;
 use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::winbase::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM,
-                          FORMAT_MESSAGE_IGNORE_INSERTS};
+use winapi::um::winbase::{
+    FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
+};
 use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT, WCHAR};
 
 pub fn last_os_error() -> ::Error {

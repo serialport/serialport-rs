@@ -16,7 +16,12 @@
 //! Using the platform-specific `open*()` functions will return the platform-specific port object
 //! which allows access to platform-specific functionality.
 
-#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, unused)]
+#![deny(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    unused
+)]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
