@@ -1,27 +1,27 @@
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use std::ffi::OsStr;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use std::ffi::{CStr, CString};
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
 use std::{io, mem};
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use cf::*;
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use libudev;
 use nix::fcntl::fcntl;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use nix::libc::{c_char, c_void};
 use nix::{self, libc, unistd};
 use posix::ioctl::{self, SerialLines};
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 use IOKit_sys::*;
 
 use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
 use {Error, ErrorKind};
-#[cfg(any(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"), target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "linux", not(target_env = "musl"), feature = "libudev"), target_os = "macos"))]
 use {SerialPortType, UsbPortInfo};
 
 /// Convenience method for removing exclusive access from
@@ -41,6 +41,15 @@ fn close(fd: RawFd) {
     let _ = unistd::close(fd);
 }
 
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+fn is_nonstandard_baud(baud: u32) -> bool {
+    match baud {
+        0 | 50 | 75 | 110 | 134 | 150 | 200 | 300 | 600 | 1200 | 1800 | 2400 | 4800 | 7200 |
+            9600 | 14400 | 19200 | 28800 | 38400 | 57600 | 76800 | 115200 | 230400 => false,
+        _ => true,
+    }
+}
+
 /// A TTY-based serial port implementation.
 ///
 /// The port will be closed when the value is dropped. However, this struct
@@ -53,6 +62,8 @@ pub struct TTYPort {
     timeout: Duration,
     exclusive: bool,
     port_name: Option<String>,
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    baud_rate: u32,
 }
 
 impl TTYPort {
@@ -136,6 +147,8 @@ impl TTYPort {
             timeout: Duration::new(0, 0), // This is overwritten by the subsequent call to `set_all()`
             exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
             port_name: path.to_str().map(|s| s.to_string()),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate: settings.baud_rate,
         };
 
         // Then we try and finish setting up the port.
@@ -255,7 +268,8 @@ impl TTYPort {
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
         // Open the slave port using default settings
-        let slave_tty = TTYPort::open(Path::new(&ptty_name), &Default::default())?;
+        let settings = Default::default();
+        let slave_tty = TTYPort::open(Path::new(&ptty_name), &settings)?;
 
         // Manually construct the master port here because the
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
@@ -265,6 +279,8 @@ impl TTYPort {
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: None,
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate: settings.baud_rate,
         };
 
         Ok((master_tty, slave_tty))
@@ -308,8 +324,6 @@ impl TTYPort {
         any(
             target_os = "dragonflybsd",
             target_os = "freebsd",
-            target_os = "ios",
-            target_os = "macos",
             target_os = "netbsd",
             target_os = "openbsd",
             all(
@@ -322,6 +336,33 @@ impl TTYPort {
         let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, termios) };
         nix::errno::Errno::result(res)?;
         Ok(())
+    }
+
+    // On mac, we ignore the speed from the termios struct and instead use the one that's
+    // specified in the `TTYPort`.
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    fn set_termios(&self, termios: &libc::termios) -> ::Result<()> {
+        // For non-standard baud rates, we use a dummy baud rate of 9600 when setting the termios
+        // struct because the baud rate will actually be set by a subsequent call to the
+        // `iossiospeed` ioctl.
+        if is_nonstandard_baud(self.baud_rate) {
+            let mut termios = termios.clone();
+            termios.c_ispeed = 9600;
+            termios.c_ospeed = 9600;
+
+            let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, &termios) };
+            nix::errno::Errno::result(res)?;
+
+            ioctl::iossiospeed(self.fd, &(self.baud_rate as libc::speed_t))
+        } else {
+            let mut termios = termios.clone();
+            termios.c_ispeed = self.baud_rate as libc::speed_t;
+            termios.c_ospeed = self.baud_rate as libc::speed_t;
+
+            let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, &termios) };
+            nix::errno::Errno::result(res)?;
+            Ok(())
+        }
     }
 
     #[cfg(
@@ -361,6 +402,16 @@ impl IntoRawFd for TTYPort {
     }
 }
 
+/// Get the baud speed for a port from its file descriptor
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+fn get_termios_speed(fd: RawFd) -> u32 {
+    let mut termios = unsafe { mem::uninitialized() };
+    let res = unsafe { libc::tcgetattr(fd, &mut termios) };
+    nix::errno::Errno::result(res).expect("Failed to get termios data");
+    assert_eq!(termios.c_ospeed, termios.c_ispeed);
+    termios.c_ospeed as u32
+}
+
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         // Try to set exclusive, as is the default setting.  Catch errors.. this method MUST
@@ -370,16 +421,19 @@ impl FromRawFd for TTYPort {
             Err(_) => false,
         };
 
-        // It is not trivial to get the file path corresponding to a file descriptor.
-        // We'll punt on it and set it to `None` here.
         TTYPort {
             fd,
             timeout: Duration::from_millis(100),
             exclusive,
+            // It is not trivial to get the file path corresponding to a file descriptor.
+            // We'll punt on it and set it to `None` here.
             port_name: None,
-            // On Mac & iOS we can't read the baud rate, so we'll set it to 0 indicating that it's
-            // unknown.
-        }
+            // It's not guaranteed that the baud rate in the `termios` struct is correct, as
+            // setting an arbitrary baud rate via the `iossiospeed` ioctl overrides that value,
+            // but extract that value anyways as a best-guess of the actual baud rate.
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate: get_termios_speed(fd),
+            }
     }
 }
 
@@ -461,8 +515,6 @@ impl SerialPort for TTYPort {
         any(
             target_os = "dragonflybsd",
             target_os = "freebsd",
-            target_os = "ios",
-            target_os = "macos",
             target_os = "netbsd",
             target_os = "openbsd"
         )
@@ -476,6 +528,15 @@ impl SerialPort for TTYPort {
         assert!(ospeed == ispeed);
 
         Ok(ospeed as u32)
+    }
+
+    /// Returns the port's baud rate
+    ///
+    /// On some platforms this will be the actual device baud rate, which may differ from the
+    /// desired baud rate.
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    fn baud_rate(&self) -> ::Result<u32> {
+        Ok(self.baud_rate)
     }
 
     /// Returns the port's baud rate
@@ -624,9 +685,7 @@ impl SerialPort for TTYPort {
         any(
             target_os = "dragonflybsd",
             target_os = "freebsd",
-            target_os = "macos",
             target_os = "netbsd",
-            target_os = "ios",
             target_os = "openbsd"
         )
     )]
@@ -686,6 +745,14 @@ impl SerialPort for TTYPort {
         };
         let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate) };
         nix::errno::Errno::result(res)?;
+        self.set_termios(&termios)
+    }
+
+    // Mac OS needs special logic for setting arbitrary baud rates.
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+        self.baud_rate = baud_rate;
+        let termios = self.get_termios()?;
         self.set_termios(&termios)
     }
 
@@ -812,6 +879,8 @@ impl SerialPort for TTYPort {
             exclusive: self.exclusive,
             port_name: self.port_name.clone(),
             timeout: self.timeout,
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate: self.baud_rate,
         }))
     }
 }
@@ -862,7 +931,7 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 fn get_parent_device_by_type(
     device: io_object_t,
     parent_type: *const c_char,
@@ -887,7 +956,7 @@ fn get_parent_device_by_type(
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
 fn get_int_property(
@@ -927,7 +996,7 @@ fn get_int_property(
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Returns a specific property of the given device as a string.
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
     unsafe {
@@ -955,7 +1024,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> ::SerialPortType {
@@ -978,7 +1047,7 @@ fn port_type(service: io_object_t) -> ::SerialPortType {
 }
 
 cfg_if! {
-    if #[cfg(target_os = "macos")] {
+    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {

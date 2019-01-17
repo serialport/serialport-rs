@@ -42,6 +42,11 @@ mod raw {
     ioctl_write_ptr!(
         #[cfg(any(target_os = "android", all(target_os = "linux", not(any(target_env = "musl", target_arch = "powerpc", target_arch = "powerpc64")))))]
         tcsets2, b'T', 0x2B, libc::termios2);
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    const IOSSIOSPEED: libc::c_ulong = 0x80045402;
+    ioctl_write_ptr_bad!(
+        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        iossiospeed, IOSSIOSPEED, libc::speed_t);
 }
 
 bitflags!{
@@ -134,4 +139,9 @@ pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> ::Result<()> {
     unsafe { raw::tcsets2(fd, options) }
         .map(|_| ())
         .map_err(|e| e.into())
+}
+
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> ::Result<()> {
+    unsafe { raw::iossiospeed(fd, baud_rate) }.map(|_| ()).map_err(|e| e.into())
 }
