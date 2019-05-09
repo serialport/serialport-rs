@@ -8,8 +8,8 @@ use clap::{App, AppSettings, Arg};
 use serialport::prelude::*;
 
 fn main() {
-    let matches = App::new("Serialport Example - Heartbeat")
-        .about("Write bytes to a serial port at 1Hz")
+    let matches = App::new("Serialport Example - Receive Data")
+        .about("Reads data from a serial port and echos it to stdout")
         .setting(AppSettings::DisableVersion)
         .arg(
             Arg::with_name("port")

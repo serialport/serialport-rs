@@ -34,7 +34,7 @@ fn main() {
         "The size in bytes of the block of data to write to the port (default: {} bytes)",
         DEFAULT_BLOCK_SIZE
     );
-    let matches = App::new("Serialport Example - Clear Input Buffer")
+    let matches = App::new("Serialport Example - Clear Output Buffer")
         .about("Reports how many bytes are waiting to be read and allows the user to clear the output buffer")
         .setting(AppSettings::DisableVersion)
         .arg(Arg::with_name("port")
