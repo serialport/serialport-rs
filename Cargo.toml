@@ -3,6 +3,7 @@ name = "serialport"
 version = "3.2.1-alpha.0"
 authors = ["Bryant Mairs <bryant@mai.rs>"]
 categories = ["hardware-support"]
+edition = "2018"
 keywords = ["serial", "hardware", "system", "RS232"]
 license = "MPL-2.0"
 readme = "README.md"
@@ -22,7 +23,7 @@ default = ["libudev"]
 clap = "2.32"
 
 [target."cfg(unix)".dependencies]
-nix = "0.13"
+nix = "0.14"
 bitflags = "1.0"
 cfg-if = "0.1"
 
