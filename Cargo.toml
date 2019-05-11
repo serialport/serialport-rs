@@ -3,6 +3,7 @@ name = "serialport"
 version = "3.2.1-alpha.0"
 authors = ["Bryant Mairs <bryant@mai.rs>"]
 categories = ["hardware-support"]
+edition = "2018"
 keywords = ["serial", "hardware", "system", "RS232"]
 license = "MPL-2.0"
 readme = "README.md"

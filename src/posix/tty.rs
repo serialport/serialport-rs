@@ -9,24 +9,26 @@ use std::{io, mem};
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use cf::*;
+use cfg_if::cfg_if;
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use libudev;
 use nix::fcntl::fcntl;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use nix::libc::{c_char, c_void};
 use nix::{self, libc, unistd};
-use posix::ioctl::{self, SerialLines};
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use IOKit_sys::*;
 
-use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
-use {Error, ErrorKind};
+use crate::posix::ioctl::{self, SerialLines};
+use crate::{ClearBuffer, DataBits, FlowControl, Parity, Result, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
+use crate::{Error, ErrorKind};
 #[cfg(any(
+    target_os = "freebsd",
     target_os = "ios",
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
     target_os = "macos"
 ))]
-use {SerialPortType, UsbPortInfo};
+use crate::{SerialPortType, UsbPortInfo};
 
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
@@ -84,10 +86,10 @@ impl TTYPort {
     ///    the device is already in use.
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
-    pub fn open(path: &Path, settings: &SerialPortSettings) -> ::Result<TTYPort> {
+    pub fn open(path: &Path, settings: &SerialPortSettings) -> Result<TTYPort> {
         use nix::fcntl::FcntlArg::F_SETFL;
         use nix::fcntl::OFlag;
-        use nix::libc::{self, cfmakeraw, tcflush, tcgetattr, tcsetattr};
+        use nix::libc::{cfmakeraw, tcflush, tcgetattr, tcsetattr};
 
         let fd = nix::fcntl::open(
             path,
@@ -185,7 +187,7 @@ impl TTYPort {
     /// ## Errors
     ///
     /// * `Io` for any error while setting exclusivity for the port.
-    pub fn set_exclusive(&mut self, exclusive: bool) -> ::Result<()> {
+    pub fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
         let setting_result = if exclusive {
             ioctl::tiocexcl(self.fd)
         } else {
@@ -200,7 +202,7 @@ impl TTYPort {
         }
     }
 
-    fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> ::Result<()> {
+    fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> Result<()> {
         let retval = if level {
             ioctl::tiocmbis(self.fd, pin)
         } else {
@@ -213,7 +215,7 @@ impl TTYPort {
         }
     }
 
-    fn read_pin(&mut self, pin: ioctl::SerialLines) -> ::Result<bool> {
+    fn read_pin(&mut self, pin: ioctl::SerialLines) -> Result<bool> {
         match ioctl::tiocmget(self.fd) {
             Ok(pins) => Ok(pins.contains(pin)),
             Err(err) => Err(err),
@@ -239,7 +241,7 @@ impl TTYPort {
     ///
     /// let (master, slave) = TTYPort::pair().unwrap();
     /// ```
-    pub fn pair() -> ::Result<(Self, Self)> {
+    pub fn pair() -> Result<(Self, Self)> {
         // Open the next free pty.
         let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::OFlag::O_RDWR)?;
 
@@ -301,7 +303,7 @@ impl TTYPort {
             )
         )
     ))]
-    fn get_termios(&self) -> ::Result<libc::termios> {
+    fn get_termios(&self) -> Result<libc::termios> {
         let mut termios = unsafe { mem::uninitialized() };
         let res = unsafe { libc::tcgetattr(self.fd, &mut termios) };
         nix::errno::Errno::result(res)?;
@@ -319,7 +321,7 @@ impl TTYPort {
             ))
         )
     ))]
-    fn get_termios(&self) -> ::Result<libc::termios2> {
+    fn get_termios(&self) -> Result<libc::termios2> {
         ioctl::tcgets2(self.fd)
     }
 
@@ -337,7 +339,7 @@ impl TTYPort {
             )
         )
     ))]
-    fn set_termios(&self, termios: &libc::termios) -> ::Result<()> {
+    fn set_termios(&self, termios: &libc::termios) -> Result<()> {
         let res = unsafe { libc::tcsetattr(self.fd, libc::TCSANOW, termios) };
         nix::errno::Errno::result(res)?;
         Ok(())
@@ -346,7 +348,7 @@ impl TTYPort {
     // On mac, we ignore the speed from the termios struct and instead use the one that's
     // specified in the `TTYPort`.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    fn set_termios(&self, termios: &libc::termios) -> ::Result<()> {
+    fn set_termios(&self, termios: &libc::termios) -> Result<()> {
         // For non-standard baud rates, we use a dummy baud rate of 9600 when setting the termios
         // struct because the baud rate will actually be set by a subsequent call to the
         // `iossiospeed` ioctl.
@@ -381,7 +383,7 @@ impl TTYPort {
             ))
         )
     ))]
-    fn set_termios(&self, termios2: &libc::termios2) -> ::Result<()> {
+    fn set_termios(&self, termios2: &libc::termios2) -> Result<()> {
         ioctl::tcsets2(self.fd, &termios2)
     }
 }
@@ -447,12 +449,12 @@ impl FromRawFd for TTYPort {
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(::Error::from(e)));
+            return Err(io::Error::from(Error::from(e)));
         }
 
         match nix::unistd::read(self.fd, buf) {
             Ok(n) => Ok(n),
-            Err(e) => Err(io::Error::from(::Error::from(e))),
+            Err(e) => Err(io::Error::from(Error::from(e))),
         }
     }
 }
@@ -460,12 +462,12 @@ impl io::Read for TTYPort {
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(::Error::from(e)));
+            return Err(io::Error::from(Error::from(e)));
         }
 
         match nix::unistd::write(self.fd, buf) {
             Ok(n) => Ok(n),
-            Err(e) => Err(io::Error::from(::Error::from(e))),
+            Err(e) => Err(io::Error::from(Error::from(e))),
         }
     }
 
@@ -508,7 +510,7 @@ impl SerialPort for TTYPort {
             ))
         )
     ))]
-    fn baud_rate(&self) -> ::Result<u32> {
+    fn baud_rate(&self) -> Result<u32> {
         let termios2 = ioctl::tcgets2(self.fd)?;
 
         assert!(termios2.c_ospeed == termios2.c_ispeed);
@@ -526,7 +528,7 @@ impl SerialPort for TTYPort {
         target_os = "netbsd",
         target_os = "openbsd"
     ))]
-    fn baud_rate(&self) -> ::Result<u32> {
+    fn baud_rate(&self) -> Result<u32> {
         let termios = self.get_termios()?;
 
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
@@ -542,7 +544,7 @@ impl SerialPort for TTYPort {
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    fn baud_rate(&self) -> ::Result<u32> {
+    fn baud_rate(&self) -> Result<u32> {
         Ok(self.baud_rate)
     }
 
@@ -558,7 +560,7 @@ impl SerialPort for TTYPort {
             target_arch = "powerpc64"
         )
     ))]
-    fn baud_rate(&self) -> ::Result<u32> {
+    fn baud_rate(&self) -> Result<u32> {
         use self::libc::{
             B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000,
             B460800, B500000, B576000, B921600,
@@ -611,7 +613,7 @@ impl SerialPort for TTYPort {
         Ok(res)
     }
 
-    fn data_bits(&self) -> ::Result<DataBits> {
+    fn data_bits(&self) -> Result<DataBits> {
         let termios = self.get_termios()?;
         match termios.c_cflag & libc::CSIZE {
             libc::CS8 => Ok(DataBits::Eight),
@@ -625,7 +627,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn flow_control(&self) -> ::Result<FlowControl> {
+    fn flow_control(&self) -> Result<FlowControl> {
         let termios = self.get_termios()?;
         if termios.c_cflag & libc::CRTSCTS == libc::CRTSCTS {
             Ok(FlowControl::Hardware)
@@ -636,7 +638,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn parity(&self) -> ::Result<Parity> {
+    fn parity(&self) -> Result<Parity> {
         let termios = self.get_termios()?;
         if termios.c_cflag & libc::PARENB == libc::PARENB {
             if termios.c_cflag & libc::PARODD == libc::PARODD {
@@ -649,7 +651,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn stop_bits(&self) -> ::Result<StopBits> {
+    fn stop_bits(&self) -> Result<StopBits> {
         let termios = self.get_termios()?;
         if termios.c_cflag & libc::CSTOPB == libc::CSTOPB {
             Ok(StopBits::Two)
@@ -663,7 +665,7 @@ impl SerialPort for TTYPort {
     }
 
     // FIXME: Make this read & write the termios struct only once
-    fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
+    fn set_all(&mut self, settings: &SerialPortSettings) -> Result<()> {
         self.set_baud_rate(settings.baud_rate)?;
         self.set_data_bits(settings.data_bits)?;
         self.set_flow_control(settings.flow_control)?;
@@ -685,7 +687,7 @@ impl SerialPort for TTYPort {
             ))
         )
     ))]
-    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut termios2 = ioctl::tcgets2(self.fd)?;
         termios2.c_cflag &= !nix::libc::CBAUD;
         termios2.c_cflag |= nix::libc::BOTHER;
@@ -702,7 +704,7 @@ impl SerialPort for TTYPort {
         target_os = "netbsd",
         target_os = "openbsd"
     ))]
-    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut termios = self.get_termios()?;
         let res = unsafe { libc::cfsetspeed(&mut termios, baud_rate.into()) };
         nix::errno::Errno::result(res)?;
@@ -717,7 +719,7 @@ impl SerialPort for TTYPort {
             target_arch = "powerpc64"
         )
     ))]
-    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         use self::libc::{
             B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000,
             B460800, B500000, B576000, B921600,
@@ -769,13 +771,13 @@ impl SerialPort for TTYPort {
 
     // Mac OS needs special logic for setting arbitrary baud rates.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         self.baud_rate = baud_rate;
         let termios = self.get_termios()?;
         self.set_termios(&termios)
     }
 
-    fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
+    fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
         let mut termios = self.get_termios()?;
         match flow_control {
             FlowControl::None => {
@@ -794,7 +796,7 @@ impl SerialPort for TTYPort {
         self.set_termios(&termios)
     }
 
-    fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
+    fn set_parity(&mut self, parity: Parity) -> Result<()> {
         let mut termios = self.get_termios()?;
         match parity {
             Parity::None => {
@@ -817,7 +819,7 @@ impl SerialPort for TTYPort {
         self.set_termios(&termios)
     }
 
-    fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
+    fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
         let size = match data_bits {
             DataBits::Five => libc::CS5,
             DataBits::Six => libc::CS6,
@@ -831,7 +833,7 @@ impl SerialPort for TTYPort {
         self.set_termios(&termios)
     }
 
-    fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
         let mut termios = self.get_termios()?;
         match stop_bits {
             StopBits::One => termios.c_cflag &= !libc::CSTOPB,
@@ -840,48 +842,48 @@ impl SerialPort for TTYPort {
         self.set_termios(&termios)
     }
 
-    fn set_timeout(&mut self, timeout: Duration) -> ::Result<()> {
+    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         self.timeout = timeout;
         Ok(())
     }
 
-    fn write_request_to_send(&mut self, level: bool) -> ::Result<()> {
+    fn write_request_to_send(&mut self, level: bool) -> Result<()> {
         self.set_pin(SerialLines::REQUEST_TO_SEND, level)
     }
 
-    fn write_data_terminal_ready(&mut self, level: bool) -> ::Result<()> {
+    fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
         self.set_pin(SerialLines::DATA_TERMINAL_READY, level)
     }
 
-    fn read_clear_to_send(&mut self) -> ::Result<bool> {
+    fn read_clear_to_send(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::CLEAR_TO_SEND)
     }
 
-    fn read_data_set_ready(&mut self) -> ::Result<bool> {
+    fn read_data_set_ready(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::DATA_SET_READY)
     }
 
-    fn read_ring_indicator(&mut self) -> ::Result<bool> {
+    fn read_ring_indicator(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::RING)
     }
 
-    fn read_carrier_detect(&mut self) -> ::Result<bool> {
+    fn read_carrier_detect(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::DATA_CARRIER_DETECT)
     }
 
-    fn bytes_to_read(&self) -> ::Result<u32> {
+    fn bytes_to_read(&self) -> Result<u32> {
         ioctl::fionread(self.fd)
     }
 
-    fn bytes_to_write(&self) -> ::Result<u32> {
+    fn bytes_to_write(&self) -> Result<u32> {
         ioctl::tiocoutq(self.fd)
     }
 
-    fn clear(&self, buffer_to_clear: ::ClearBuffer) -> ::Result<()> {
+    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()> {
         let buffer_id = match buffer_to_clear {
-            ::ClearBuffer::Input => libc::TCIFLUSH,
-            ::ClearBuffer::Output => libc::TCOFLUSH,
-            ::ClearBuffer::All => libc::TCIOFLUSH,
+            ClearBuffer::Input => libc::TCIFLUSH,
+            ClearBuffer::Output => libc::TCOFLUSH,
+            ClearBuffer::All => libc::TCIOFLUSH,
         };
 
         let res = unsafe { nix::libc::tcflush(self.fd, buffer_id) };
@@ -891,7 +893,7 @@ impl SerialPort for TTYPort {
             .map_err(|e| e.into())
     }
 
-    fn try_clone(&self) -> ::Result<Box<SerialPort>> {
+    fn try_clone(&self) -> Result<Box<SerialPort>> {
         let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD(self.fd))?;
         Ok(Box::new(TTYPort {
             fd: fd_cloned,
@@ -920,7 +922,7 @@ fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
 /// If the property value doesn't exist or doesn't contain valid hex digits, then an error
 /// will be returned.
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
+fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> Result<u16> {
     if let Some(hex_str) = d.property_value(key).and_then(OsStr::to_str) {
         if let Ok(num) = u16::from_str_radix(hex_str, 16) {
             Ok(num)
@@ -933,7 +935,7 @@ fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> ::Result<u16> {
 }
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
+fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
@@ -945,8 +947,8 @@ fn port_type(d: &libudev::Device) -> ::Result<::SerialPortType> {
                 product: udev_property_as_string(d, "ID_MODEL"),
             }))
         }
-        Some("pci") => Ok(::SerialPortType::PciPort),
-        _ => Ok(::SerialPortType::Unknown),
+        Some("pci") => Ok(SerialPortType::PciPort),
+        _ => Ok(SerialPortType::Unknown),
     }
 }
 
@@ -1046,7 +1048,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
-fn port_type(service: io_object_t) -> ::SerialPortType {
+fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
     if let Some(usb_device) = get_parent_device_by_type(service, kIOUSBDeviceClassName()) {
         SerialPortType::UsbPort(UsbPortInfo {
@@ -1059,9 +1061,9 @@ fn port_type(service: io_object_t) -> ::SerialPortType {
             product: get_string_property(usb_device, "USB Product Name"),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
-        ::SerialPortType::BluetoothPort
+        SerialPortType::BluetoothPort
     } else {
-        ::SerialPortType::PciPort
+        SerialPortType::PciPort
     }
 }
 
@@ -1069,7 +1071,7 @@ cfg_if! {
     if #[cfg(any(target_os = "ios", target_os = "macos"))] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
-        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+        pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             use cf::*;
             use mach::kern_return::KERN_SUCCESS;
             use mach::port::{mach_port_t, MACH_PORT_NULL};
@@ -1198,7 +1200,7 @@ cfg_if! {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port
         /// which can be used for opening it.
-        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+        pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             if let Ok(context) = libudev::Context::new() {
                 let mut enumerator = libudev::Enumerator::new(&context)?;
@@ -1233,7 +1235,7 @@ cfg_if! {
     } else if #[cfg(all(target_os = "linux", not(target_env = "musl")))] {
         /// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
         /// default feature.
-        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+        pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             Err(Error::new(
                 ErrorKind::Unknown,
                 "Serial port enumeration disabled (to enable compile with the 'libudev' feature)",
@@ -1243,7 +1245,7 @@ cfg_if! {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port
         /// which can be used for opening it.
-        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+        pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             let dev_path = Path::new("/dev/");
             for path in dev_path.read_dir()? {
@@ -1254,7 +1256,7 @@ cfg_if! {
                     if !filename_string.ends_with(".init") && !filename_string.ends_with(".lock") {
                         vec.push(SerialPortInfo {
                             port_name: path.path().to_string_lossy().to_string(),
-                            port_type: ::SerialPortType::Unknown,
+                            port_type: SerialPortType::Unknown,
                         });
                     }
                 }
@@ -1263,7 +1265,7 @@ cfg_if! {
         }
     } else {
         /// Enumerating serial ports on this platform is not supported
-        pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+        pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             Err(Error::new(
                 ErrorKind::Unknown,
                 "Not implemented for this OS",
