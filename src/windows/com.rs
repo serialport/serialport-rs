@@ -22,8 +22,8 @@ use winapi::um::winnt::{
 };
 use winapi::um::winreg::*;
 
-use {DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits};
-use {Error, ErrorKind};
+use crate::{DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortSettings, StopBits, ClearBuffer, SerialPortType, UsbPortInfo};
+use crate::{Error, ErrorKind, Result};
 
 /// A serial port implementation for Windows COM ports.
 ///
@@ -58,7 +58,7 @@ impl COMPort {
     pub fn open<T: AsRef<OsStr> + ?Sized>(
         port: &T,
         settings: &SerialPortSettings,
-    ) -> ::Result<COMPort> {
+    ) -> Result<COMPort> {
         let mut name = Vec::<u16>::new();
 
         name.extend(OsStr::new("\\\\.\\").encode_wide());
@@ -87,14 +87,14 @@ impl COMPort {
         }
     }
 
-    fn escape_comm_function(&mut self, function: DWORD) -> ::Result<()> {
+    fn escape_comm_function(&mut self, function: DWORD) -> Result<()> {
         match unsafe { EscapeCommFunction(self.handle, function) } {
             0 => Err(super::error::last_os_error()),
             _ => Ok(()),
         }
     }
 
-    fn read_pin(&mut self, pin: DWORD) -> ::Result<bool> {
+    fn read_pin(&mut self, pin: DWORD) -> Result<bool> {
         let mut status: DWORD = unsafe { mem::uninitialized() };
 
         match unsafe { GetCommModemStatus(self.handle, &mut status) } {
@@ -113,7 +113,7 @@ impl COMPort {
         }
     }
 
-    fn get_dcb(&self) -> ::Result<DCB> {
+    fn get_dcb(&self) -> Result<DCB> {
         let mut dcb: DCB = unsafe { mem::uninitialized() };
 
         if unsafe { GetCommState(self.handle, &mut dcb) != 0 } {
@@ -123,7 +123,7 @@ impl COMPort {
         }
     }
 
-    fn set_dcb(&self, dcb: &DCB) -> ::Result<()> {
+    fn set_dcb(&self, dcb: &DCB) -> Result<()> {
         if unsafe { SetCommState(self.handle, dcb as *const _ as *mut _) != 0 } {
             return Ok(());
         } else {
@@ -228,7 +228,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn set_timeout(&mut self, timeout: Duration) -> ::Result<()> {
+    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
 
         let mut timeouts = COMMTIMEOUTS {
@@ -247,7 +247,7 @@ impl SerialPort for COMPort {
         Ok(())
     }
 
-    fn write_request_to_send(&mut self, level: bool) -> ::Result<()> {
+    fn write_request_to_send(&mut self, level: bool) -> Result<()> {
         if level {
             self.escape_comm_function(SETRTS)
         } else {
@@ -255,7 +255,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn write_data_terminal_ready(&mut self, level: bool) -> ::Result<()> {
+    fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
         if level {
             self.escape_comm_function(SETDTR)
         } else {
@@ -263,28 +263,28 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn read_clear_to_send(&mut self) -> ::Result<bool> {
+    fn read_clear_to_send(&mut self) -> Result<bool> {
         self.read_pin(MS_CTS_ON)
     }
 
-    fn read_data_set_ready(&mut self) -> ::Result<bool> {
+    fn read_data_set_ready(&mut self) -> Result<bool> {
         self.read_pin(MS_DSR_ON)
     }
 
-    fn read_ring_indicator(&mut self) -> ::Result<bool> {
+    fn read_ring_indicator(&mut self) -> Result<bool> {
         self.read_pin(MS_RING_ON)
     }
 
-    fn read_carrier_detect(&mut self) -> ::Result<bool> {
+    fn read_carrier_detect(&mut self) -> Result<bool> {
         self.read_pin(MS_RLSD_ON)
     }
 
-    fn baud_rate(&self) -> ::Result<u32> {
+    fn baud_rate(&self) -> Result<u32> {
         let dcb = self.get_dcb()?;
         Ok(dcb.BaudRate as u32)
     }
 
-    fn data_bits(&self) -> ::Result<DataBits> {
+    fn data_bits(&self) -> Result<DataBits> {
         let dcb = self.get_dcb()?;
         match dcb.ByteSize {
             5 => Ok(DataBits::Five),
@@ -298,7 +298,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn parity(&self) -> ::Result<Parity> {
+    fn parity(&self) -> Result<Parity> {
         let dcb = self.get_dcb()?;
         match dcb.Parity {
             ODDPARITY => Ok(Parity::Odd),
@@ -311,7 +311,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn stop_bits(&self) -> ::Result<StopBits> {
+    fn stop_bits(&self) -> Result<StopBits> {
         let dcb = self.get_dcb()?;
         match dcb.StopBits {
             TWOSTOPBITS => Ok(StopBits::Two),
@@ -323,7 +323,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn flow_control(&self) -> ::Result<FlowControl> {
+    fn flow_control(&self) -> Result<FlowControl> {
         let dcb = self.get_dcb()?;
         if dcb.fOutxCtsFlow() != 0 || dcb.fRtsControl() != 0 {
             Ok(FlowControl::Hardware)
@@ -335,7 +335,7 @@ impl SerialPort for COMPort {
     }
 
     // FIXME: Make this set everything with one DCB read & write
-    fn set_all(&mut self, settings: &SerialPortSettings) -> ::Result<()> {
+    fn set_all(&mut self, settings: &SerialPortSettings) -> Result<()> {
         self.set_baud_rate(settings.baud_rate)?;
         self.set_data_bits(settings.data_bits)?;
         self.set_flow_control(settings.flow_control)?;
@@ -345,14 +345,14 @@ impl SerialPort for COMPort {
         Ok(())
     }
 
-    fn set_baud_rate(&mut self, baud_rate: u32) -> ::Result<()> {
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut dcb = self.get_dcb()?;
         dcb.BaudRate = baud_rate as DWORD;
 
         self.set_dcb(&dcb)
     }
 
-    fn set_data_bits(&mut self, data_bits: DataBits) -> ::Result<()> {
+    fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
         let mut dcb = self.get_dcb()?;
         dcb.ByteSize = match data_bits {
             DataBits::Five => 5,
@@ -364,7 +364,7 @@ impl SerialPort for COMPort {
         self.set_dcb(&dcb)
     }
 
-    fn set_parity(&mut self, parity: Parity) -> ::Result<()> {
+    fn set_parity(&mut self, parity: Parity) -> Result<()> {
         let mut dcb = self.get_dcb()?;
         dcb.Parity = match parity {
             Parity::None => NOPARITY as u8,
@@ -375,7 +375,7 @@ impl SerialPort for COMPort {
         self.set_dcb(&dcb)
     }
 
-    fn set_stop_bits(&mut self, stop_bits: StopBits) -> ::Result<()> {
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
         let mut dcb = self.get_dcb()?;
         dcb.StopBits = match stop_bits {
             StopBits::One => ONESTOPBIT as u8,
@@ -385,7 +385,7 @@ impl SerialPort for COMPort {
         self.set_dcb(&dcb)
     }
 
-    fn set_flow_control(&mut self, flow_control: FlowControl) -> ::Result<()> {
+    fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
         let mut dcb = self.get_dcb()?;
         match flow_control {
             FlowControl::None => {
@@ -411,7 +411,7 @@ impl SerialPort for COMPort {
         self.set_dcb(&dcb)
     }
 
-    fn bytes_to_read(&self) -> ::Result<u32> {
+    fn bytes_to_read(&self) -> Result<u32> {
         let mut errors: DWORD = 0;
         let mut comstat: COMSTAT = unsafe { mem::uninitialized() };
 
@@ -422,7 +422,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn bytes_to_write(&self) -> ::Result<u32> {
+    fn bytes_to_write(&self) -> Result<u32> {
         let mut errors: DWORD = 0;
         let mut comstat: COMSTAT = unsafe { mem::uninitialized() };
 
@@ -433,11 +433,11 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn clear(&self, buffer_to_clear: ::ClearBuffer) -> ::Result<()> {
+    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()> {
         let buffer_flags = match buffer_to_clear {
-            ::ClearBuffer::Input => PURGE_RXABORT | PURGE_RXCLEAR,
-            ::ClearBuffer::Output => PURGE_TXABORT | PURGE_TXCLEAR,
-            ::ClearBuffer::All => PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR,
+            ClearBuffer::Input => PURGE_RXABORT | PURGE_RXCLEAR,
+            ClearBuffer::Output => PURGE_TXABORT | PURGE_TXCLEAR,
+            ClearBuffer::All => PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR,
         };
 
         if unsafe { PurgeComm(self.handle, buffer_flags) != 0 } {
@@ -447,7 +447,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn try_clone(&self) -> ::Result<Box<SerialPort>> {
+    fn try_clone(&self) -> Result<Box<SerialPort>> {
         let process_handle: HANDLE = unsafe { GetCurrentProcess() };
         let mut cloned_handle: HANDLE;
         unsafe {
@@ -483,7 +483,7 @@ impl SerialPort for COMPort {
 // which is otherwise known as the "Ports" class.
 //
 // get_pots_guids returns all of the classes (guids) associated with the name "Ports".
-fn get_ports_guids() -> ::Result<Vec<GUID>> {
+fn get_ports_guids() -> Result<Vec<GUID>> {
     // Note; unwrap can't fail, since "Ports" is valid UTF-8.
     let ports_class_name = CString::new("Ports").unwrap();
 
@@ -670,7 +670,7 @@ impl PortDevice {
     }
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
-    pub fn port_type(&mut self) -> ::SerialPortType {
+    pub fn port_type(&mut self) -> SerialPortType {
         if let Some(hardware_id) = self.instance_id() {
             // Some examples of what the hardware_id looks like:
             //  MicroPython pyboard:    USB\VID_F055&PID_9802\385435603432
@@ -687,7 +687,7 @@ impl PortDevice {
             if let Some(caps) = re.captures(&hardware_id) {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
-                        return ::SerialPortType::UsbPort(::UsbPortInfo {
+                        return SerialPortType::UsbPort(UsbPortInfo {
                             vid: vid,
                             pid: pid,
                             serial_number: caps.get(4).map(|m| m.as_str().to_string()),
@@ -698,7 +698,7 @@ impl PortDevice {
                 }
             }
         }
-        ::SerialPortType::Unknown
+        SerialPortType::Unknown
     }
 
     // Retrieves a device property and returns it, if it exists. Returns None if the property
@@ -732,7 +732,7 @@ impl PortDevice {
 }
 
 /// List available serial ports on the system.
-pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
+pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     let mut ports = Vec::new();
     for guid in get_ports_guids()? {
         let port_devices = PortDevices::new(&guid);
@@ -750,7 +750,7 @@ pub fn available_ports() -> ::Result<Vec<SerialPortInfo>> {
                 continue;
             }
 
-            ports.push(::SerialPortInfo {
+            ports.push(SerialPortInfo {
                 port_name: port_name,
                 port_type: port_device.port_type(),
             });
