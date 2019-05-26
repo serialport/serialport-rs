@@ -1,11 +1,30 @@
 use std::mem;
 use std::os::unix::io::RawFd;
 
+use bitflags::bitflags;
 use nix::libc;
+
+use crate::Result;
 
 // These are wrapped in a module because they're `pub` by default
 mod raw {
     use nix::libc;
+
+    // Remove once https://github.com/nix-rust/nix/pull/1066 is merged and released
+    #[cfg(any(
+        target_os = "android",
+        all(
+            target_os = "linux",
+            not(any(
+                target_env = "musl",
+                target_arch = "powerpc",
+                target_arch = "powerpc64"
+            ))
+        )
+    ))]
+    use nix::ioc;
+    use nix::{ioctl_none_bad, ioctl_read, ioctl_read_bad, ioctl_write_ptr, ioctl_write_ptr_bad};
+
     ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
     ioctl_none_bad!(tiocnxcl, libc::TIOCNXCL);
     ioctl_read_bad!(tiocmget, libc::TIOCMGET, libc::c_int);
@@ -98,46 +117,46 @@ bitflags! {
     }
 }
 
-pub fn tiocexcl(fd: RawFd) -> ::Result<()> {
+pub fn tiocexcl(fd: RawFd) -> Result<()> {
     unsafe { raw::tiocexcl(fd) }
         .map(|_| ())
         .map_err(|e| e.into())
 }
 
-pub fn tiocnxcl(fd: RawFd) -> ::Result<()> {
+pub fn tiocnxcl(fd: RawFd) -> Result<()> {
     unsafe { raw::tiocnxcl(fd) }
         .map(|_| ())
         .map_err(|e| e.into())
 }
 
-pub fn tiocmget(fd: RawFd) -> ::Result<SerialLines> {
+pub fn tiocmget(fd: RawFd) -> Result<SerialLines> {
     let mut status = unsafe { mem::uninitialized() };
     let x = unsafe { raw::tiocmget(fd, &mut status) };
     x.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
 }
 
-pub fn fionread(fd: RawFd) -> ::Result<u32> {
+pub fn fionread(fd: RawFd) -> Result<u32> {
     let mut retval: libc::c_int = 0;
     unsafe { raw::fionread(fd, &mut retval) }
         .map(|_| retval as u32)
         .map_err(|e| e.into())
 }
 
-pub fn tiocoutq(fd: RawFd) -> ::Result<u32> {
+pub fn tiocoutq(fd: RawFd) -> Result<u32> {
     let mut retval: libc::c_int = 0;
     unsafe { raw::tiocoutq(fd, &mut retval) }
         .map(|_| retval as u32)
         .map_err(|e| e.into())
 }
 
-pub fn tiocmbic(fd: RawFd, status: SerialLines) -> ::Result<()> {
+pub fn tiocmbic(fd: RawFd, status: SerialLines) -> Result<()> {
     let bits = status.bits() as libc::c_int;
     unsafe { raw::tiocmbic(fd, &bits) }
         .map(|_| ())
         .map_err(|e| e.into())
 }
 
-pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
+pub fn tiocmbis(fd: RawFd, status: SerialLines) -> Result<()> {
     let bits = status.bits() as libc::c_int;
     unsafe { raw::tiocmbis(fd, &bits) }
         .map(|_| ())
@@ -155,7 +174,7 @@ pub fn tiocmbis(fd: RawFd, status: SerialLines) -> ::Result<()> {
         ))
     )
 ))]
-pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
+pub fn tcgets2(fd: RawFd) -> Result<libc::termios2> {
     let mut options = unsafe { mem::uninitialized() };
     match unsafe { raw::tcgets2(fd, &mut options) } {
         Ok(_) => Ok(options),
@@ -174,14 +193,14 @@ pub fn tcgets2(fd: RawFd) -> ::Result<libc::termios2> {
         ))
     )
 ))]
-pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> ::Result<()> {
+pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> Result<()> {
     unsafe { raw::tcsets2(fd, options) }
         .map(|_| ())
         .map_err(|e| e.into())
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
-pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> ::Result<()> {
+pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> Result<()> {
     unsafe { raw::iossiospeed(fd, baud_rate) }
         .map(|_| ())
         .map_err(|e| e.into())

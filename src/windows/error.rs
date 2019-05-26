@@ -9,15 +9,17 @@ use winapi::um::winbase::{
 };
 use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT, WCHAR};
 
-pub fn last_os_error() -> ::Error {
+use crate::{Error, ErrorKind};
+
+pub fn last_os_error() -> Error {
     let errno = errno();
 
     let kind = match errno {
-        ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND | ERROR_ACCESS_DENIED => ::ErrorKind::NoDevice,
-        _ => ::ErrorKind::Io(io::ErrorKind::Other),
+        ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND | ERROR_ACCESS_DENIED => ErrorKind::NoDevice,
+        _ => ErrorKind::Io(io::ErrorKind::Other),
     };
 
-    ::Error::new(kind, error_string(errno).trim())
+    Error::new(kind, error_string(errno).trim())
 }
 
 // the rest of this module is borrowed from libstd
