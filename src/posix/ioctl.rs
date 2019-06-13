@@ -9,20 +9,6 @@ use crate::Result;
 // These are wrapped in a module because they're `pub` by default
 mod raw {
     use nix::libc;
-
-    // Remove once https://github.com/nix-rust/nix/pull/1066 is merged and released
-    #[cfg(any(
-        target_os = "android",
-        all(
-            target_os = "linux",
-            not(any(
-                target_env = "musl",
-                target_arch = "powerpc",
-                target_arch = "powerpc64"
-            ))
-        )
-    ))]
-    use nix::ioc;
     use nix::{ioctl_none_bad, ioctl_read, ioctl_read_bad, ioctl_write_ptr, ioctl_write_ptr_bad};
 
     ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
