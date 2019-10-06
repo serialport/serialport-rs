@@ -57,7 +57,15 @@ Dependencies
 
 Rust versions 1.31.1 and higher are supported.
 
-For GNU Linux `pkg-config` and `libudev` headers are required (`pkg-config` and `libudev-dev` on Ubuntu respectively).
+For GNU Linux `pkg-config` and `libudev` headers are required:
+
+*  Ubuntu: `sudo apt install pkg-config libudev-dev`
+*  Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel`
+
+> **NOTES** 
+> *  Some Linux distros are providing [pkgconf.org](https://github.com/pkgconf/pkgconf)'s `pkgconf` package instead of [freedesktop.org](https://gitlab.freedesktop.org/pkg-config/pkg-config)'s `pkg-config`.
+> *  In Fedora, `libudev-devel` is [provided](https://gitlab.com/susurrus/serialport-rs/issues/56#observations) by installing the `systemd-devel` package.
+
 
 Platform Support
 ================
