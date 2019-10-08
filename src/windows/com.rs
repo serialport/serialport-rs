@@ -449,7 +449,7 @@ impl SerialPort for COMPort {
         }
     }
 
-    fn try_clone(&self) -> Result<Box<SerialPort>> {
+    fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
         let process_handle: HANDLE = unsafe { GetCurrentProcess() };
         let mut cloned_handle: HANDLE;
         unsafe {
