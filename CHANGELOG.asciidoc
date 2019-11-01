@@ -8,6 +8,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 === [UNRELEASED]
 ==== Changed
 ==== Added
+* Added `send_break()` to `TTYPort`
+
 ==== Fixed
 ==== Removed
 
