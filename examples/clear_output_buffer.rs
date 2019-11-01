@@ -65,7 +65,7 @@ fn main() {
     std::process::exit(exit_code);
 }
 
-fn run(port_name: &str, baud_rate: &str, block_size: usize) -> Result<(), Box<Error>> {
+fn run(port_name: &str, baud_rate: &str, block_size: usize) -> Result<(), Box<dyn Error>> {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
 

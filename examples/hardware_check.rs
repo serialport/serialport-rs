@@ -189,7 +189,7 @@ macro_rules! call_query_method_check {
     };
 }
 
-fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
+fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
     println!("Testing '{}':", port.name().unwrap());
 
     // Test setting standard baud rates
@@ -267,7 +267,7 @@ fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
     }
 }
 
-fn test_dual_ports(port1: &mut serialport::SerialPort, port2: &mut serialport::SerialPort) {
+fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn serialport::SerialPort) {
     println!(
         "Testing paired ports '{}' and '{}':",
         port1.name().unwrap(),
