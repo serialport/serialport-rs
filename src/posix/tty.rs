@@ -80,6 +80,15 @@ pub struct TTYPort {
     baud_rate: u32,
 }
 
+/// Specifies the duration of a transmission break
+#[derive(Clone, Copy, Debug)]
+pub enum BreakDuration {
+    /// 0.25-0.5s
+    Short,
+    /// Specifies a break duration that is platform-dependent
+    Arbitrary(std::num::NonZeroI32),
+}
+
 impl TTYPort {
     /// Opens a TTY device as a serial port.
     ///
@@ -293,6 +302,15 @@ impl TTYPort {
         };
 
         Ok((master_tty, slave_tty))
+    }
+
+    /// Sends 0-valued bits over the port for a set duration
+    pub fn send_break(&self, duration: BreakDuration) -> Result<()> {
+        match duration {
+            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0).into(),
+            BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(self.fd, n.get()),
+        }
+        .map_err(|e| e.into())
     }
 
     #[cfg(any(
