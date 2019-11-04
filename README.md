@@ -55,7 +55,7 @@ serve to help debug software or hardware errors.
 Dependencies
 ============
 
-Rust versions 1.31.1 and higher are supported.
+Rust versions 1.34.2 and higher are supported.
 
 For GNU Linux `pkg-config` and `libudev` headers are required:
 
