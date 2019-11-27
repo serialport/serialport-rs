@@ -19,6 +19,7 @@ use winapi::um::setupapi::*;
 use winapi::um::winbase::*;
 use winapi::um::winnt::{
     DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, KEY_READ,
+    MAXDWORD,
 };
 use winapi::um::winreg::*;
 
@@ -234,8 +235,8 @@ impl SerialPort for COMPort {
         let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
 
         let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: 0,
-            ReadTotalTimeoutMultiplier: 0,
+            ReadIntervalTimeout: MAXDWORD,
+            ReadTotalTimeoutMultiplier: if milliseconds > 0 { MAXDWORD } else { 0 },
             ReadTotalTimeoutConstant: milliseconds as DWORD,
             WriteTotalTimeoutMultiplier: 0,
             WriteTotalTimeoutConstant: 0,
