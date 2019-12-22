@@ -23,7 +23,7 @@ use crate::posix::ioctl::{self, SerialLines};
 #[cfg(any(
     target_os = "freebsd",
     target_os = "ios",
-    all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
+    target_os = "linux",
     target_os = "macos"
 ))]
 use crate::SerialPortType;
@@ -1256,14 +1256,39 @@ cfg_if! {
             }
             Ok(vec)
         }
-    } else if #[cfg(all(target_os = "linux", not(target_env = "musl")))] {
+    } else if #[cfg(target_os = "linux")] {
+        use std::fs::File;
+        use std::io::Read;
         /// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
         /// default feature.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-            Err(Error::new(
-                ErrorKind::Unknown,
-                "Serial port enumeration disabled (to enable compile with the 'libudev' feature)",
-            ))
+            let mut vec = Vec::new();
+            let sys_path = Path::new("/sys/class/tty/");
+            let mut s;
+            for path in sys_path.read_dir().expect("/sys/class/tty/ doesn't exist on this system") {
+                let raw_path = path?.path().clone();
+                let mut path = raw_path.clone();
+
+                path.push("device");
+                if !path.is_dir() {
+                    continue;
+                }
+
+                path.push("driver_override");
+                if path.is_file() {
+                    s = String::new();
+                    File::open(path)?.read_to_string(&mut s)?;
+                    if &s == "(null)\n" {
+                        continue;
+                    }
+                }
+
+                vec.push(SerialPortInfo {
+                    port_name: raw_path.to_string_lossy().to_string(),
+                    port_type: SerialPortType::Unknown,
+                });
+            }
+            Ok(vec)
         }
     } else if #[cfg(target_os = "freebsd")] {
         /// Scans the system for serial ports and returns a list of them.
