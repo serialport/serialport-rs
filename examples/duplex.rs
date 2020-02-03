@@ -14,10 +14,9 @@
 extern crate serialport;
 
 use serialport::{available_ports, open};
-use std::io;
 use std::io::Write;
 use std::time::Duration;
-use std::{mem, thread};
+use std::{io, thread};
 
 fn main() {
     // Open the first serialport available.
@@ -36,7 +35,7 @@ fn main() {
     });
 
     // Read the four bytes back from the cloned port
-    let mut buffer: [u8; 1] = unsafe { mem::uninitialized() };
+    let mut buffer: [u8; 1] = [0; 1];
     loop {
         match serialport.read(&mut buffer) {
             Ok(bytes) => {

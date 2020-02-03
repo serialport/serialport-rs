@@ -45,12 +45,12 @@ environment:
     - channel: stable
       target: i686-pc-windows-msvc
       BITS: 32
-  # 1.34.2 64-bit MSVC
-    - channel: 1.34.2
+  # 1.36.0 64-bit MSVC
+    - channel: 1.36.0
       target: x86_64-pc-windows-msvc
       BITS: 64
-  # 1.34.2 32-bit MSVC
-    - channel: 1.34.2
+  # 1.36.0 32-bit MSVC
+    - channel: 1.36.0
       target: i686-pc-windows-msvc
       BITS: 32
 
@@ -64,12 +64,12 @@ environment:
     - channel: stable
       target: i686-pc-windows-gnu
       BITS: 32
-  # 1.34.2 64-bit GNU
-    - channel: 1.34.2
+  # 1.36.0 64-bit GNU
+    - channel: 1.36.0
       target: x86_64-pc-windows-gnu
       BITS: 64
-  # 1.34.2 32-bit GNU
-    - channel: 1.34.2
+  # 1.36.0 32-bit GNU
+    - channel: 1.36.0
       target: i686-pc-windows-gnu
       BITS: 32
 

@@ -1,6 +1,7 @@
 use regex::Regex;
 
 use std::ffi::{CStr, CString, OsStr};
+use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
 use std::time::Duration;
 use std::{io, mem, ptr};
@@ -97,7 +98,7 @@ impl COMPort {
     }
 
     fn read_pin(&mut self, pin: DWORD) -> Result<bool> {
-        let mut status: DWORD = unsafe { mem::uninitialized() };
+        let mut status: DWORD = 0;
 
         match unsafe { GetCommModemStatus(self.handle, &mut status) } {
             0 => Err(super::error::last_os_error()),
@@ -116,10 +117,10 @@ impl COMPort {
     }
 
     fn get_dcb(&self) -> Result<DCB> {
-        let mut dcb: DCB = unsafe { mem::uninitialized() };
+        let mut dcb = MaybeUninit::uninit();
 
-        if unsafe { GetCommState(self.handle, &mut dcb) != 0 } {
-            return Ok(dcb);
+        if unsafe { GetCommState(self.handle, dcb.as_mut_ptr()) != 0 } {
+            return unsafe { Ok(dcb.assume_init()) };
         } else {
             return Err(super::error::last_os_error());
         }
@@ -415,10 +416,10 @@ impl SerialPort for COMPort {
 
     fn bytes_to_read(&self) -> Result<u32> {
         let mut errors: DWORD = 0;
-        let mut comstat: COMSTAT = unsafe { mem::uninitialized() };
+        let mut comstat = MaybeUninit::uninit();
 
-        if unsafe { ClearCommError(self.handle, &mut errors, &mut comstat) != 0 } {
-            Ok(comstat.cbInQue)
+        if unsafe { ClearCommError(self.handle, &mut errors, comstat.as_mut_ptr()) != 0 } {
+            unsafe { Ok(comstat.assume_init().cbInQue) }
         } else {
             Err(super::error::last_os_error())
         }
@@ -426,10 +427,10 @@ impl SerialPort for COMPort {
 
     fn bytes_to_write(&self) -> Result<u32> {
         let mut errors: DWORD = 0;
-        let mut comstat: COMSTAT = unsafe { mem::uninitialized() };
+        let mut comstat = MaybeUninit::uninit();
 
-        if unsafe { ClearCommError(self.handle, &mut errors, &mut comstat) != 0 } {
-            Ok(comstat.cbOutQue)
+        if unsafe { ClearCommError(self.handle, &mut errors, comstat.as_mut_ptr()) != 0 } {
+            unsafe { Ok(comstat.assume_init().cbOutQue) }
         } else {
             Err(super::error::last_os_error())
         }
@@ -451,9 +452,8 @@ impl SerialPort for COMPort {
 
     fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
         let process_handle: HANDLE = unsafe { GetCurrentProcess() };
-        let mut cloned_handle: HANDLE;
+        let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
         unsafe {
-            cloned_handle = mem::uninitialized();
             DuplicateHandle(
                 process_handle,
                 self.handle,

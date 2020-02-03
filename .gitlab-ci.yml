@@ -30,9 +30,9 @@ stages:
     - if [[ -z $DISABLE_TESTS ]]; then cargo build --tests --target=$TARGET; fi
     - if [[ -z $DISABLE_TESTS ]]; then cargo test --target=$TARGET; fi
 
-x86_64-unknown-linux-gnu-1.34.2:
+x86_64-unknown-linux-gnu-1.36.0:
     <<: *build
-    image: "rust:1.34.2"
+    image: "rust:1.36.0"
     variables:
         EXTRA_PACKAGES: "libudev-dev"
         TARGET: x86_64-unknown-linux-gnu
