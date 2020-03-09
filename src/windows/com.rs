@@ -117,10 +117,11 @@ impl COMPort {
     }
 
     fn get_dcb(&self) -> Result<DCB> {
-        let mut dcb = MaybeUninit::uninit();
+        let mut dcb: DCB = unsafe { MaybeUninit::zeroed().assume_init() };
+        dcb.DCBlength = std::mem::size_of::<DCB>() as u32;
 
-        if unsafe { GetCommState(self.handle, dcb.as_mut_ptr()) != 0 } {
-            return unsafe { Ok(dcb.assume_init()) };
+        if unsafe { GetCommState(self.handle, &mut dcb) } != 0 {
+            return Ok(dcb);
         } else {
             return Err(super::error::last_os_error());
         }
