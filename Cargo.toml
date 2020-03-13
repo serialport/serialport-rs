@@ -39,9 +39,12 @@ features = [
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"], optional = true }
+embedded-hal = { version = "0.2", optional = true }
+nb = { version = "0.1", optional = true }
 
 [dev-dependencies]
 clap = "3.1.6"
 
 [features]
 default = ["libudev"]
+embedded = ["embedded-hal", "nb"]
