@@ -305,6 +305,8 @@ impl SerialPort for COMPort {
         match dcb.Parity {
             ODDPARITY => Ok(Parity::Odd),
             EVENPARITY => Ok(Parity::Even),
+            MARKPARITY => Ok(Parity::Mark),
+            SPACEPARITY => Ok(Parity::Space),
             NOPARITY => Ok(Parity::None),
             _ => Err(Error::new(
                 ErrorKind::Unknown,
@@ -372,6 +374,8 @@ impl SerialPort for COMPort {
             Parity::None => NOPARITY as u8,
             Parity::Odd => ODDPARITY as u8,
             Parity::Even => EVENPARITY as u8,
+            Parity::Mark => MARKPARITY as u8,
+            Parity::Space => SPACEPARITY as u8,
         };
 
         self.set_dcb(&dcb)

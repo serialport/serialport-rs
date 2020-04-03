@@ -174,6 +174,12 @@ pub enum Parity {
 
     /// Parity bit sets even number of 1 bits.
     Even,
+
+    /// Parity bit always set to 1.
+    Mark,
+
+    /// Parity bit always set to 0.
+    Space,
 }
 
 /// Number of stop bits.
