@@ -221,6 +221,8 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
     println!("Testing parity...");
     parity_check!(port, Parity::Odd);
     parity_check!(port, Parity::Even);
+    parity_check!(port, Parity::Mark);
+    parity_check!(port, Parity::Space);
     parity_check!(port, Parity::None);
 
     // Test setting stop bits

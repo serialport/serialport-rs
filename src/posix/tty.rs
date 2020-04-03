@@ -667,7 +667,13 @@ impl SerialPort for TTYPort {
     fn parity(&self) -> Result<Parity> {
         let termios = self.get_termios()?;
         if termios.c_cflag & libc::PARENB == libc::PARENB {
-            if termios.c_cflag & libc::PARODD == libc::PARODD {
+            if termios.c_cflag & libc::CMSPAR == libc::CMSPAR {
+                if termios.c_cflag & libc::PARODD == libc::PARODD {
+                    Ok(Parity::Mark)
+                } else {
+                    Ok(Parity::Space)
+                }
+            } else if termios.c_cflag & libc::PARODD == libc::PARODD {
                 Ok(Parity::Odd)
             } else {
                 Ok(Parity::Even)
@@ -840,6 +846,17 @@ impl SerialPort for TTYPort {
                 termios.c_cflag |= libc::PARENB;
                 termios.c_iflag |= libc::INPCK;
                 termios.c_iflag &= !libc::IGNPAR;
+            }
+            Parity::Mark => {
+                termios.c_cflag |= libc::PARENB | libc::CMSPAR | libc::PARODD;
+                termios.c_iflag &= !libc::INPCK;
+                termios.c_iflag |= libc::IGNPAR;
+            }
+            Parity::Space => {
+                termios.c_cflag |= libc::PARENB | libc::CMSPAR;
+                termios.c_cflag &= !libc::PARODD;
+                termios.c_iflag &= !libc::INPCK;
+                termios.c_iflag |= libc::IGNPAR;
             }
         };
         self.set_termios(&termios)
