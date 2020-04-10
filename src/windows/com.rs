@@ -125,8 +125,8 @@ impl COMPort {
         }
     }
 
-    fn set_dcb(&self, dcb: &DCB) -> Result<()> {
-        if unsafe { SetCommState(self.handle, dcb as *const _ as *mut _) != 0 } {
+    fn set_dcb(&self, mut dcb: DCB) -> Result<()> {
+        if unsafe { SetCommState(self.handle, &mut dcb as *mut _) != 0 } {
             return Ok(());
         } else {
             return Err(super::error::last_os_error());
@@ -351,7 +351,7 @@ impl SerialPort for COMPort {
         let mut dcb = self.get_dcb()?;
         dcb.BaudRate = baud_rate as DWORD;
 
-        self.set_dcb(&dcb)
+        self.set_dcb(dcb)
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
@@ -363,7 +363,7 @@ impl SerialPort for COMPort {
             DataBits::Eight => 8,
         };
 
-        self.set_dcb(&dcb)
+        self.set_dcb(dcb)
     }
 
     fn set_parity(&mut self, parity: Parity) -> Result<()> {
@@ -374,7 +374,7 @@ impl SerialPort for COMPort {
             Parity::Even => EVENPARITY as u8,
         };
 
-        self.set_dcb(&dcb)
+        self.set_dcb(dcb)
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
@@ -384,7 +384,7 @@ impl SerialPort for COMPort {
             StopBits::Two => TWOSTOPBITS as u8,
         };
 
-        self.set_dcb(&dcb)
+        self.set_dcb(dcb)
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
@@ -410,7 +410,7 @@ impl SerialPort for COMPort {
             }
         }
 
-        self.set_dcb(&dcb)
+        self.set_dcb(dcb)
     }
 
     fn bytes_to_read(&self) -> Result<u32> {
