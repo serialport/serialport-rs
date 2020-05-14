@@ -6,41 +6,85 @@
 [![Appveyor CI status](https://ci.appveyor.com/api/projects/status/gitlab/Susurrus/serialport-rs?svg=true&branch=master)](https://ci.appveyor.com/project/Susurrus/serialport-rs)
 [![Travis CI status](https://travis-ci.org/Susurrus/serialport-rs.svg?branch=master)](https://travis-ci.org/Susurrus/serialport-rs)
 
-Overview
-========
+Introduction
+============
 
 `serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
-simple blocking I/O interface and port enumeration on POSIX and Windows systems.
+blocking I/O interface and port enumeration on POSIX and Windows systems.
 
 For async I/O functionality, see the [mio-serial](https://github.com/berkowski/mio-serial) and
 [tokio-serial](https://github.com/berkowski/tokio-serial) crates.
 
 The canonical repository for this crate is on [GitLab](https://gitlab.com/susurrus/serialport-rs),
 but it is mirrored on GitHub purely for testing via Travis CI. To report any issues or contribute
-code, please do so using through the GitLab repository.
+code, please do so using through GitLab.
 
-Features
+Overview
 ========
 
-The library has been organized such that there is a high-level `SerialPort` trait that provides
-a cross-platform API for accessing serial ports. This is the preferred method of interacting
-with ports and as such is part of the `prelude`. The `open*()` and `available_ports()` functions
-in the root are also cross-platform.
+The library exposes cross-platform serial port functionality through the `SerialPort` trait. This
+library is structured to make this the simplest API to use to encourate cross-platform development
+by default. Working with the resultant `Box<dyn SerialPort>` type is therefore recommended. To
+expose additional platform-specific functionality use the platform-specific structs directly:
+`TTYPort` for POSIX systems and `COMPort` for Windows.
 
-For platform-specific functionality, this crate is split into a `posix` and `windows` API with
-corresponding `TTYPort` and `COMPort` structs, both of which implement the `SerialPort` trait. Using
-the platform-specific `open*()` functions will return the platform-specific port object which
-allows access to platform-specific functionality.
+Serial enumeration is provided on most platforms. The implementation on Linux using `glibc` relies
+on `libudev`, an external dynamic library that will need to be available on the system the final
+binary is running on. Enumeration will still be available if this feature is disabled, but won't
+expose as much information and may return ports that don't exist physically. However this dependency
+can be removed by disabling the default `libudev` feature:
 
-Serial enumeration on Linux is provided by `libudev`, an external dynamic library that
-is linked against. This dependency can be removed by disabling the `libudev` feature
-during compilation.
+```shell
+$ cargo build --no-default-features
+```
+
+Usage
+=====
+
+Listing available ports:
+
+```rust
+let ports = serialport::available_ports().expect("No ports found!");
+for p in ports {
+    println!("{}", p.port_name);
+}
+
+```
+
+Opening and configuring a port:
+
+```rust
+let port = serialport::new("/dev/ttyUSB0", 115_200)
+    .timeout(Duration::from_millis(10))
+    .open().expect("Failed to open port");
+```
+
+Writing to a port:
+
+```rust
+let output = "This is a test. This is only a test.".as_bytes();
+port.write(output).expect("Write failed!");
+```
+
+Reading from a port (default is blocking with a 0ms timeout):
+
+```rust
+let mut serial_buf: Vec<u8> = vec![0; 32];
+port.read(serial_buf.as_mut_slice()).expect("Found no data!");
+```
+
+Some platforms expose additional functionality, which is opened using the `open_native()` method:
+
+```rust
+let port = serialport::new("/dev/ttyUSB0", 115_200)
+    .open_native().expect("Failed to open port");
+```
 
 Examples
 ========
 
-There are several included examples, which both demonstrate the functionality of this library and
-serve to help debug software or hardware errors.
+There are several included examples, which help demonstrate the functionality of this library and
+can help debug software or hardware errors.
 
  * *clear_input_buffer* - Demonstrates querying and clearing the driver input buffer
  * *clear_output_buffer* - Demonstrates querying and clearing the driver output buffer
@@ -59,14 +103,10 @@ Rust versions 1.36.0 and higher are supported.
 
 For GNU Linux `pkg-config` and `libudev` headers are required:
 
-*  Ubuntu: `sudo apt install pkg-config libudev-dev`
-*  Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel`
-*  Other: Some Linux distros are providing pkgconf.org's `pkgconf` package instead of freedesktop.org's `pkg-config`.
+* Ubuntu: `sudo apt install pkg-config libudev-dev`
+* Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel`
 
-Linking Support
-===============
-
-Compiling on Windows requires linking to the `ws2_32`, `userenv`, and `setupapi` libraries.
+For other distros they may provide `pkg-config` through the `pkgconf` package instead.
 
 Platform Support
 ================
@@ -96,11 +136,11 @@ Tier 1:
 Tier 2:
 
  * Android
-   * `aarch64-linux-android`
-   * `arm-linux-androideabi`
-   * `armv7-linux-androideabi`
-   * `i686-linux-android`
-   * `x86_64-linux-android`
+   * `aarch64-linux-android` (no serial enumeration)
+   * `arm-linux-androideabi` (no serial enumeration)
+   * `armv7-linux-androideabi` (no serial enumeration)
+   * `i686-linux-android` (no serial enumeration)
+   * `x86_64-linux-android` (no serial enumeration)
  * FreeBSD
    * `i686-unknown-freebsd`
    * `x86_64-unknown-freebsd`
@@ -129,7 +169,7 @@ Tier 2:
    * `aarch64-apple-ios`
    * `x86_64-apple-ios`
  * NetBSD
-   * `x86_64-unknown-netbsd`
+   * `x86_64-unknown-netbsd` (no serial enumeration)
 
 Hardware Support
 ================
