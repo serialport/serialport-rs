@@ -1,4 +1,3 @@
-use std::mem;
 use std::os::unix::io::RawFd;
 
 use bitflags::bitflags;
@@ -116,7 +115,7 @@ pub fn tiocnxcl(fd: RawFd) -> Result<()> {
 }
 
 pub fn tiocmget(fd: RawFd) -> Result<SerialLines> {
-    let mut status = unsafe { mem::uninitialized() };
+    let mut status: libc::c_int = 0;
     let x = unsafe { raw::tiocmget(fd, &mut status) };
     x.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
 }
@@ -161,9 +160,9 @@ pub fn tiocmbis(fd: RawFd, status: SerialLines) -> Result<()> {
     )
 ))]
 pub fn tcgets2(fd: RawFd) -> Result<libc::termios2> {
-    let mut options = unsafe { mem::uninitialized() };
-    match unsafe { raw::tcgets2(fd, &mut options) } {
-        Ok(_) => Ok(options),
+    let mut options = std::mem::MaybeUninit::uninit();
+    match unsafe { raw::tcgets2(fd, options.as_mut_ptr()) } {
+        Ok(_) => unsafe { Ok(options.assume_init()) },
         Err(e) => Err(e.into()),
     }
 }

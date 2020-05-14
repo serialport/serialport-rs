@@ -2,6 +2,7 @@
 use std::ffi::OsStr;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use std::ffi::{CStr, CString};
+use std::mem::MaybeUninit;
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::Duration;
@@ -114,12 +115,13 @@ impl TTYPort {
             nix::sys::stat::Mode::empty(),
         )?;
 
-        let mut termios = unsafe { mem::uninitialized() };
-        let res = unsafe { tcgetattr(fd, &mut termios) };
+        let mut termios = MaybeUninit::uninit();
+        let res = unsafe { tcgetattr(fd, termios.as_mut_ptr()) };
         if let Err(e) = nix::errno::Errno::result(res) {
             close(fd);
             return Err(e.into());
         }
+        let mut termios = unsafe { termios.assume_init() };
 
         // If any of these steps fail, then we should abort creation of the
         // TTYPort and ensure the file descriptor is closed.
@@ -137,8 +139,9 @@ impl TTYPort {
             unsafe { tcsetattr(fd, libc::TCSANOW, &termios) };
 
             // Read back settings from port and confirm they were applied correctly
-            let mut actual_termios = unsafe { mem::uninitialized() };
-            unsafe { tcgetattr(fd, &mut actual_termios) };
+            let mut actual_termios = MaybeUninit::uninit();
+            unsafe { tcgetattr(fd, actual_termios.as_mut_ptr()) };
+            let actual_termios = unsafe { actual_termios.assume_init() };
 
             if actual_termios.c_iflag != termios.c_iflag
                 || actual_termios.c_oflag != termios.c_oflag
@@ -330,10 +333,10 @@ impl TTYPort {
         )
     ))]
     fn get_termios(&self) -> Result<libc::termios> {
-        let mut termios = unsafe { mem::uninitialized() };
-        let res = unsafe { libc::tcgetattr(self.fd, &mut termios) };
+        let mut termios = MaybeUninit::uninit();
+        let res = unsafe { libc::tcgetattr(self.fd, termios.as_mut_ptr()) };
         nix::errno::Errno::result(res)?;
-        Ok(termios)
+        unsafe { Ok(termios.assume_init()) }
     }
 
     #[cfg(any(
@@ -440,9 +443,10 @@ impl IntoRawFd for TTYPort {
 /// Get the baud speed for a port from its file descriptor
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 fn get_termios_speed(fd: RawFd) -> u32 {
-    let mut termios = unsafe { mem::uninitialized() };
-    let res = unsafe { libc::tcgetattr(fd, &mut termios) };
+    let mut termios = MaybeUninit::uninit();
+    let res = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
     nix::errno::Errno::result(res).expect("Failed to get termios data");
+    let termios = unsafe { termios.assume_init() };
     assert_eq!(termios.c_ospeed, termios.c_ispeed);
     termios.c_ospeed as u32
 }
@@ -987,19 +991,21 @@ fn get_parent_device_by_type(
     use mach::kern_return::KERN_SUCCESS;
     let mut device = device;
     loop {
-        let mut class_name: [c_char; 128] = unsafe { mem::uninitialized() };
-        unsafe { IOObjectGetClass(device, &mut class_name[0]) };
+        let mut class_name = MaybeUninit::<[c_char; 128]>::uninit();
+        unsafe { IOObjectGetClass(device, class_name.as_mut_ptr() as *mut c_char) };
+        let class_name = unsafe { class_name.assume_init() };
         let name = unsafe { CStr::from_ptr(&class_name[0]) };
         if name == parent_type {
             return Some(device);
         }
-        let mut parent: io_registry_entry_t = unsafe { mem::uninitialized() };
+        let mut parent = MaybeUninit::uninit();
         if unsafe {
-            IORegistryEntryGetParentEntry(device, kIOServiceClass(), &mut parent) != KERN_SUCCESS
+            IORegistryEntryGetParentEntry(device, kIOServiceClass(), parent.as_mut_ptr())
+                != KERN_SUCCESS
         } {
             return None;
         }
-        device = parent;
+        device = unsafe { parent.assume_init() };
     }
 }
 
@@ -1149,11 +1155,11 @@ cfg_if! {
                 }
 
                 // Run the search.
-                let mut matching_services: io_iterator_t = mem::uninitialized();
+                let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
                     classes_to_match,
-                    &mut matching_services,
+                    matching_services.as_mut_ptr(),
                 );
                 if kern_result != KERN_SUCCESS {
                     return Err(Error::new(
@@ -1161,6 +1167,7 @@ cfg_if! {
                         format!("ERROR: {}", kern_result),
                     ));
                 }
+                let matching_services = matching_services.assume_init();
 
                 loop {
                     // Grab the next result.
@@ -1172,10 +1179,10 @@ cfg_if! {
                     }
 
                     // Fetch all properties of the current search result item.
-                    let mut props = mem::uninitialized();
+                    let mut props = MaybeUninit::uninit();
                     let result = IORegistryEntryCreateCFProperties(
                         modem_service,
-                        &mut props,
+                        props.as_mut_ptr(),
                         kCFAllocatorDefault,
                         0,
                     );
@@ -1187,7 +1194,7 @@ cfg_if! {
                             key.as_ptr(),
                             kCFStringEncodingUTF8,
                         );
-                        let value = CFDictionaryGetValue(props, key_cfstring as *const c_void);
+                        let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
 
                         let type_id = CFGetTypeID(value);
                         if type_id == CFStringGetTypeID() {
@@ -1334,8 +1341,8 @@ fn test_ttyport_into_raw_fd() {
 
     // First test with the master
     let master_fd = master.into_raw_fd();
-    let mut termios = unsafe { mem::uninitialized() };
-    let res = unsafe { nix::libc::tcgetattr(master_fd, &mut termios) };
+    let mut termios = MaybeUninit::uninit();
+    let res = unsafe { nix::libc::tcgetattr(master_fd, termios.as_mut_ptr()) };
     if res != 0 {
         close(master_fd);
         panic!("tcgetattr on the master port failed");
@@ -1343,7 +1350,7 @@ fn test_ttyport_into_raw_fd() {
 
     // And then the slave
     let slave_fd = slave.into_raw_fd();
-    let res = unsafe { nix::libc::tcgetattr(slave_fd, &mut termios) };
+    let res = unsafe { nix::libc::tcgetattr(slave_fd, termios.as_mut_ptr()) };
     if res != 0 {
         close(slave_fd);
         panic!("tcgetattr on the master port failed");
