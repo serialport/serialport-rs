@@ -10,6 +10,7 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Added `send_break()` to `TTYPort`
 * Enable `available_ports()` for Linux musl targets and those without the `libudev`
   feature enabled by scanning `/sys/` for ports.
+* `ENOENT` and `EACCES` errors are now exposed as `NotFound` and `PermissionDenied` errors on Linux
 
 ==== Changed
 * Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit` feature.
