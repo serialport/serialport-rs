@@ -19,7 +19,7 @@ use crate::{
     SerialPortSettings, StopBits,
 };
 
-/// A serial port implementation for Windows COM ports.
+/// A serial port implementation for Windows COM ports
 ///
 /// The port will be closed when the value is dropped. However, this struct
 /// should not be instantiated directly by using `COMPort::open()`, instead use
