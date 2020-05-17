@@ -461,8 +461,8 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn try_clone(&self) -> Result<Box<dyn SerialPort>>;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
 /// Contains all possible USB information about a `SerialPort`
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsbPortInfo {
     /// Vendor ID
     pub vid: u16,
@@ -476,8 +476,8 @@ pub struct UsbPortInfo {
     pub product: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
 /// The physical type of a `SerialPort`
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SerialPortType {
     /// The serial port is connected via USB
     UsbPort(UsbPortInfo),
