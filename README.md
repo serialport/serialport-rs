@@ -71,11 +71,10 @@ Compiling on Windows requires linking to the `ws2_32`, `userenv`, and `setupapi`
 Platform Support
 ================
 
-Platform support is broken into three tiers:
+Platform support is broken into two tiers:
 
  * Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
- * Tier 2 - Builds for this target are run in CI. Failures during the build blocks the inclusion of new code. Tests may be run, but failures in tests don't block the inclusion of new code.
- * Tier 3 - Builds for this target are run in CI. Failures during the build do not block the inclusion of new code. Testing may be run, but failures in tests don't block the inclusion of new code.
+ * Tier 2 - Builds for this target are run in CI. Tests are not run in CI.
 
 
 Tier 1:
@@ -87,7 +86,6 @@ Tier 1:
    * `x86_64-unknown-linux-gnu`
    * `x86_64-unknown-linux-musl`
  * MacOS/iOS
-   * `i686-apple-darwin`
    * `x86_64-apple-darwin`
  * Windows
    * `i686-pc-windows-gnu`
@@ -109,21 +107,27 @@ Tier 2:
  * Linux
    * `aarch64-unknown-linux-gnu`
    * `aarch64-unknown-linux-musl`
+   * `arm-unknown-linux-gnueabi`
    * `arm-unknown-linux-musleabi`
    * `armv5te-unknown-linux-gnueabi`
    * `armv5te-unknown-linux-musleabi`
+   * `armv7-unknown-linux-gnueabihf`
    * `armv7-unknown-linux-musleabihf`
-   * `mips64-unknown-linux-gnuabi64`
-   * `mips64el-unknown-linux-gnuabi64`
+   * `i586-unknown-linux-gnu`
    * `mips-unknown-linux-gnu`
    * `mips-unknown-linux-musl`
+   * `mips64-unknown-linux-gnuabi64`
+   * `mips64el-unknown-linux-gnuabi64`
    * `mipsel-unknown-linux-gnu`
    * `mipsel-unknown-linux-musl`
+   * `powerpc-unknown-linux-gnu`
    * `powerpc64-unknown-linux-gnu`
    * `powerpc64le-unknown-linux-gnu`
-   * `powerpc-unknown-linux-gnu`
    * `s390x-unknown-linux-gnu`
    * `sparc64-unknown-linux-gnu`
+ * MacOS/iOS
+   * `aarch64-apple-ios`
+   * `x86_64-apple-ios`
  * NetBSD
    * `x86_64-unknown-netbsd`
 
