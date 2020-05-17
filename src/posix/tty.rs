@@ -39,7 +39,7 @@ fn is_nonstandard_baud(baud: u32) -> bool {
     }
 }
 
-/// A TTY-based serial port implementation.
+/// A serial port implementation for POSIX TTY ports
 ///
 /// The port will be closed when the value is dropped. However, this struct
 /// should not be instantiated directly by using `TTYPort::open()`, instead use
@@ -231,7 +231,7 @@ impl TTYPort {
     /// ## Examples
     ///
     /// ```
-    /// use serialport::posix::TTYPort;
+    /// use serialport::TTYPort;
     ///
     /// let (master, slave) = TTYPort::pair().unwrap();
     /// ```

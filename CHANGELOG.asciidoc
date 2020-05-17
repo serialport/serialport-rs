@@ -13,6 +13,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 ==== Changed
 * Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit` feature.
+* The platform-specific `TTYPort`/`BreakDuration` and `COMPort` are now at the root level rather
+  than under the `posix` and `windows` submodules respectively.
 
 ==== Fixed
 ==== Removed
