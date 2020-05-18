@@ -11,12 +11,11 @@
 //! To test this, have a physical or virtual loopback device connected as the
 //! only port in the system.
 
-extern crate serialport;
-
-use serialport::{available_ports, open};
 use std::io::Write;
 use std::time::Duration;
 use std::{io, thread};
+
+use serialport::{available_ports, open};
 
 fn main() {
     // Open the first serialport available.

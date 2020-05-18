@@ -19,6 +19,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 
 ==== Fixed
 ==== Removed
+* Removed the `serialport::prelude` module. Types should be explicitly imported
+  or can be glob-imported from the root like `use serialport::*`.
 
 === [3.3.0] - 2019-06-12
 ==== Added

@@ -34,19 +34,6 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
-/// A module that exports types that are useful to have in scope
-///
-/// It is intended to be glob imported:
-///
-/// ```
-/// # #[allow(unused_imports)]
-/// use serialport::prelude::*;
-/// ```
-pub mod prelude {
-    pub use crate::{ClearBuffer, DataBits, FlowControl, Parity, StopBits};
-    pub use crate::{SerialPort, SerialPortInfo, SerialPortSettings};
-}
-
 #[cfg(unix)]
 mod posix;
 #[cfg(unix)]
@@ -542,7 +529,7 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> Result<Box<dyn SerialPort>> {
 /// Opens the serial port specified by the device path with the given settings
 ///
 /// ```
-/// use serialport::prelude::*;
+/// use serialport::*;
 /// use std::time::Duration;
 ///
 /// let s = SerialPortSettings {
@@ -553,7 +540,7 @@ pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> Result<Box<dyn SerialPort>> {
 ///     stop_bits: StopBits::One,
 ///     timeout: Duration::from_millis(1),
 /// };
-/// serialport::open_with_settings("/dev/ttyUSB0", &s);
+/// let p = open_with_settings("/dev/ttyUSB0", &s);
 /// ```
 pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(
     port: &T,
