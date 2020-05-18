@@ -1,7 +1,7 @@
-use serialport::SerialPortType;
+use serialport::{available_ports, SerialPortType};
 
 fn main() {
-    match serialport::available_ports() {
+    match available_ports() {
         Ok(ports) => {
             match ports.len() {
                 0 => println!("No ports found."),

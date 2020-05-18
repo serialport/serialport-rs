@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::prelude::*;
+use serialport::{open_with_settings, SerialPortSettings};
 
 fn main() {
     let matches = App::new("Serialport Example - Receive Data")
@@ -34,7 +34,7 @@ fn main() {
         ::std::process::exit(1);
     }
 
-    match serialport::open_with_settings(&port_name, &settings) {
+    match open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
             let mut serial_buf: Vec<u8> = vec![0; 1000];
             println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);

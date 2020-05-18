@@ -21,7 +21,9 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::prelude::*;
+use serialport::{
+    ClearBuffer, DataBits, FlowControl, Parity, SerialPort, SerialPortSettings, StopBits,
+};
 
 fn main() {
     let matches = App::new("Serialport Example - Hardware Check")

@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::prelude::*;
+use serialport::*;
 
 fn main() {
     let matches = App::new("Serialport Example - Heartbeat")
