@@ -14,18 +14,15 @@
 // 6. Press Ctrl+D (Unix) or Ctrl+Z (Win) to quit
 //
 
-#[macro_use]
-extern crate clap;
-extern crate serialport;
-
 use std::error::Error;
 use std::io::{self, Read};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use clap::{App, AppSettings, Arg};
-use serialport::prelude::*;
+use clap::{value_t, App, AppSettings, Arg};
+
+use serialport::{ClearBuffer, SerialPortSettings};
 
 const DEFAULT_BLOCK_SIZE: &str = "128";
 

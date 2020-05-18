@@ -34,9 +34,6 @@
 // }
 // ```
 
-extern crate clap;
-extern crate serialport;
-
 use std::error::Error;
 use std::io::{self, Read};
 use std::sync::mpsc;
@@ -44,7 +41,8 @@ use std::thread;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
-use serialport::prelude::*;
+
+use serialport::{open_with_settings, ClearBuffer, SerialPortSettings};
 
 fn main() {
     let matches = App::new("Serialport Example - Clear Input Buffer")
@@ -82,7 +80,7 @@ fn run(port_name: &str, baud_rate: &str) -> Result<(), Box<dyn Error>> {
         .map_err(|_| format!("Invalid baud rate '{}' specified", baud_rate))?;
     settings.baud_rate = rate.into();
 
-    let port = serialport::open_with_settings(&port_name, &settings)
+    let port = open_with_settings(&port_name, &settings)
         .map_err(|ref e| format!("Port '{}' not available: {}", &port_name, e))?;
 
     let chan_clear_buf = input_service();

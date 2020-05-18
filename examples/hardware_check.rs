@@ -15,16 +15,15 @@
 //!  3) With two ports physically connected to each other
 //!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1`
 
-extern crate clap;
-extern crate serialport;
-
-use clap::{App, AppSettings, Arg};
-
 use std::io::Write;
 use std::str;
 use std::time::Duration;
 
-use serialport::prelude::*;
+use clap::{App, AppSettings, Arg};
+
+use serialport::{
+    ClearBuffer, DataBits, FlowControl, Parity, SerialPort, SerialPortSettings, StopBits,
+};
 
 fn main() {
     let matches = App::new("Serialport Example - Hardware Check")
