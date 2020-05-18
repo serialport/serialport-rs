@@ -34,9 +34,6 @@
 // }
 // ```
 
-extern crate clap;
-extern crate serialport;
-
 use std::error::Error;
 use std::io::{self, Read};
 use std::sync::mpsc;
@@ -44,6 +41,7 @@ use std::thread;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
+
 use serialport::prelude::*;
 
 fn main() {

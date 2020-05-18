@@ -1,5 +1,3 @@
-extern crate serialport;
-
 use serialport::SerialPortType;
 
 fn main() {
