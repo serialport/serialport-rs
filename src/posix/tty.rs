@@ -278,7 +278,7 @@ impl TTYPort {
     /// Sends 0-valued bits over the port for a set duration
     pub fn send_break(&self, duration: BreakDuration) -> Result<()> {
         match duration {
-            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0).into(),
+            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0),
             BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(self.fd, n.get()),
         }
         .map_err(|e| e.into())
