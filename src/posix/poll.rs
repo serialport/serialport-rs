@@ -4,7 +4,6 @@ use std::io;
 use std::os::unix::io::RawFd;
 use std::time::Duration;
 
-use nix;
 use nix::poll::{PollFd, PollFlags};
 #[cfg(target_os = "linux")]
 use nix::sys::signal::SigSet;

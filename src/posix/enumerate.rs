@@ -8,8 +8,6 @@ use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
 
 use cfg_if::cfg_if;
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-use libudev;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use CoreFoundation_sys::*;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
