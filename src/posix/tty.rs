@@ -421,17 +421,10 @@ fn get_termios_speed(fd: RawFd) -> u32 {
 
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        // Try to set exclusive, as is the default setting.  Catch errors.. this method MUST
-        // return a TTYPort so we'll just indicate non-exclusive on an error here.
-        let exclusive = match ioctl::tiocexcl(fd) {
-            Ok(_) => true,
-            Err(_) => false,
-        };
-
         TTYPort {
             fd,
             timeout: Duration::from_millis(100),
-            exclusive,
+            exclusive: ioctl::tiocexcl(fd).is_ok(),
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
             port_name: None,
