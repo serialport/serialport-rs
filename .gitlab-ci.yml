@@ -296,3 +296,14 @@ clippy:
     script:
     - rustup component add clippy-preview
     - cargo clippy
+
+minimal-deps:
+    <<: *build
+    image: "rustlang/rust:nightly"
+    variables:
+        TARGET: x86_64-unknown-linux-gnu
+    stage: lint
+    allow_failure: true
+    script:
+    - cargo generate-lockfile -Z minimal-versions
+    - cargo build --verbose
