@@ -50,5 +50,5 @@ fn main() {
 fn valid_baud(val: String) -> Result<(), String> {
     val.parse::<u32>()
         .map(|_| ())
-        .map_err(|_| String::from(format!("Invalid baud rate '{}' specified", val)))
+        .map_err(|_| format!("Invalid baud rate '{}' specified", val))
 }
