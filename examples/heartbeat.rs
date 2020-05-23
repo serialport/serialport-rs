@@ -33,7 +33,7 @@ fn main() {
                 &port_name, &baud_rate
             );
             loop {
-                match port.write(".".as_bytes()) {
+                match port.write(b".") {
                     Ok(_) => {
                         print!(".");
                         std::io::stdout().flush().unwrap();
