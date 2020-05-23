@@ -26,8 +26,8 @@ stages:
     - cargo update
     script:
     - cargo build --target=$TARGET
-    - if [[ -z $DISABLE_TESTS ]]; then cargo build --examples --target=$TARGET; fi
-    - if [[ -z $DISABLE_TESTS ]]; then cargo build --tests --target=$TARGET; fi
+    - if [[ -z $DISABLE_EXTRA_BUILDS ]]; then cargo build --examples --target=$TARGET; fi
+    - if [[ -z $DISABLE_EXTRA_BUILDS ]]; then cargo build --tests --target=$TARGET; fi
     - if [[ -z $DISABLE_TESTS ]]; then cargo test --target=$TARGET; fi
 
 x86_64-unknown-linux-gnu-1.36.0:
@@ -44,6 +44,7 @@ aarch64-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
         TARGET: aarch64-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 arm-unknown-linux-gnueabi:
     <<: *build
@@ -52,6 +53,7 @@ arm-unknown-linux-gnueabi:
         EXTRA_PACKAGES: "libudev-dev gcc-arm-linux-gnueabi libc6-dev-armel-cross"
         TARGET: arm-unknown-linux-gnueabi
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 arm-unknown-linux-gnueabihf:
     <<: *build
@@ -60,6 +62,7 @@ arm-unknown-linux-gnueabihf:
         EXTRA_PACKAGES: "libudev-dev gcc-arm-linux-gnueabihf libc6-dev-armel-cross"
         TARGET: arm-unknown-linux-gnueabihf
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 armv5te-unknown-linux-gnueabi:
     <<: *build
@@ -68,6 +71,7 @@ armv5te-unknown-linux-gnueabi:
         EXTRA_PACKAGES: "libudev-dev gcc-arm-linux-gnueabi libc6-dev-armel-cross"
         TARGET: armv5te-unknown-linux-gnueabi
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 armv7-unknown-linux-gnueabihf:
     <<: *build
@@ -76,6 +80,7 @@ armv7-unknown-linux-gnueabihf:
         EXTRA_PACKAGES: "libudev-dev gcc-arm-linux-gnueabihf libc6-dev-armhf-cross"
         TARGET: armv7-unknown-linux-gnueabihf
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 i586-unknown-linux-gnu:
     <<: *build
@@ -83,6 +88,7 @@ i586-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-multilib"
         TARGET: i586-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 i686-unknown-linux-gnu:
     <<: *build
@@ -90,6 +96,7 @@ i686-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-multilib"
         TARGET: i686-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 mips-unknown-linux-gnu:
     <<: *build
@@ -98,6 +105,7 @@ mips-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-mips-linux-gnu libc6-dev-mips-cross"
         TARGET: mips-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 mips64-unknown-linux-gnuabi64:
     <<: *build
@@ -106,6 +114,7 @@ mips64-unknown-linux-gnuabi64:
         EXTRA_PACKAGES: "libudev-dev gcc-mips64-linux-gnuabi64 libc6-dev-mips64-cross"
         TARGET: mips64-unknown-linux-gnuabi64
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 mips64el-unknown-linux-gnuabi64:
     <<: *build
@@ -114,6 +123,7 @@ mips64el-unknown-linux-gnuabi64:
         EXTRA_PACKAGES: "libudev-dev gcc-mips64el-linux-gnuabi64 libc6-dev-mips64el-cross"
         TARGET: mips64el-unknown-linux-gnuabi64
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 mipsel-unknown-linux-gnu:
     <<: *build
@@ -122,6 +132,7 @@ mipsel-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-mipsel-linux-gnu libc6-dev-mipsel-cross"
         TARGET: mipsel-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 powerpc-unknown-linux-gnu:
     <<: *build
@@ -130,6 +141,7 @@ powerpc-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-powerpc-linux-gnu libc6-dev-powerpc-cross"
         TARGET: powerpc-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 powerpc64-unknown-linux-gnu:
     <<: *build
@@ -138,6 +150,7 @@ powerpc64-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-powerpc64-linux-gnu libc6-dev-ppc64-cross"
         TARGET: powerpc64-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 powerpc64le-unknown-linux-gnu:
     <<: *build
@@ -146,6 +159,7 @@ powerpc64le-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross"
         TARGET: powerpc64le-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 s390x-unknown-linux-gnu:
     <<: *build
@@ -154,6 +168,7 @@ s390x-unknown-linux-gnu:
         EXTRA_PACKAGES: "libudev-dev gcc-s390x-linux-gnu libc6-dev-s390x-cross"
         TARGET: s390x-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 sparc64-unknown-linux-gnu:
     <<: *build
@@ -161,6 +176,7 @@ sparc64-unknown-linux-gnu:
         EXTRA_PACKAGES: libudev-dev
         TARGET: sparc64-unknown-linux-gnu
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 x86_64-unknown-linux-gnu:
     <<: *build
@@ -173,48 +189,56 @@ aarch64-linux-android:
     variables:
         TARGET: aarch64-linux-android
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 arm-linux-androideabi:
     <<: *build
     variables:
         TARGET: arm-linux-androideabi
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 armv7-linux-androideabi:
     <<: *build
     variables:
         TARGET: armv7-linux-androideabi
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 i686-linux-android:
     <<: *build
     variables:
         TARGET: i686-linux-android
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 x86_64-linux-android:
     <<: *build
     variables:
         TARGET: x86_64-linux-android
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 i686-unknown-freebsd:
     <<: *build
     variables:
         TARGET: i686-unknown-freebsd
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 x86_64-unknown-freebsd:
     <<: *build
     variables:
         TARGET: x86_64-unknown-freebsd
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 x86_64-unknown-netbsd:
     <<: *build
     variables:
         TARGET: x86_64-unknown-netbsd
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 arm-unknown-linux-musleabi:
     <<: *build
@@ -247,6 +271,7 @@ aarch64-unknown-linux-musl:
         EXTRA_PACKAGES: "gcc-aarch64-linux-gnu"
         TARGET: aarch64-unknown-linux-musl
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 i586-unknown-linux-musl:
     <<: *build
@@ -260,6 +285,7 @@ mips-unknown-linux-musl:
         EXTRA_PACKAGES: "gcc-mips-linux-gnu"
         TARGET: mips-unknown-linux-musl
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 mipsel-unknown-linux-musl:
     <<: *build
@@ -268,6 +294,7 @@ mipsel-unknown-linux-musl:
         EXTRA_PACKAGES: "gcc-mipsel-linux-gnu"
         TARGET: mipsel-unknown-linux-musl
         DISABLE_TESTS: 1
+        DISABLE_EXTRA_BUILDS: 1
 
 i686-unknown-linux-musl:
     <<: *build
