@@ -103,8 +103,8 @@ fn test_ttyport_set_standard_baud() {
     assert_eq!(slave.baud_rate().unwrap(), 9600);
     slave.set_baud_rate(57600).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 57600);
-    slave.set_baud_rate(115200).unwrap();
-    assert_eq!(slave.baud_rate().unwrap(), 115200);
+    slave.set_baud_rate(115_200).unwrap();
+    assert_eq!(slave.baud_rate().unwrap(), 115_200);
 }
 
 // On mac this fails because you can't set nonstandard baud rates for these virtual ports
@@ -129,6 +129,6 @@ fn test_ttyport_set_nonstandard_baud() {
     assert_eq!(slave.baud_rate().unwrap(), 10000);
     slave.set_baud_rate(60000).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 60000);
-    slave.set_baud_rate(1200000).unwrap();
-    assert_eq!(slave.baud_rate().unwrap(), 1200000);
+    slave.set_baud_rate(1_200_000).unwrap();
+    assert_eq!(slave.baud_rate().unwrap(), 1_200_000);
 }
