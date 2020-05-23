@@ -280,22 +280,22 @@ x86_64-unknown-linux-musl:
         TARGET: x86_64-unknown-linux-musl
 
 rustfmt:
-    image: "rust:latest" # Use the latest rust to get the newest rustfmt
+    image: "rust:latest"
     stage: lint
     script:
-    - rustup component add rustfmt-preview
+    - rustup component add rustfmt
     - cargo fmt -- --check
 
 clippy:
     <<: *build
-    image: "rust:latest" # Use the latest rust to get the newest clippy
+    image: "rust:latest"
     variables:
         EXTRA_PACKAGES: "libudev-dev"
         TARGET: x86_64-unknown-linux-gnu
     stage: lint
     script:
-    - rustup component add clippy-preview
-    - cargo clippy
+    - rustup component add clippy
+    - cargo clippy --all-targets --all-features
 
 minimal-deps:
     <<: *build
