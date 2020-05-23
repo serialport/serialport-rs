@@ -28,7 +28,7 @@ fn main() {
     // Send out 4 bytes every second
     thread::spawn(move || loop {
         clone
-            .write(&[5, 6, 7, 8])
+            .write_all(&[5, 6, 7, 8])
             .expect("Failed to write to serial port");
         thread::sleep(Duration::from_millis(1000));
     });
