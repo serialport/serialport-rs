@@ -11,6 +11,8 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Enable `available_ports()` for Linux musl targets and those without the `libudev`
   feature enabled by scanning `/sys/` for ports.
 * `ENOENT` and `EACCES` errors are now exposed as `NotFound` and `PermissionDenied` errors on Linux
+* `try_clone_native()` was added to `COMPort` and `TTYPort` to complement `SerialPort::try_clone()`
+  but returning the concrete type instead.
 
 ==== Changed
 * Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit` feature.

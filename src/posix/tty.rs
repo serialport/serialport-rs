@@ -284,6 +284,32 @@ impl TTYPort {
         .map_err(|e| e.into())
     }
 
+    /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
+    /// same serial connection. Please note that if you want a real asynchronous serial port you
+    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
+    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    ///
+    /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
+    /// the settings are cached on a per object basis, trying to modify them from two different
+    /// objects can cause some nasty behavior.
+    ///
+    /// This is the same as `SerialPort::try_clone()` but returns the concrete type instead.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the serial port couldn't be cloned.
+    pub fn try_clone_native(&self) -> Result<TTYPort> {
+        let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD(self.fd))?;
+        Ok(TTYPort {
+            fd: fd_cloned,
+            exclusive: self.exclusive,
+            port_name: self.port_name.clone(),
+            timeout: self.timeout,
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate: self.baud_rate,
+        })
+    }
+
     #[cfg(any(
         target_os = "dragonflybsd",
         target_os = "freebsd",
@@ -860,15 +886,10 @@ impl SerialPort for TTYPort {
     }
 
     fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
-        let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD(self.fd))?;
-        Ok(Box::new(TTYPort {
-            fd: fd_cloned,
-            exclusive: self.exclusive,
-            port_name: self.port_name.clone(),
-            timeout: self.timeout,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: self.baud_rate,
-        }))
+        match self.try_clone_native() {
+            Ok(p) => Ok(Box::new(p)),
+            Err(e) => Err(e),
+        }
     }
 }
 
