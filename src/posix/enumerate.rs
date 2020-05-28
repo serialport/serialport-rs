@@ -73,8 +73,10 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
                 pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
                 serial_number,
-                manufacturer: udev_property_as_string(d, "ID_VENDOR"),
-                product: udev_property_as_string(d, "ID_MODEL"),
+                manufacturer: udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE")
+                    .or_else(|| udev_property_as_string(d, "ID_VENDOR")),
+                product: udev_property_as_string(d, "ID_MODEL_FROM_DATABASE")
+                    .or_else(|| udev_property_as_string(d, "ID_MODEL")),
             }))
         }
         Some("pci") => Ok(SerialPortType::PciPort),
