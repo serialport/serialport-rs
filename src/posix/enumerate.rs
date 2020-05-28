@@ -8,8 +8,6 @@ use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
 
 use cfg_if::cfg_if;
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-use libudev;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use CoreFoundation_sys::*;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -344,7 +342,7 @@ cfg_if! {
                         if let Some(devnode) = d.devnode() {
                             if let Some(path) = devnode.to_str() {
                                 if let Some(driver) = p.driver() {
-                                    if driver == "serial8250" && crate::open(&devnode.to_str().unwrap().to_string()).is_err() {
+                                    if driver == "serial8250" && crate::new(path, 9600).open().is_err() {
                                         continue;
                                     }
                                 }

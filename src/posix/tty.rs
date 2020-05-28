@@ -10,7 +10,7 @@ use nix::{self, libc, unistd};
 use crate::posix::ioctl::{self, SerialLines};
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
-    SerialPortSettings, StopBits,
+    SerialPortBuilder, StopBits,
 };
 
 /// Convenience method for removing exclusive access from
@@ -78,11 +78,12 @@ impl TTYPort {
     ///    the device is already in use.
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
-    pub fn open(path: &Path, settings: &SerialPortSettings) -> Result<TTYPort> {
+    pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
         use nix::fcntl::FcntlArg::F_SETFL;
         use nix::fcntl::OFlag;
         use nix::libc::{cfmakeraw, tcflush, tcgetattr, tcsetattr};
 
+        let path = Path::new(&builder.path);
         let fd = nix::fcntl::open(
             path,
             OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
@@ -143,22 +144,14 @@ impl TTYPort {
             e
         })?;
 
-        let mut port = TTYPort {
+        let port = TTYPort {
             fd,
-            timeout: Duration::new(0, 0), // This is overwritten by the subsequent call to `set_all()`
-            exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
-            port_name: path.to_str().map(|s| s.to_string()),
+            timeout: builder.timeout, // This is overwritten by the subsequent call to `set_all()`
+            exclusive: true,          // This is guaranteed by the above `ioctl::tiocexcl()` call
+            port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: settings.baud_rate,
+            baud_rate: builder.baud_rate,
         };
-
-        // Then we try and finish setting up the port.
-        // If this fails, we also need to be sure to close the
-        // file descriptor.
-        if let Err(err) = port.set_all(settings) {
-            close(fd);
-            return Err(err);
-        }
 
         Ok(port)
     }
@@ -262,9 +255,10 @@ impl TTYPort {
         ))]
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
-        // Open the slave port using default settings
-        let settings = Default::default();
-        let slave_tty = TTYPort::open(Path::new(&ptty_name), &settings)?;
+        // Open the slave port
+        let baud_rate = 9600;
+        let builder = crate::new(ptty_name, baud_rate).timeout(Duration::from_millis(1));
+        let slave_tty = TTYPort::open(&builder)?;
 
         // Manually construct the master port here because the
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
@@ -275,7 +269,7 @@ impl TTYPort {
             exclusive: true,
             port_name: None,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: settings.baud_rate,
+            baud_rate,
         };
 
         Ok((master_tty, slave_tty))
@@ -284,7 +278,7 @@ impl TTYPort {
     /// Sends 0-valued bits over the port for a set duration
     pub fn send_break(&self, duration: BreakDuration) -> Result<()> {
         match duration {
-            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0).into(),
+            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0),
             BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(self.fd, n.get()),
         }
         .map_err(|e| e.into())
@@ -427,17 +421,10 @@ fn get_termios_speed(fd: RawFd) -> u32 {
 
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        // Try to set exclusive, as is the default setting.  Catch errors.. this method MUST
-        // return a TTYPort so we'll just indicate non-exclusive on an error here.
-        let exclusive = match ioctl::tiocexcl(fd) {
-            Ok(_) => true,
-            Err(_) => false,
-        };
-
         TTYPort {
             fd,
             timeout: Duration::from_millis(100),
-            exclusive,
+            exclusive: ioctl::tiocexcl(fd).is_ok(),
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
             port_name: None,
@@ -484,19 +471,6 @@ impl io::Write for TTYPort {
 impl SerialPort for TTYPort {
     fn name(&self) -> Option<String> {
         self.port_name.clone()
-    }
-
-    /// Returns a struct with all port settings
-    // FIXME: Change this to only use a single termios read & write
-    fn settings(&self) -> SerialPortSettings {
-        SerialPortSettings {
-            baud_rate: self.baud_rate().expect("Couldn't retrieve baud rate"),
-            data_bits: self.data_bits().expect("Couldn't retrieve data bits"),
-            flow_control: self.flow_control().expect("Couldn't retrieve flow control"),
-            parity: self.parity().expect("Couldn't retrieve parity"),
-            stop_bits: self.stop_bits().expect("Couldn't retrieve stop bits"),
-            timeout: self.timeout,
-        }
     }
 
     /// Returns the port's baud rate
@@ -666,18 +640,6 @@ impl SerialPort for TTYPort {
 
     fn timeout(&self) -> Duration {
         self.timeout
-    }
-
-    // FIXME: Make this read & write the termios struct only once
-    fn set_all(&mut self, settings: &SerialPortSettings) -> Result<()> {
-        self.set_baud_rate(settings.baud_rate)?;
-        self.set_data_bits(settings.data_bits)?;
-        self.set_flow_control(settings.flow_control)?;
-        self.set_parity(settings.parity)?;
-        self.set_stop_bits(settings.stop_bits)?;
-        self.set_timeout(settings.timeout)?;
-
-        Ok(())
     }
 
     #[cfg(any(

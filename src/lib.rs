@@ -28,10 +28,8 @@
 
 use std::convert::From;
 use std::error::Error as StdError;
-use std::ffi::OsStr;
 use std::fmt;
 use std::io;
-use std::path::Path;
 use std::time::Duration;
 
 #[cfg(unix)]
@@ -204,32 +202,92 @@ pub enum ClearBuffer {
 }
 
 /// A struct containing all serial port settings
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SerialPortSettings {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SerialPortBuilder {
+    /// The port name, usually the device path
+    path: String,
     /// The baud rate in symbols-per-second
-    pub baud_rate: u32,
+    baud_rate: u32,
     /// Number of bits used to represent a character sent on the line
-    pub data_bits: DataBits,
+    data_bits: DataBits,
     /// The type of signalling to use for controlling data transfer
-    pub flow_control: FlowControl,
+    flow_control: FlowControl,
     /// The type of parity to use for error checking
-    pub parity: Parity,
+    parity: Parity,
     /// Number of bits to use to signal the end of a character
-    pub stop_bits: StopBits,
+    stop_bits: StopBits,
     /// Amount of time to wait to receive data before timing out
-    pub timeout: Duration,
+    timeout: Duration,
 }
 
-impl Default for SerialPortSettings {
-    fn default() -> SerialPortSettings {
-        SerialPortSettings {
-            baud_rate: 9600,
-            data_bits: DataBits::Eight,
-            flow_control: FlowControl::None,
-            parity: Parity::None,
-            stop_bits: StopBits::One,
-            timeout: Duration::from_millis(1),
-        }
+impl SerialPortBuilder {
+    /// Set the path to the serial port
+    pub fn path<'a>(mut self, path: impl Into<std::borrow::Cow<'a, str>>) -> Self {
+        self.path = path.into().as_ref().to_owned();
+        self
+    }
+
+    /// Set the baud rate in symbols-per-second
+    pub fn baud_rate(mut self, baud_rate: u32) -> Self {
+        self.baud_rate = baud_rate;
+        self
+    }
+
+    /// Set the number of bits used to represent a character sent on the line
+    pub fn data_bits(mut self, data_bits: DataBits) -> Self {
+        self.data_bits = data_bits;
+        self
+    }
+
+    /// Set the type of signalling to use for controlling data transfer
+    pub fn flow_control(mut self, flow_control: FlowControl) -> Self {
+        self.flow_control = flow_control;
+        self
+    }
+
+    /// Set the type of parity to use for error checking
+    pub fn parity(mut self, parity: Parity) -> Self {
+        self.parity = parity;
+        self
+    }
+
+    /// Set the number of bits to use to signal the end of a character
+    pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
+        self.stop_bits = stop_bits;
+        self
+    }
+
+    /// Set the amount of time to wait to receive data before timing out
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    /// Open a cross-platform interface to the port with the specified settings
+    pub fn open(self) -> Result<Box<dyn SerialPort>> {
+        #[cfg(unix)]
+        return posix::TTYPort::open(&self).map(|p| Box::new(p) as Box<dyn SerialPort>);
+
+        #[cfg(windows)]
+        return windows::COMPort::open(&self).map(|p| Box::new(p) as Box<dyn SerialPort>);
+
+        #[cfg(not(any(unix, windows)))]
+        Err(Error::new(
+            ErrorKind::Unknown,
+            "open() not implemented for platform",
+        ))
+    }
+
+    /// Open a platform-specific interface to the port with the specified settings
+    #[cfg(unix)]
+    pub fn open_native(self) -> Result<TTYPort> {
+        posix::TTYPort::open(&self)
+    }
+
+    /// Open a platform-specific interface to the port with the specified settings
+    #[cfg(windows)]
+    pub fn open_native(self) -> Result<COMPort> {
+        windows::COMPort::open(&self)
     }
 }
 
@@ -245,9 +303,6 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// This name may not be the canonical device name and instead be shorthand.
     /// Additionally it may not exist for virtual ports.
     fn name(&self) -> Option<String>;
-
-    /// Returns a struct with the current port settings
-    fn settings(&self) -> SerialPortSettings;
 
     /// Returns the current baud rate.
     ///
@@ -291,11 +346,6 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn timeout(&self) -> Duration;
 
     // Port settings setters
-
-    /// Applies all settings for a struct. This isn't guaranteed to involve only
-    /// a single call into the driver, though that may be done on some
-    /// platforms.
-    fn set_all(&mut self, settings: &SerialPortSettings) -> Result<()>;
 
     /// Sets the baud rate.
     ///
@@ -487,85 +537,26 @@ pub struct SerialPortInfo {
     pub port_type: SerialPortType,
 }
 
-/// Opens the serial port specified by the device path using default settings
+/// Construct a builder of `SerialPort` objects
 ///
-/// The default settings are:
+/// `SerialPort` objects are built using the Builder pattern through the `new` function. The
+/// resultant `SerialPortBuilder` object can be copied, reconfigured, and saved making working with
+/// multiple serial ports a little easier.
 ///
-/// * Baud: 9600
-/// * Data bits: 8
-/// * Flow control: None
-/// * Parity: None
-/// * Stop bits: 1
-/// * Timeout: 1ms
-///
-/// This is the canonical way to open a new serial port.
-///
+/// To open a new serial port:
+/// ```fail
+/// serialport::new("/dev/ttyUSB0", 9600).open().expect("Failed to open port");
 /// ```
-/// serialport::open("/dev/ttyUSB0");
-/// ```
-pub fn open<T: AsRef<OsStr> + ?Sized>(port: &T) -> Result<Box<dyn SerialPort>> {
-    // This is written with explicit returns because of:
-    // https://github.com/rust-lang/rust/issues/38337
-
-    #[cfg(unix)]
-    return match posix::TTYPort::open(Path::new(port), &Default::default()) {
-        Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e),
-    };
-
-    #[cfg(windows)]
-    return match windows::COMPort::open(Path::new(port), &Default::default()) {
-        Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e),
-    };
-
-    #[cfg(not(any(unix, windows)))]
-    Err(Error::new(
-        ErrorKind::Unknown,
-        "open() not implemented for platform",
-    ))
-}
-
-/// Opens the serial port specified by the device path with the given settings
-///
-/// ```
-/// use serialport::*;
-/// use std::time::Duration;
-///
-/// let s = SerialPortSettings {
-///     baud_rate: 9600,
-///     data_bits: DataBits::Eight,
-///     flow_control: FlowControl::None,
-///     parity: Parity::None,
-///     stop_bits: StopBits::One,
-///     timeout: Duration::from_millis(1),
-/// };
-/// let p = open_with_settings("/dev/ttyUSB0", &s);
-/// ```
-pub fn open_with_settings<T: AsRef<OsStr> + ?Sized>(
-    port: &T,
-    settings: &SerialPortSettings,
-) -> Result<Box<dyn SerialPort>> {
-    // This is written with explicit returns because of:
-    // https://github.com/rust-lang/rust/issues/38337
-
-    #[cfg(unix)]
-    return match posix::TTYPort::open(Path::new(port), settings) {
-        Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e),
-    };
-
-    #[cfg(windows)]
-    return match windows::COMPort::open(port, settings) {
-        Ok(p) => Ok(Box::new(p)),
-        Err(e) => Err(e),
-    };
-
-    #[cfg(not(any(unix, windows)))]
-    Err(Error::new(
-        ErrorKind::Unknown,
-        "open() not implemented for platform",
-    ))
+pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> SerialPortBuilder {
+    SerialPortBuilder {
+        path: path.into().into_owned(),
+        baud_rate,
+        data_bits: DataBits::Eight,
+        flow_control: FlowControl::None,
+        parity: Parity::None,
+        stop_bits: StopBits::One,
+        timeout: Duration::from_millis(0),
+    }
 }
 
 /// Returns a list of all serial ports on system

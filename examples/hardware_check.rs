@@ -21,9 +21,7 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::{
-    ClearBuffer, DataBits, FlowControl, Parity, SerialPort, SerialPortSettings, StopBits,
-};
+use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
 
 fn main() {
     let matches = App::new("Serialport Example - Hardware Check")
@@ -55,9 +53,9 @@ fn main() {
     }
 
     // Run single-port tests on port1
-    let mut port1 = match serialport::open(&port1_name) {
+    let mut port1 = match serialport::new(port1_name, 9600).open() {
         Err(e) => {
-            eprintln!("Failed to open \"{}\". Error: {}", port2_name, e);
+            eprintln!("Failed to open \"{}\". Error: {}", port1_name, e);
             ::std::process::exit(1);
         }
         Ok(p) => p,
@@ -66,7 +64,7 @@ fn main() {
 
     if port2_name != "" {
         // Run single-port tests on port2
-        let mut port2 = match serialport::open(&port2_name) {
+        let mut port2 = match serialport::new(port2_name, 9600).open() {
             Err(e) => {
                 eprintln!("Failed to open \"{}\". Error: {}", port2_name, e);
                 ::std::process::exit(1);
@@ -242,9 +240,7 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
     print!("Testing data transmission...");
     std::io::stdout().flush().unwrap();
     // Make sure the port has sane defaults
-    let port_settings: SerialPortSettings = Default::default();
-    port.set_all(&port_settings)
-        .expect("Resetting port to sane defaults failed");
+    set_defaults(port);
     let msg = "Test Message";
     port.write_all(msg.as_bytes())
         .expect("Unable to write bytes.");
@@ -274,15 +270,8 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     );
 
     // Make sure both ports are set to sane defaults
-    let mut port_settings: SerialPortSettings = Default::default();
-    port_settings.timeout = Duration::from_millis(100);
-    port_settings.baud_rate = 115_200;
-    port1
-        .set_all(&port_settings)
-        .expect("Resetting port1 to sane defaults failed");
-    port2
-        .set_all(&port_settings)
-        .expect("Resetting port2 to sane defaults failed");
+    set_defaults(port1);
+    set_defaults(port2);
 
     let msg = "Test Message";
     let mut buf = [0u8; 12];
@@ -429,4 +418,13 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
         );
         println!("success");
     }
+}
+
+fn set_defaults(port: &mut dyn serialport::SerialPort) {
+    port.set_baud_rate(9600).unwrap();
+    port.set_data_bits(DataBits::Eight).unwrap();
+    port.set_flow_control(FlowControl::Software).unwrap();
+    port.set_parity(Parity::None).unwrap();
+    port.set_stop_bits(StopBits::One).unwrap();
+    port.set_timeout(Duration::from_millis(0)).unwrap();
 }

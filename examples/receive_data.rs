@@ -3,8 +3,6 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::{open_with_settings, SerialPortSettings};
-
 fn main() {
     let matches = App::new("Serialport Example - Receive Data")
         .about("Reads data from a serial port and echoes it to stdout")
@@ -19,22 +17,18 @@ fn main() {
             Arg::with_name("baud")
                 .help("The baud rate to connect at")
                 .use_delimiter(false)
-                .required(true),
+                .required(true)
+                .validator(valid_baud),
         )
         .get_matches();
     let port_name = matches.value_of("port").unwrap();
-    let baud_rate = matches.value_of("baud").unwrap();
+    let baud_rate = matches.value_of("baud").unwrap().parse::<u32>().unwrap();
 
-    let mut settings: SerialPortSettings = Default::default();
-    settings.timeout = Duration::from_millis(10);
-    if let Ok(rate) = baud_rate.parse::<u32>() {
-        settings.baud_rate = rate.into();
-    } else {
-        eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-        ::std::process::exit(1);
-    }
+    let port = serialport::new(port_name, baud_rate)
+        .timeout(Duration::from_millis(10))
+        .open();
 
-    match open_with_settings(&port_name, &settings) {
+    match port {
         Ok(mut port) => {
             let mut serial_buf: Vec<u8> = vec![0; 1000];
             println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
@@ -51,4 +45,10 @@ fn main() {
             ::std::process::exit(1);
         }
     }
+}
+
+fn valid_baud(val: String) -> Result<(), String> {
+    val.parse::<u32>()
+        .map(|_| ())
+        .map_err(|_| format!("Invalid baud rate '{}' specified", val))
 }

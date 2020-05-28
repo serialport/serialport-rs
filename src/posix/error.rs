@@ -1,7 +1,3 @@
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-use libudev;
-use nix;
-
 use std::io;
 
 use crate::{Error, ErrorKind};
