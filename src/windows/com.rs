@@ -76,6 +76,45 @@ impl COMPort {
         }
     }
 
+    /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
+    /// same serial connection. Please note that if you want a real asynchronous serial port you
+    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
+    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    ///
+    /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
+    /// the settings are cached on a per object basis, trying to modify them from two different
+    /// objects can cause some nasty behavior.
+    ///
+    /// This is the same as `SerialPort::try_clone()` but returns the concrete type instead.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the serial port couldn't be cloned.
+    pub fn try_clone_native(&self) -> Result<COMPort> {
+        let process_handle: HANDLE = unsafe { GetCurrentProcess() };
+        let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
+        unsafe {
+            DuplicateHandle(
+                process_handle,
+                self.handle,
+                process_handle,
+                &mut cloned_handle,
+                0,
+                TRUE,
+                DUPLICATE_SAME_ACCESS,
+            );
+            if cloned_handle != INVALID_HANDLE_VALUE {
+                Ok(COMPort {
+                    handle: cloned_handle,
+                    port_name: self.port_name.clone(),
+                    timeout: self.timeout,
+                })
+            } else {
+                Err(super::error::last_os_error())
+            }
+        }
+    }
+
     fn escape_comm_function(&mut self, function: DWORD) -> Result<()> {
         match unsafe { EscapeCommFunction(self.handle, function) } {
             0 => Err(super::error::last_os_error()),
@@ -414,27 +453,9 @@ impl SerialPort for COMPort {
     }
 
     fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
-        let process_handle: HANDLE = unsafe { GetCurrentProcess() };
-        let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
-        unsafe {
-            DuplicateHandle(
-                process_handle,
-                self.handle,
-                process_handle,
-                &mut cloned_handle,
-                0,
-                TRUE,
-                DUPLICATE_SAME_ACCESS,
-            );
-            if cloned_handle != INVALID_HANDLE_VALUE {
-                Ok(Box::new(COMPort {
-                    handle: cloned_handle,
-                    port_name: self.port_name.clone(),
-                    timeout: self.timeout,
-                }))
-            } else {
-                Err(super::error::last_os_error())
-            }
+        match self.try_clone_native() {
+            Ok(p) => Ok(Box::new(p)),
+            Err(e) => Err(e),
         }
     }
 }
