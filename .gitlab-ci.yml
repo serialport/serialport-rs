@@ -306,6 +306,13 @@ x86_64-unknown-linux-musl:
     variables:
         TARGET: x86_64-unknown-linux-musl
 
+x86_64-unknown-redox:
+    image: "redoxos/redoxer"
+    stage: build
+    script:
+    - redoxer build --verbose
+    - redoxer test --verbose
+
 rustfmt:
     image: "rust:latest"
     stage: lint
