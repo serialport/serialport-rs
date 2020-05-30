@@ -23,7 +23,7 @@ default = ["libudev"]
 clap = "2.32"
 
 [target."cfg(unix)".dependencies]
-nix = "0.16.1"
+nix = { git = "https://github.com/nix-rust/nix" }
 bitflags = "1.0"
 cfg-if = "0.1"
 
