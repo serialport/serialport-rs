@@ -21,6 +21,10 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Opening `SerialPort` s now uses a the builder pattern through `serialport::new()`. See the
   README for concrete examples.
 * `SerialPorts`s are no longer opened with a default timeout of 1ms
+* Under linux, the `manufacturer` and `product` fields of `UsbPortInfo` now take their values from
+  the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE` udev properties respectively, instead
+  of the `ID_VENDOR` and `ID_MODEL` properties that were used before. When the `_FROM_DATABASE`
+  values are not available, it falls back to the old behavior. https://gitlab.com/susurrus/serialport-rs/merge_requests/86[!86]
 
 ==== Fixed
 ==== Removed
