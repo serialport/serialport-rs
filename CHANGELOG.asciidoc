@@ -27,6 +27,10 @@ and this project adheres to http://semver.org/[Semantic Versioning].
   values are not available, it falls back to the old behavior. https://gitlab.com/susurrus/serialport-rs/merge_requests/86[!86]
 
 ==== Fixed
+* Raised the version specification for `bitflags` to 1.0.4. Previously it was
+  set to 1.0.0, but this version of `bitflags` is actually incompatible with
+  Rust 2018 style macro imports that `serialport-rs` requires.
+
 ==== Removed
 * Removed the `serialport::prelude` module. Types should be explicitly imported
   or can be glob-imported from the root like `use serialport::*`.
