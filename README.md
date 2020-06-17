@@ -4,7 +4,6 @@
 
 [![GitLab CI status](https://gitlab.com/susurrus/serialport-rs/badges/master/build.svg)](https://gitlab.com/susurrus/serialport-rs/pipelines)
 [![Appveyor CI status](https://ci.appveyor.com/api/projects/status/gitlab/Susurrus/serialport-rs?svg=true&branch=master)](https://ci.appveyor.com/project/Susurrus/serialport-rs)
-[![Travis CI status](https://travis-ci.org/Susurrus/serialport-rs.svg?branch=master)](https://travis-ci.org/Susurrus/serialport-rs)
 
 Introduction
 ============
