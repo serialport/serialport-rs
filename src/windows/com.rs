@@ -103,6 +103,16 @@ impl COMPort {
         Ok(())
     }
 
+    fn set_all(com: &mut COMPort, builder: &SerialPortBuilder) -> Result<()> {
+        com.set_baud_rate(builder.baud_rate)?;
+        com.set_data_bits(builder.data_bits)?;
+        com.set_flow_control(builder.flow_control)?;
+        com.set_parity(builder.parity)?;
+        com.set_stop_bits(builder.stop_bits)?;
+        com.set_timeout(builder.timeout)?;
+        Ok(())
+    }
+
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
