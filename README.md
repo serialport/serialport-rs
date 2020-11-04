@@ -80,6 +80,13 @@ let port = serialport::new("/dev/ttyUSB0", 115_200)
     .open_native().expect("Failed to open port");
 ```
 
+Closing a port:
+
+`serialport-rs` uses the Resource Acquisition Is Initialization (RAII) paradigm and so closing a
+port is done when the `SerialPort` object is `Drop`ed either implicitly or explicitly using
+`std::mem::drop` (`std::mem::drop(port)`).
+
+
 Examples
 ========
 
