@@ -13,6 +13,8 @@ mod raw {
     ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
     ioctl_none_bad!(tiocnxcl, libc::TIOCNXCL);
     ioctl_read_bad!(tiocmget, libc::TIOCMGET, libc::c_int);
+    ioctl_none_bad!(tiocsbrk, libc::TIOCSBRK);
+    ioctl_none_bad!(tioccbrk, libc::TIOCCBRK);
 
     #[cfg(any(target_os = "android", target_os = "linux"))]
     ioctl_read_bad!(fionread, libc::FIONREAD, libc::c_int);
@@ -118,6 +120,18 @@ pub fn tiocmget(fd: RawFd) -> Result<SerialLines> {
     let mut status: libc::c_int = 0;
     let x = unsafe { raw::tiocmget(fd, &mut status) };
     x.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
+}
+
+pub fn tiocsbrk(fd: RawFd) -> Result<()> {
+    unsafe { raw::tiocsbrk(fd) }
+        .map(|_| ())
+        .map_err(|e| e.into())
+}
+
+pub fn tioccbrk(fd: RawFd) -> Result<()> {
+    unsafe { raw::tioccbrk(fd) }
+        .map(|_| ())
+        .map_err(|e| e.into())
 }
 
 pub fn fionread(fd: RawFd) -> Result<u32> {

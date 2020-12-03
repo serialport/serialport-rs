@@ -13,14 +13,15 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * `ENOENT` and `EACCES` errors are now exposed as `NotFound` and `PermissionDenied` errors on Linux
 * `try_clone_native()` was added to `COMPort` and `TTYPort` to complement `SerialPort::try_clone()`
   but returning the concrete type instead.
+* Added `set_break()` and `clear_break()` to `SerialPort`
 
 ==== Changed
 * Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit` feature.
 * The platform-specific `TTYPort`/`BreakDuration` and `COMPort` are now at the root level rather
   than under the `posix` and `windows` submodules respectively.
-* Opening `SerialPort` s now uses a the builder pattern through `serialport::new()`. See the
+* Opening `SerialPort` s now uses the builder pattern through `serialport::new()`. See the
   README for concrete examples.
-* `SerialPorts`s are no longer opened with a default timeout of 1ms
+* `SerialPorts` s are no longer opened with a default timeout of 1ms
 * Under linux, the `manufacturer` and `product` fields of `UsbPortInfo` now take their values from
   the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE` udev properties respectively, instead
   of the `ID_VENDOR` and `ID_MODEL` properties that were used before. When the `_FROM_DATABASE`
