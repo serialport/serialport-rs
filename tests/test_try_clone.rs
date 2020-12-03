@@ -44,7 +44,6 @@ fn test_try_clone_move() {
         clone.write_all(&bytes).unwrap();
     });
 
-    // Create clone in an inner scope to test that dropping a clone does not destroy the serialport
     let mut buffer = [0; 6];
     slave.read_exact(&mut buffer).unwrap();
     assert_eq!(buffer, [b'a', b'b', b'c', b'd', b'e', b'f']);
