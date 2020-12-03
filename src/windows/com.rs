@@ -13,6 +13,7 @@ use winapi::um::winnt::{
     DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE,
 };
 
+use crate::windows::dcb;
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
     SerialPortBuilder, StopBits,
@@ -67,13 +68,22 @@ impl COMPort {
             )
         };
 
-        if handle != INVALID_HANDLE_VALUE {
-            let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
-            com.port_name = Some(builder.path.clone());
-            Ok(com)
-        } else {
-            Err(super::error::last_os_error())
+        if handle == INVALID_HANDLE_VALUE {
+            return Err(super::error::last_os_error());
         }
+
+        let mut dcb = dcb::get_dcb(handle)?;
+        dcb::set_baud_rate(&mut dcb, builder.baud_rate);
+        dcb::set_data_bits(&mut dcb, builder.data_bits);
+        dcb::set_parity(&mut dcb, builder.parity);
+        dcb::set_stop_bits(&mut dcb, builder.stop_bits);
+        dcb::set_flow_control(&mut dcb, builder.flow_control);
+        dcb::set_dcb(handle, dcb)?;
+
+        let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
+        com.set_timeout(builder.timeout)?;
+        com.port_name = Some(builder.path.clone());
+        Ok(com)
     }
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
@@ -138,25 +148,6 @@ impl COMPort {
             handle: handle as HANDLE,
             timeout: Duration::from_millis(100),
             port_name: None,
-        }
-    }
-
-    fn get_dcb(&self) -> Result<DCB> {
-        let mut dcb: DCB = unsafe { MaybeUninit::zeroed().assume_init() };
-        dcb.DCBlength = std::mem::size_of::<DCB>() as u32;
-
-        if unsafe { GetCommState(self.handle, &mut dcb) } != 0 {
-            return Ok(dcb);
-        } else {
-            return Err(super::error::last_os_error());
-        }
-    }
-
-    fn set_dcb(&self, mut dcb: DCB) -> Result<()> {
-        if unsafe { SetCommState(self.handle, &mut dcb as *mut _) != 0 } {
-            return Ok(());
-        } else {
-            return Err(super::error::last_os_error());
         }
     }
 }
@@ -296,12 +287,12 @@ impl SerialPort for COMPort {
     }
 
     fn baud_rate(&self) -> Result<u32> {
-        let dcb = self.get_dcb()?;
+        let dcb = dcb::get_dcb(self.handle)?;
         Ok(dcb.BaudRate as u32)
     }
 
     fn data_bits(&self) -> Result<DataBits> {
-        let dcb = self.get_dcb()?;
+        let dcb = dcb::get_dcb(self.handle)?;
         match dcb.ByteSize {
             5 => Ok(DataBits::Five),
             6 => Ok(DataBits::Six),
@@ -315,7 +306,7 @@ impl SerialPort for COMPort {
     }
 
     fn parity(&self) -> Result<Parity> {
-        let dcb = self.get_dcb()?;
+        let dcb = dcb::get_dcb(self.handle)?;
         match dcb.Parity {
             ODDPARITY => Ok(Parity::Odd),
             EVENPARITY => Ok(Parity::Even),
@@ -328,7 +319,7 @@ impl SerialPort for COMPort {
     }
 
     fn stop_bits(&self) -> Result<StopBits> {
-        let dcb = self.get_dcb()?;
+        let dcb = dcb::get_dcb(self.handle)?;
         match dcb.StopBits {
             TWOSTOPBITS => Ok(StopBits::Two),
             ONESTOPBIT => Ok(StopBits::One),
@@ -340,7 +331,7 @@ impl SerialPort for COMPort {
     }
 
     fn flow_control(&self) -> Result<FlowControl> {
-        let dcb = self.get_dcb()?;
+        let dcb = dcb::get_dcb(self.handle)?;
         if dcb.fOutxCtsFlow() != 0 || dcb.fRtsControl() != 0 {
             Ok(FlowControl::Hardware)
         } else if dcb.fOutX() != 0 || dcb.fInX() != 0 {
@@ -351,69 +342,33 @@ impl SerialPort for COMPort {
     }
 
     fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
-        let mut dcb = self.get_dcb()?;
-        dcb.BaudRate = baud_rate as DWORD;
-
-        self.set_dcb(dcb)
+        let mut dcb = dcb::get_dcb(self.handle)?;
+        dcb::set_baud_rate(&mut dcb, baud_rate);
+        dcb::set_dcb(self.handle, dcb)
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
-        let mut dcb = self.get_dcb()?;
-        dcb.ByteSize = match data_bits {
-            DataBits::Five => 5,
-            DataBits::Six => 6,
-            DataBits::Seven => 7,
-            DataBits::Eight => 8,
-        };
-
-        self.set_dcb(dcb)
+        let mut dcb = dcb::get_dcb(self.handle)?;
+        dcb::set_data_bits(&mut dcb, data_bits);
+        dcb::set_dcb(self.handle, dcb)
     }
 
     fn set_parity(&mut self, parity: Parity) -> Result<()> {
-        let mut dcb = self.get_dcb()?;
-        dcb.Parity = match parity {
-            Parity::None => NOPARITY as u8,
-            Parity::Odd => ODDPARITY as u8,
-            Parity::Even => EVENPARITY as u8,
-        };
-
-        self.set_dcb(dcb)
+        let mut dcb = dcb::get_dcb(self.handle)?;
+        dcb::set_parity(&mut dcb, parity);
+        dcb::set_dcb(self.handle, dcb)
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
-        let mut dcb = self.get_dcb()?;
-        dcb.StopBits = match stop_bits {
-            StopBits::One => ONESTOPBIT as u8,
-            StopBits::Two => TWOSTOPBITS as u8,
-        };
-
-        self.set_dcb(dcb)
+        let mut dcb = dcb::get_dcb(self.handle)?;
+        dcb::set_stop_bits(&mut dcb, stop_bits);
+        dcb::set_dcb(self.handle, dcb)
     }
 
     fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
-        let mut dcb = self.get_dcb()?;
-        match flow_control {
-            FlowControl::None => {
-                dcb.set_fOutxCtsFlow(0);
-                dcb.set_fRtsControl(0);
-                dcb.set_fOutX(0);
-                dcb.set_fInX(0);
-            }
-            FlowControl::Software => {
-                dcb.set_fOutxCtsFlow(0);
-                dcb.set_fRtsControl(0);
-                dcb.set_fOutX(1);
-                dcb.set_fInX(1);
-            }
-            FlowControl::Hardware => {
-                dcb.set_fOutxCtsFlow(1);
-                dcb.set_fRtsControl(1);
-                dcb.set_fOutX(0);
-                dcb.set_fInX(0);
-            }
-        }
-
-        self.set_dcb(dcb)
+        let mut dcb = dcb::get_dcb(self.handle)?;
+        dcb::set_flow_control(&mut dcb, flow_control);
+        dcb::set_dcb(self.handle, dcb)
     }
 
     fn bytes_to_read(&self) -> Result<u32> {
