@@ -98,10 +98,10 @@ can help debug software or hardware errors.
  * *duplex* - Tests that a port can be successfully cloned.
  * *hardware\_check* - Checks port/driver functionality for a single port or a pair of ports connected
    to each other.
- * *heartbeat* - Transmits data regularly on a port.
  * *list_ports* - Lists available serial ports.
  * *pseudo_terminal* - Unix only. Tests that a pseudo-terminal pair can be created.
- * *receive_data* - Print data received on a port.
+ * *receive_data* - Output data received on a port.
+ * *transmit* - Transmits data regularly on a port with various port configurations. Useful for debugging.
 
 Dependencies
 ============
