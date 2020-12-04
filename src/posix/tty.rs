@@ -715,6 +715,14 @@ impl SerialPort for TTYPort {
             Err(e) => Err(e),
         }
     }
+
+    fn set_break(&self) -> Result<()> {
+        ioctl::tiocsbrk(self.fd)
+    }
+
+    fn clear_break(&self) -> Result<()> {
+        ioctl::tioccbrk(self.fd)
+    }
 }
 
 #[test]

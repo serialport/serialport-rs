@@ -413,4 +413,20 @@ impl SerialPort for COMPort {
             Err(e) => Err(e),
         }
     }
+
+    fn set_break(&self) -> Result<()> {
+        if unsafe { SetCommBreak(self.handle) != 0 } {
+            Ok(())
+        } else {
+            Err(super::error::last_os_error())
+        }
+    }
+
+    fn clear_break(&self) -> Result<()> {
+        if unsafe { ClearCommBreak(self.handle) != 0 } {
+            Ok(())
+        } else {
+            Err(super::error::last_os_error())
+        }
+    }
 }
