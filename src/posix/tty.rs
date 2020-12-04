@@ -4,7 +4,7 @@ use std::path::Path;
 use std::time::Duration;
 use std::{io, mem};
 
-use nix::fcntl::fcntl;
+use nix::fcntl::{fcntl, OFlag};
 use nix::{self, libc, unistd};
 
 use crate::posix::ioctl::{self, SerialLines};
@@ -72,7 +72,6 @@ impl TTYPort {
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
         use nix::fcntl::FcntlArg::F_SETFL;
-        use nix::fcntl::OFlag;
         use nix::libc::{cfmakeraw, tcflush, tcgetattr, tcsetattr};
 
         let path = Path::new(&builder.path);
@@ -260,9 +259,38 @@ impl TTYPort {
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
         // Open the slave port
+        #[cfg(any(target_os = "ios", target_os = "macos"))]
         let baud_rate = 9600;
-        let builder = crate::new(ptty_name, baud_rate).timeout(Duration::from_millis(1));
-        let slave_tty = TTYPort::open(&builder)?;
+        let fd = nix::fcntl::open(
+            Path::new(&ptty_name),
+            OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
+            nix::sys::stat::Mode::empty(),
+        )?;
+
+        // Set the port to a raw state. Using these ports will not work without this.
+        let mut termios = MaybeUninit::uninit();
+        let res = unsafe { crate::posix::tty::libc::tcgetattr(fd, termios.as_mut_ptr()) };
+        if let Err(e) = nix::errno::Errno::result(res) {
+            close(fd);
+            return Err(e.into());
+        }
+        let mut termios = unsafe { termios.assume_init() };
+        unsafe { crate::posix::tty::libc::cfmakeraw(&mut termios) };
+        unsafe { crate::posix::tty::libc::tcsetattr(fd, libc::TCSANOW, &termios) };
+
+        fcntl(
+            fd,
+            nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
+        )?;
+
+        let slave_tty = TTYPort {
+            fd,
+            timeout: Duration::from_millis(100),
+            exclusive: true,
+            port_name: Some(ptty_name),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate,
+        };
 
         // Manually construct the master port here because the
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
