@@ -71,33 +71,28 @@ fn main() {
         .stop_bits(stop_bits)
         .data_bits(data_bits);
     println!("{:?}", &builder);
-    let port = builder.open();
+    let mut port = builder.open().unwrap_or_else(|e| {
+        eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
+        ::std::process::exit(1);
+    });
 
-    match port {
-        Ok(mut port) => {
-            println!(
-                "Writing '{}' to {} at {} baud at {}Hz",
-                &string, &port_name, &baud_rate, &rate
-            );
-            loop {
-                match port.write(&string.as_bytes()) {
-                    Ok(_) => {
-                        print!("{}", &string);
-                        std::io::stdout().flush().unwrap();
-                    }
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    Err(e) => eprintln!("{:?}", e),
-                }
-                if rate == 0 {
-                    return;
-                }
-                std::thread::sleep(Duration::from_millis((1000.0 / (rate as f32)) as u64));
+    println!(
+        "Writing '{}' to {} at {} baud at {}Hz",
+        &string, &port_name, &baud_rate, &rate
+    );
+    loop {
+        match port.write(&string.as_bytes()) {
+            Ok(_) => {
+                print!("{}", &string);
+                std::io::stdout().flush().unwrap();
             }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+            Err(e) => eprintln!("{:?}", e),
         }
-        Err(e) => {
-            eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
-            ::std::process::exit(1);
+        if rate == 0 {
+            return;
         }
+        std::thread::sleep(Duration::from_millis((1000.0 / (rate as f32)) as u64));
     }
 }
 
