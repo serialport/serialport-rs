@@ -107,12 +107,17 @@ Dependencies
 
 Rust versions 1.36.0 and higher are supported.
 
-For GNU Linux `pkg-config` and `libudev` headers are required:
+For GNU Linux `pkg-config` headers are required:
 
-* Ubuntu: `sudo apt install pkg-config libudev-dev`
-* Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel`
+* Ubuntu: `sudo apt install pkg-config`
+* Fedora: `sudo dnf install pkgconf-pkg-config`
 
 For other distros they may provide `pkg-config` through the `pkgconf` package instead.
+
+For GNU Linux `libudev` headers are required as well (unless you disable the default `libudev` feature):
+
+* Ubuntu: `sudo apt install libudev-dev`
+* Fedora: `sudo dnf install systemd-devel`
 
 Platform Support
 ================
