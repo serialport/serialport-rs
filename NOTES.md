@@ -41,3 +41,6 @@ Experimentation has shown that there are a few key features to using `iossiospee
  * [picocom](https://github.com/npat-efault/picocom) follows the second approach. However they also
 cache the existing `termios` struct.
 
+# Additional References
+
+ * [Understanding UNIX termios VMIN and VTIME](http://unixwiz.net/techtips/termios-vmin-vtime.html)
