@@ -190,23 +190,15 @@ impl TTYPort {
     }
 
     fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> Result<()> {
-        let retval = if level {
+        if level {
             ioctl::tiocmbis(self.fd, pin)
         } else {
             ioctl::tiocmbic(self.fd, pin)
-        };
-
-        match retval {
-            Ok(()) => Ok(()),
-            Err(err) => Err(err),
         }
     }
 
     fn read_pin(&mut self, pin: ioctl::SerialLines) -> Result<bool> {
-        match ioctl::tiocmget(self.fd) {
-            Ok(pins) => Ok(pins.contains(pin)),
-            Err(err) => Err(err),
-        }
+        ioctl::tiocmget(self.fd).map(|pins| pins.contains(pin))
     }
 
     /// Create a pair of pseudo serial terminals
@@ -398,10 +390,7 @@ impl io::Read for TTYPort {
             return Err(io::Error::from(Error::from(e)));
         }
 
-        match nix::unistd::read(self.fd, buf) {
-            Ok(n) => Ok(n),
-            Err(e) => Err(io::Error::from(Error::from(e))),
-        }
+        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 }
 
@@ -411,10 +400,7 @@ impl io::Write for TTYPort {
             return Err(io::Error::from(Error::from(e)));
         }
 
-        match nix::unistd::write(self.fd, buf) {
-            Ok(n) => Ok(n),
-            Err(e) => Err(io::Error::from(Error::from(e))),
-        }
+        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 
     fn flush(&mut self) -> io::Result<()> {
