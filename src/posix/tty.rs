@@ -122,9 +122,6 @@ impl TTYPort {
 
             unsafe { tcflush(fd, libc::TCIOFLUSH) };
 
-            // get exclusive access to device
-            ioctl::tiocexcl(fd)?;
-
             // clear O_NONBLOCK flag
             fcntl(fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
 
@@ -152,7 +149,7 @@ impl TTYPort {
         Ok(TTYPort {
             fd,
             timeout: builder.timeout,
-            exclusive: true, // This is guaranteed by the above `ioctl::tiocexcl()` call
+            exclusive: false,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: builder.baud_rate,

@@ -25,7 +25,11 @@ and this project adheres to http://semver.org/[Semantic Versioning].
 * Under linux, the `manufacturer` and `product` fields of `UsbPortInfo` now take their values from
   the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE` udev properties respectively, instead
   of the `ID_VENDOR` and `ID_MODEL` properties that were used before. When the `_FROM_DATABASE`
-  values are not available, it falls back to the old behavior. https://gitlab.com/susurrus/serialport-rs/merge_requests/86[!86]
+  values are not available, it falls back to the old behavior.
+  https://gitlab.com/susurrus/serialport-rs/merge_requests/86[!86]
+* POSIX ports are no longer opened in exclusive mode. After opening they can be made exclusive via
+  `TTYPort::set_exclusive()`.
+  https://gitlab.com/susurrus/serialport-rs/merge_requests/98[!98]
 
 ==== Fixed
 * Raised the version specification for `bitflags` to 1.0.4. Previously it was
