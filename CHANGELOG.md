@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on http://keepachangelog.com/[Keep a Changelog]
-and this project adheres to http://semver.org/[Semantic Versioning].
+The format is based on [Keep a Changelog](http://keepachangelog.com/)
+and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNRELEASED]
 ### Added
@@ -32,10 +32,10 @@ and this project adheres to http://semver.org/[Semantic Versioning].
   the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE` udev properties respectively, instead
   of the `ID_VENDOR` and `ID_MODEL` properties that were used before. When the `_FROM_DATABASE`
   values are not available, it falls back to the old behavior.
-  https://gitlab.com/susurrus/serialport-rs/merge_requests/86[!86]
+  [!86](https://gitlab.com/susurrus/serialport-rs/merge_requests/86)
 * POSIX ports are no longer opened in exclusive mode. After opening they can be made exclusive via
   `TTYPort::set_exclusive()`.
-  https://gitlab.com/susurrus/serialport-rs/merge_requests/98[!98]
+  [!98](https://gitlab.com/susurrus/serialport-rs/merge_requests/98)
 
 ### Fixed
 * Raised the version specification for `bitflags` to 1.0.4. Previously it was
