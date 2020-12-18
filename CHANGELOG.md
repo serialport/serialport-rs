@@ -14,12 +14,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [4.0.0] - 2020-12-17
 ### Added
 * Added `send_break()` to `TTYPort`
+  [!69](https://gitlab.com/susurrus/serialport-rs/merge_requests/69)
 * Enable `available_ports()` for Linux musl targets and those without the `libudev`
   feature enabled by scanning `/sys/` for ports.
+  [!72](https://gitlab.com/susurrus/serialport-rs/merge_requests/72)
 * `ENOENT` and `EACCES` errors are now exposed as `NotFound` and `PermissionDenied` errors on Linux
+  [!80](https://gitlab.com/susurrus/serialport-rs/merge_requests/80)
 * `try_clone_native()` was added to `COMPort` and `TTYPort` to complement `SerialPort::try_clone()`
   but returning the concrete type instead.
+  [!85](https://gitlab.com/susurrus/serialport-rs/merge_requests/85)
 * Added `set_break()` and `clear_break()` to `SerialPort`
+  [!70](https://gitlab.com/susurrus/serialport-rs/merge_requests/70)
 
 ### Changed
 * Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit` feature.
@@ -27,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   than under the `posix` and `windows` submodules respectively.
 * Opening `SerialPort` s now uses the builder pattern through `serialport::new()`. See the
   README for concrete examples.
+  [!73](https://gitlab.com/susurrus/serialport-rs/merge_requests/73)
 * `SerialPorts` s are no longer opened with a default timeout of 1ms
 * Under linux, the `manufacturer` and `product` fields of `UsbPortInfo` now take their values from
   the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE` udev properties respectively, instead
@@ -41,10 +47,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Raised the version specification for `bitflags` to 1.0.4. Previously it was
   set to 1.0.0, but this version of `bitflags` is actually incompatible with
   Rust 2018 style macro imports that `serialport-rs` requires.
+  [!83](https://gitlab.com/susurrus/serialport-rs/merge_requests/83)
 
 ### Removed
 * Removed the `serialport::prelude` module. Types should be explicitly imported
   or can be glob-imported from the root like `use serialport::*`.
+  [!82](https://gitlab.com/susurrus/serialport-rs/merge_requests/82)
 
 ## [3.3.0] - 2019-06-12
 ### Added
