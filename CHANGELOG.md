@@ -263,7 +263,7 @@ Unreleased, happened due to a user error using `cargo-release`
 
 
 [Unreleased]: https://gitlab.com/susurrus/serialport-rs/-/compare/4.0.0...HEAD
-[3.3.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.3.0...4.0.0
+[4.0.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.3.0...4.0.0
 [3.3.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.2.0...3.3.0
 [3.2.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.1.0...3.2.0
 [3.1.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.0.0...3.1.0
