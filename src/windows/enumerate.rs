@@ -187,10 +187,11 @@ impl PortDevice {
         };
         let mut port_name_buffer = [0u8; MAX_PATH];
         let mut port_name_len = port_name_buffer.len() as DWORD;
+        let name = CString::new("PortName").unwrap();
         unsafe {
             RegQueryValueExA(
                 hkey,
-                CString::new("PortName").unwrap().as_ptr(),
+                name.as_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
                 port_name_buffer.as_mut_ptr(),
