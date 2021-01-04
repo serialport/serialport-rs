@@ -201,8 +201,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
 
 cfg_if! {
     if #[cfg(any(target_os = "ios", target_os = "macos"))] {
-        /// Scans the system for serial ports and returns a list of them.
-        /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
+        // On Mac search for registered IOServices for attached serial ports
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             use mach::kern_return::KERN_SUCCESS;
             use mach::port::{mach_port_t, MACH_PORT_NULL};
@@ -328,9 +327,7 @@ cfg_if! {
             Ok(vec)
         }
     } else if #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))] {
-        /// Scans the system for serial ports and returns a list of them.
-        /// The `SerialPortInfo` struct contains the name of the port
-        /// which can be used for opening it.
+        // On Linux with libudev, use that database instead of /dev or /sys
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             if let Ok(context) = libudev::Context::new() {
@@ -362,13 +359,13 @@ cfg_if! {
             Ok(vec)
         }
     } else if #[cfg(any(target_os = "android", target_os = "linux"))] {
-        use std::fs::File;
-        use std::io::Read;
-        use std::path::Path;
-
+        // On Android and Linux without libudev, we scan /sys/class/tty. It's a little cleaner
+        // than scanning /dev
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
+            use std::io::Read;
+
             let mut vec = Vec::new();
-            let sys_path = Path::new("/sys/class/tty/");
+            let sys_path = std::path::Path::new("/sys/class/tty/");
             let mut s;
             for path in sys_path.read_dir().expect("/sys/class/tty/ doesn't exist on this system") {
                 let raw_path = path?.path().clone();
@@ -382,7 +379,7 @@ cfg_if! {
                 path.push("driver_override");
                 if path.is_file() {
                     s = String::new();
-                    File::open(path)?.read_to_string(&mut s)?;
+                    std::fs::File::open(path)?.read_to_string(&mut s)?;
                     if &s == "(null)\n" {
                         continue;
                     }
@@ -396,14 +393,10 @@ cfg_if! {
             Ok(vec)
         }
     } else if #[cfg(target_os = "freebsd")] {
-        use std::path::Path;
-
-        /// Scans the system for serial ports and returns a list of them.
-        /// The `SerialPortInfo` struct contains the name of the port
-        /// which can be used for opening it.
+        // On FreeBSD scan /dev for entries
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
-            let dev_path = Path::new("/dev/");
+            let dev_path = std::path::Path::new("/dev/");
             for path in dev_path.read_dir()? {
                 let path = path?;
                 let filename = path.file_name();
@@ -420,7 +413,7 @@ cfg_if! {
             Ok(vec)
         }
     } else {
-        /// Enumerating serial ports on this platform is not supported
+        // Otherwise this platform isn't supported
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             Err(Error::new(
                 ErrorKind::Unknown,
