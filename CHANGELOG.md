@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [UNRELEASED]
 ### Added
 ### Changed
+ * Ports default to reading and writing using a 0-duration timeout.
+ * `set_timeout()` is removed in favor of explicit read and write modes. See `set_read_mode()` and
+   `set_write_mode()` on `SerialPortBuilder` and `SerialPort`.
 ### Fixed
 ### Removed
 

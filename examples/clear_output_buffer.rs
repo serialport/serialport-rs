@@ -18,7 +18,6 @@ use std::error::Error;
 use std::io::{self, Read};
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
 
 use clap::{value_t, App, AppSettings, Arg};
 
@@ -68,7 +67,6 @@ fn run(port_name: &str, baud_rate: &str, block_size: usize) -> Result<(), Box<dy
         .map_err(|_| format!("Invalid baud rate '{}' specified", baud_rate))?;
 
     let mut port = serialport::new(port_name, rate)
-        .timeout(Duration::from_millis(10))
         .open()
         .map_err(|ref e| format!("Port '{}' not available: {}", &port_name, e))?;
 

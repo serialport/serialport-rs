@@ -77,7 +77,6 @@ fn run(port_name: &str, baud_rate: &str) -> Result<(), Box<dyn Error>> {
         .map_err(|_| format!("Invalid baud rate '{}' specified", baud_rate))?;
 
     let port = serialport::new(port_name, rate)
-        .timeout(Duration::from_millis(10))
         .open()
         .map_err(|ref e| format!("Port '{}' not available: {}", &port_name, e))?;
 

@@ -17,11 +17,10 @@
 
 use std::io::Write;
 use std::str;
-use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
+use serialport::{ClearBuffer, DataBits, FlowControl, Parity, ReadMode, SerialPort, StopBits};
 
 fn main() {
     let matches = App::new("Serialport Example - Hardware Check")
@@ -426,5 +425,5 @@ fn set_defaults(port: &mut dyn serialport::SerialPort) {
     port.set_flow_control(FlowControl::Software).unwrap();
     port.set_parity(Parity::None).unwrap();
     port.set_stop_bits(StopBits::One).unwrap();
-    port.set_timeout(Duration::from_millis(0)).unwrap();
+    port.set_read_mode(ReadMode::Immediate).unwrap();
 }

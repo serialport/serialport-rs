@@ -2,7 +2,7 @@
 #![cfg(unix)]
 
 use serialport::*;
-use std::time::Duration;
+use std::num::NonZeroU16;
 
 #[test]
 fn test_listing_ports() {
@@ -33,11 +33,18 @@ fn test_opening_native_port() {
 #[test]
 fn test_configuring_ports() {
     let _port = serialport::new("/dev/ttyUSB0", 9600)
+        .read_mode(ReadMode::Blocking)
         .data_bits(DataBits::Five)
         .flow_control(FlowControl::None)
         .parity(Parity::None)
         .stop_bits(StopBits::One)
-        .timeout(Duration::from_millis(1))
+        .open();
+}
+
+#[test]
+fn test_readmode_timeout() {
+    let _port = serialport::new("/dev/ttyUSB0", 9600)
+        .read_mode(ReadMode::Timeout(NonZeroU16::new(10).unwrap()))
         .open();
 }
 
@@ -47,8 +54,7 @@ fn test_duplicating_port_config() {
         .data_bits(DataBits::Five)
         .flow_control(FlowControl::None)
         .parity(Parity::None)
-        .stop_bits(StopBits::One)
-        .timeout(Duration::from_millis(1));
+        .stop_bits(StopBits::One);
 
     let port2_config = port1_config.clone().path("/dev/ttyUSB1").baud_rate(115_200);
 

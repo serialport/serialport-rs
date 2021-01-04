@@ -280,3 +280,23 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
     nix::errno::Errno::result(res).expect("cfsetspeed failed");
 }
+
+pub(crate) fn init_termios(termios: &mut Termios) {
+    // setup TTY for binary serial port access
+    // Enable reading from the port and turn on ignoring the status of the DCD line
+    termios.c_cflag |= libc::CLOCAL | libc::CREAD;
+
+    // Enable raw mode which disables any implicit processing of the input or output data streams
+    // Rather than use `cfmakeraw`, which only works on `termios` and not `termios2`, is to instead
+    // implement it manually here following the settings on the `cfmakeraw` man page.
+    termios.c_iflag &= !(libc::IGNBRK | libc::BRKINT | libc::PARMRK | libc::ISTRIP | libc::INLCR | libc::IGNCR | libc::ICRNL | libc::IXON);
+    termios.c_oflag &= !libc::OPOST;
+    termios.c_lflag &= !(libc::ECHO | libc::ECHONL | libc::ICANON | libc::IEXTEN | libc::ISIG);
+    termios.c_cflag &= !(libc::CSIZE | libc::PARENB);
+
+    // `O_NONBLOCK` is already turned on for the port, which isn't clearly defined how it interacts
+    // with `VMIN` and `VMAX`. So be explicit and configure the port for a "polling read", which
+    // immediately returns any data.
+    termios.c_cc[libc::VMIN] = 0;
+    termios.c_cc[libc::VTIME] = 0;
+}

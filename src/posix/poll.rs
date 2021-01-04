@@ -1,10 +1,10 @@
-#![allow(non_camel_case_types, dead_code)]
+#![allow(non_camel_case_types,dead_code)]
 
 use std::io;
 use std::os::unix::io::RawFd;
-use std::slice;
 use std::time::Duration;
 
+use nix;
 use nix::poll::{PollFd, PollFlags};
 #[cfg(target_os = "linux")]
 use nix::sys::signal::SigSet;
@@ -22,17 +22,17 @@ pub fn wait_write_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
 fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     use nix::errno::Errno::{EIO, EPIPE};
 
-    let mut fd = PollFd::new(fd, events);
+    let mut fds = vec![PollFd::new(fd, events)];
 
     let milliseconds =
         timeout.as_secs() as i64 * 1000 + i64::from(timeout.subsec_nanos()) / 1_000_000;
     #[cfg(target_os = "linux")]
     let wait_res = {
         let timespec = TimeSpec::milliseconds(milliseconds);
-        nix::poll::ppoll(slice::from_mut(&mut fd), timespec, SigSet::empty())
+        nix::poll::ppoll(fds.as_mut_slice(), timespec, SigSet::empty())
     };
     #[cfg(not(target_os = "linux"))]
-    let wait_res = nix::poll::poll(slice::from_mut(&mut fd), milliseconds as nix::libc::c_int);
+    let wait_res = nix::poll::poll(fds.as_mut_slice(), milliseconds as nix::libc::c_int);
 
     let wait = match wait_res {
         Ok(r) => r,
@@ -48,7 +48,7 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     }
 
     // Check the result of ppoll() by looking at the revents field
-    match fd.revents() {
+    match fds[0].revents() {
         Some(e) if e == events => return Ok(()),
         // If there was a hangout or invalid request
         Some(e) if e.contains(PollFlags::POLLHUP) || e.contains(PollFlags::POLLNVAL) => {

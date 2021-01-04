@@ -4,21 +4,21 @@
 extern crate serialport;
 
 use std::io::{Read, Write};
+use std::num::NonZeroU16;
 use std::os::unix::prelude::*;
 use std::str;
-use std::time::Duration;
 
-use serialport::{SerialPort, TTYPort};
+use serialport::{ReadMode, SerialPort, TTYPort};
 
 #[test]
 fn test_ttyport_pair() {
     // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
     master
-        .set_timeout(Duration::from_millis(10))
+        .set_read_mode(ReadMode::Timeout(NonZeroU16::new(10).unwrap()))
         .expect("Unable to set timeout on the master");
     slave
-        .set_timeout(Duration::from_millis(10))
+        .set_read_mode(ReadMode::Timeout(NonZeroU16::new(10).unwrap()))
         .expect("Unable to set timeout on the slave");
 
     // Test file descriptors.
@@ -72,7 +72,7 @@ fn test_ttyport_timeout() {
     std::thread::spawn(move || {
         // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
         let (mut master, _slave) = TTYPort::pair().expect("Unable to create ptty pair");
-        master.set_timeout(Duration::new(1, 0)).unwrap();
+        master.set_read_mode(ReadMode::Timeout(NonZeroU16::new(1000).unwrap())).unwrap();
 
         let mut buffer = [0u8];
         let read_res = master.read(&mut buffer);

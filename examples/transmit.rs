@@ -64,7 +64,7 @@ fn main() {
         Some("7") => DataBits::Seven,
         _ => DataBits::Eight,
     };
-    let rate = matches.value_of("rate").unwrap().parse::<u32>().unwrap();
+    let rate = matches.value_of("rate").unwrap().parse::<f32>().unwrap();
     let string = matches.value_of("string").unwrap();
 
     let builder = serialport::new(port_name, baud_rate)
@@ -89,7 +89,7 @@ fn main() {
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
             Err(e) => eprintln!("{:?}", e),
         }
-        if rate == 0 {
+        if rate == 0.0 {
             return;
         }
         std::thread::sleep(Duration::from_millis((1000.0 / (rate as f32)) as u64));

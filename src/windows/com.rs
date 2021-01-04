@@ -1,4 +1,6 @@
+use std::convert::TryFrom;
 use std::mem::MaybeUninit;
+use std::num::NonZeroU16;
 use std::os::windows::prelude::*;
 use std::time::Duration;
 use std::{io, ptr};
@@ -10,13 +12,13 @@ use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::winbase::*;
 use winapi::um::winnt::{
-    DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE,
+    DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, MAXDWORD,
 };
 
 use crate::windows::dcb;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
-    SerialPortBuilder, StopBits,
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, ReadMode, Result, SerialPort,
+    SerialPortBuilder, StopBits, WriteMode,
 };
 
 /// A serial port implementation for Windows COM ports
@@ -81,7 +83,8 @@ impl COMPort {
         dcb::set_dcb(handle, dcb)?;
 
         let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
-        com.set_timeout(builder.timeout)?;
+        com.set_read_mode(builder.read_mode)?;
+        com.set_write_mode(builder.write_mode)?;
         com.port_name = Some(builder.path.clone());
         Ok(com)
     }
@@ -113,15 +116,15 @@ impl COMPort {
                 TRUE,
                 DUPLICATE_SAME_ACCESS,
             );
-            if cloned_handle != INVALID_HANDLE_VALUE {
-                Ok(COMPort {
-                    handle: cloned_handle,
-                    port_name: self.port_name.clone(),
-                    timeout: self.timeout,
-                })
-            } else {
-                Err(super::error::last_os_error())
-            }
+        }
+        if cloned_handle == INVALID_HANDLE_VALUE {
+            Err(super::error::last_os_error())
+        } else {
+            Ok(COMPort {
+                handle: cloned_handle,
+                port_name: self.port_name.clone(),
+                timeout: self.timeout,
+            })
         }
     }
 
@@ -231,29 +234,6 @@ impl SerialPort for COMPort {
         self.port_name.clone()
     }
 
-    fn timeout(&self) -> Duration {
-        self.timeout
-    }
-
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
-
-        let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: 0,
-            ReadTotalTimeoutMultiplier: 0,
-            ReadTotalTimeoutConstant: milliseconds as DWORD,
-            WriteTotalTimeoutMultiplier: 0,
-            WriteTotalTimeoutConstant: 0,
-        };
-
-        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
-            return Err(super::error::last_os_error());
-        }
-
-        self.timeout = timeout;
-        Ok(())
-    }
-
     fn write_request_to_send(&mut self, level: bool) -> Result<()> {
         if level {
             self.escape_comm_function(SETRTS)
@@ -341,6 +321,50 @@ impl SerialPort for COMPort {
         }
     }
 
+    fn read_mode(&self) -> Result<ReadMode> {
+        let mut timeouts = MaybeUninit::uninit();
+        if unsafe { GetCommTimeouts(self.handle, timeouts.as_mut_ptr()) == 0 } {
+            return Err(super::error::last_os_error());
+        }
+        let timeouts = unsafe { timeouts.assume_init() };
+
+        match timeouts {
+            COMMTIMEOUTS {ReadIntervalTimeout: MAXDWORD, ReadTotalTimeoutMultiplier:        0, ReadTotalTimeoutConstant: 0, .. } => Ok(ReadMode::Immediate),
+            COMMTIMEOUTS {ReadIntervalTimeout:        0, ReadTotalTimeoutMultiplier:        0, ReadTotalTimeoutConstant: 0, .. } => Ok(ReadMode::Blocking),
+            COMMTIMEOUTS {ReadIntervalTimeout: MAXDWORD, ReadTotalTimeoutMultiplier: MAXDWORD, ReadTotalTimeoutConstant: t, .. } => {
+                let timeout = u16::try_from(t).map_err(|_| Error::new(ErrorKind::InvalidInput, "Value too big for a u16"))?;
+                let timeout = NonZeroU16::new(timeout);
+                if timeout.is_none() {
+                    return Err(Error::new(ErrorKind::InvalidInput, "Value can't be zero"));
+                }
+                Ok(ReadMode::Timeout(timeout.unwrap()))
+            },
+            _ => return Err(Error::new(ErrorKind::Unknown, "Unknown timeout configuration"))
+        }
+    }
+
+    fn write_mode(&self) -> Result<WriteMode> {
+        let mut timeouts = MaybeUninit::uninit();
+        if unsafe { GetCommTimeouts(self.handle, timeouts.as_mut_ptr()) == 0 } {
+            return Err(super::error::last_os_error());
+        }
+        let timeouts = unsafe { timeouts.assume_init() };
+
+        match timeouts {
+            COMMTIMEOUTS {WriteTotalTimeoutMultiplier:        0, WriteTotalTimeoutConstant: MAXDWORD, .. } => Ok(WriteMode::Immediate),
+            COMMTIMEOUTS {WriteTotalTimeoutMultiplier:        0, WriteTotalTimeoutConstant: 0, .. } => Ok(WriteMode::Blocking),
+            COMMTIMEOUTS {WriteTotalTimeoutMultiplier: MAXDWORD, WriteTotalTimeoutConstant: t, .. } => {
+                let timeout = u16::try_from(t).map_err(|_| Error::new(ErrorKind::InvalidInput, "Value too big for a u16"))?;
+                let timeout = NonZeroU16::new(timeout);
+                if timeout.is_none() {
+                    return Err(Error::new(ErrorKind::InvalidInput, "Value can't be zero"));
+                }
+                Ok(WriteMode::Timeout(timeout.unwrap()))
+            }
+            _ => return Err(Error::new(ErrorKind::Unknown, "Unknown timeout configuration"))
+        }
+    }
+
     fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut dcb = dcb::get_dcb(self.handle)?;
         dcb::set_baud_rate(&mut dcb, baud_rate);
@@ -369,6 +393,67 @@ impl SerialPort for COMPort {
         let mut dcb = dcb::get_dcb(self.handle)?;
         dcb::set_flow_control(&mut dcb, flow_control);
         dcb::set_dcb(self.handle, dcb)
+    }
+
+    fn set_read_mode(&mut self, read_mode: ReadMode) -> Result<()> {
+        let mut timeouts = MaybeUninit::uninit();
+        if unsafe { GetCommTimeouts(self.handle, timeouts.as_mut_ptr()) == 0 } {
+            return Err(super::error::last_os_error());
+        }
+        let mut timeouts = unsafe { timeouts.assume_init() };
+
+        match read_mode {
+            ReadMode::Immediate => {
+                timeouts.ReadIntervalTimeout = MAXDWORD;
+                timeouts.ReadTotalTimeoutMultiplier = 0;
+                timeouts.ReadTotalTimeoutConstant = 0;
+            },
+            ReadMode::Blocking => {
+                timeouts.ReadIntervalTimeout = 0;
+                timeouts.ReadTotalTimeoutMultiplier = 0;
+                timeouts.ReadTotalTimeoutConstant = 0;
+            },
+            ReadMode::Timeout(t) => {
+                timeouts.ReadIntervalTimeout = MAXDWORD;
+                timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
+                timeouts.ReadTotalTimeoutConstant = t.get() as DWORD;
+            },
+        };
+
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
+            return Err(super::error::last_os_error());
+        }
+
+        Ok(())
+    }
+
+    fn set_write_mode(&mut self, write_mode: WriteMode) -> Result<()> {
+        let mut timeouts = MaybeUninit::uninit();
+        if unsafe { GetCommTimeouts(self.handle, timeouts.as_mut_ptr()) == 0 } {
+            return Err(super::error::last_os_error());
+        }
+        let mut timeouts = unsafe { timeouts.assume_init() };
+
+        match write_mode {
+            WriteMode::Immediate => {
+                timeouts.WriteTotalTimeoutMultiplier = 0;
+                timeouts.WriteTotalTimeoutConstant = MAXDWORD;
+            },
+            WriteMode::Blocking => {
+                timeouts.WriteTotalTimeoutMultiplier = 0;
+                timeouts.WriteTotalTimeoutConstant = 0;
+            },
+            WriteMode::Timeout(t) => {
+                timeouts.WriteTotalTimeoutMultiplier = MAXDWORD;
+                timeouts.WriteTotalTimeoutConstant = t.get() as DWORD;
+            },
+        };
+
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
+            return Err(super::error::last_os_error());
+        }
+
+        Ok(())
     }
 
     fn bytes_to_read(&self) -> Result<u32> {

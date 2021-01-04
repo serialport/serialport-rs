@@ -16,21 +16,20 @@
 //! Using the platform-specific `open*()` functions will return the platform-specific port object
 //! which allows access to platform-specific functionality.
 
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    unused
-)]
+//#![deny(
+//    missing_docs,
+//    missing_debug_implementations,
+//    missing_copy_implementations,
+//    unused
+//)]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
 use std::convert::From;
 use std::error::Error as StdError;
-use std::fmt;
-use std::io;
-use std::time::Duration;
+use std::num::NonZeroU16;
+use std::{fmt, io};
 
 #[cfg(unix)]
 mod posix;
@@ -131,13 +130,10 @@ impl From<Error> for io::Error {
 pub enum DataBits {
     /// 5 bits per character
     Five,
-
     /// 6 bits per character
     Six,
-
     /// 7 bits per character
     Seven,
-
     /// 8 bits per character
     Eight,
 }
@@ -155,10 +151,8 @@ pub enum DataBits {
 pub enum Parity {
     /// No parity bit.
     None,
-
     /// Parity bit sets odd number of 1 bits.
     Odd,
-
     /// Parity bit sets even number of 1 bits.
     Even,
 }
@@ -180,10 +174,8 @@ pub enum StopBits {
 pub enum FlowControl {
     /// No flow control.
     None,
-
     /// Flow control using XON/XOFF bytes.
     Software,
-
     /// Flow control using RTS/CTS signals.
     Hardware,
 }
@@ -201,6 +193,30 @@ pub enum ClearBuffer {
     All,
 }
 
+/// Specifies the reading mode
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ReadMode {
+    /// Returns immediately with any available data
+    Immediate,
+    /// Blocks until the desired number of characters are received
+    Blocking,
+    /// Returns if the desired number of characters are received or the timeout is reached. Timeout
+    /// specified in ms
+    Timeout(NonZeroU16),
+}
+
+/// Specifies the writing mode
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum WriteMode {
+    /// As much data is written as possible
+    Immediate,
+    /// Blocks until the desired number of characters are written
+    Blocking,
+    /// Returns if the desired number of characters are sent or the timeout is reached. Timeout
+    /// specified in ms
+    Timeout(NonZeroU16),
+}
+
 /// A struct containing all serial port settings
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SerialPortBuilder {
@@ -216,8 +232,10 @@ pub struct SerialPortBuilder {
     parity: Parity,
     /// Number of bits to use to signal the end of a character
     stop_bits: StopBits,
-    /// Amount of time to wait to receive data before timing out
-    timeout: Duration,
+    /// Mode for reading from the port
+    read_mode: ReadMode,
+    /// Mode for writing to the port
+    write_mode: WriteMode,
 }
 
 impl SerialPortBuilder {
@@ -257,9 +275,15 @@ impl SerialPortBuilder {
         self
     }
 
-    /// Set the amount of time to wait to receive data before timing out
-    pub fn timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+    /// Set the reading mode for the port
+    pub fn read_mode(mut self, read_mode: ReadMode) -> Self {
+        self.read_mode = read_mode;
+        self
+    }
+
+    /// Set the writing mode for the port
+    pub fn write_mode(mut self, write_mode: WriteMode) -> Self {
+        self.write_mode = write_mode;
         self
     }
 
@@ -342,8 +366,11 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// stop bits to a supported value.
     fn stop_bits(&self) -> Result<StopBits>;
 
-    /// Returns the current timeout.
-    fn timeout(&self) -> Duration;
+    /// Returns the current read mode.
+    fn read_mode(&self) -> Result<ReadMode>;
+
+    /// Returns the current read mode.
+    fn write_mode(&self) -> Result<WriteMode>;
 
     // Port settings setters
 
@@ -368,8 +395,11 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// Sets the number of stop bits.
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()>;
 
-    /// Sets the timeout for future I/O operations.
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()>;
+    /// Sets the reading mode.
+    fn set_read_mode(&mut self, read_mode: ReadMode) -> Result<()>;
+
+    /// Sets the writing mode.
+    fn set_write_mode(&mut self, write_mode: WriteMode) -> Result<()>;
 
     // Functions for setting non-data control signal pins
 
@@ -561,7 +591,8 @@ pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> Se
         flow_control: FlowControl::None,
         parity: Parity::None,
         stop_bits: StopBits::One,
-        timeout: Duration::from_millis(0),
+        read_mode: ReadMode::Immediate,
+        write_mode: WriteMode::Immediate,
     }
 }
 

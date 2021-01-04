@@ -1,7 +1,6 @@
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/crate/serialport)
 
-
 [![GitLab CI status](https://gitlab.com/susurrus/serialport-rs/badges/master/pipeline.svg)](https://gitlab.com/susurrus/serialport-rs/pipelines)
 [![Appveyor CI status](https://ci.appveyor.com/api/projects/status/gitlab/Susurrus/serialport-rs?svg=true&branch=master)](https://ci.appveyor.com/project/Susurrus/serialport-rs)
 
@@ -47,7 +46,6 @@ let ports = serialport::available_ports().expect("No ports found!");
 for p in ports {
     println!("{}", p.port_name);
 }
-
 ```
 
 Opening and configuring a port:
@@ -85,22 +83,21 @@ Closing a port:
 port is done when the `SerialPort` object is `Drop`ed either implicitly or explicitly using
 `std::mem::drop` (`std::mem::drop(port)`).
 
-
 Examples
 ========
 
 There are several included examples, which help demonstrate the functionality of this library and
 can help debug software or hardware errors.
 
- * *clear_input_buffer* - Demonstrates querying and clearing the driver input buffer
- * *clear_output_buffer* - Demonstrates querying and clearing the driver output buffer
- * *duplex* - Tests that a port can be successfully cloned.
- * *hardware\_check* - Checks port/driver functionality for a single port or a pair of ports connected
-   to each other.
- * *list_ports* - Lists available serial ports.
- * *pseudo_terminal* - Unix only. Tests that a pseudo-terminal pair can be created.
- * *receive_data* - Output data received on a port.
- * *transmit* - Transmits data regularly on a port with various port configurations. Useful for debugging.
+* *clear_input_buffer* - Demonstrates querying and clearing the driver input buffer
+* *clear_output_buffer* - Demonstrates querying and clearing the driver output buffer
+* *duplex* - Tests that a port can be successfully cloned.
+* *hardware\_check* - Checks port/driver functionality for a single port or a pair of ports connected
+  to each other.
+* *list_ports* - Lists available serial ports.
+* *pseudo_terminal* - Unix only. Tests that a pseudo-terminal pair can be created.
+* *receive_data* - Output data received on a port.
+* *transmit* - Transmits data regularly on a port with various port configurations. Useful for debugging.
 
 Dependencies
 ============
@@ -124,63 +121,62 @@ Platform Support
 
 Platform support is broken into two tiers:
 
- * Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
- * Tier 2 - Builds for this target are run in CI. Tests are not run in CI.
-
+* Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
+* Tier 2 - Builds for this target are run in CI. Tests are not run in CI.
 
 Tier 1:
 
- * Linux
-   * `i586-unknown-linux-musl`
-   * `i686-unknown-linux-gnu`
-   * `i686-unknown-linux-musl`
-   * `x86_64-unknown-linux-gnu`
-   * `x86_64-unknown-linux-musl`
- * MacOS/iOS
-   * `x86_64-apple-darwin`
- * Windows
-   * `i686-pc-windows-gnu`
-   * `i686-pc-windows-msvc`
-   * `x86_64-pc-windows-gnu`
-   * `x86_64-pc-windows-msvc`
+* Linux
+  * `i586-unknown-linux-musl`
+  * `i686-unknown-linux-gnu`
+  * `i686-unknown-linux-musl`
+  * `x86_64-unknown-linux-gnu`
+  * `x86_64-unknown-linux-musl`
+* MacOS/iOS
+  * `x86_64-apple-darwin`
+* Windows
+  * `i686-pc-windows-gnu`
+  * `i686-pc-windows-msvc`
+  * `x86_64-pc-windows-gnu`
+  * `x86_64-pc-windows-msvc`
 
 Tier 2:
 
- * Android
-   * `aarch64-linux-android` (no serial enumeration)
-   * `arm-linux-androideabi` (no serial enumeration)
-   * `armv7-linux-androideabi` (no serial enumeration)
-   * `i686-linux-android` (no serial enumeration)
-   * `x86_64-linux-android` (no serial enumeration)
- * FreeBSD
-   * `i686-unknown-freebsd`
-   * `x86_64-unknown-freebsd`
- * Linux
-   * `aarch64-unknown-linux-gnu`
-   * `aarch64-unknown-linux-musl`
-   * `arm-unknown-linux-gnueabi`
-   * `arm-unknown-linux-musleabi`
-   * `armv5te-unknown-linux-gnueabi`
-   * `armv5te-unknown-linux-musleabi`
-   * `armv7-unknown-linux-gnueabihf`
-   * `armv7-unknown-linux-musleabihf`
-   * `i586-unknown-linux-gnu`
-   * `mips-unknown-linux-gnu`
-   * `mips-unknown-linux-musl`
-   * `mips64-unknown-linux-gnuabi64`
-   * `mips64el-unknown-linux-gnuabi64`
-   * `mipsel-unknown-linux-gnu`
-   * `mipsel-unknown-linux-musl`
-   * `powerpc-unknown-linux-gnu`
-   * `powerpc64-unknown-linux-gnu`
-   * `powerpc64le-unknown-linux-gnu`
-   * `s390x-unknown-linux-gnu`
-   * `sparc64-unknown-linux-gnu`
- * MacOS/iOS
-   * `aarch64-apple-ios`
-   * `x86_64-apple-ios`
- * NetBSD
-   * `x86_64-unknown-netbsd` (no serial enumeration)
+* Android
+  * `aarch64-linux-android` (no serial enumeration)
+  * `arm-linux-androideabi` (no serial enumeration)
+  * `armv7-linux-androideabi` (no serial enumeration)
+  * `i686-linux-android` (no serial enumeration)
+  * `x86_64-linux-android` (no serial enumeration)
+* FreeBSD
+  * `i686-unknown-freebsd`
+  * `x86_64-unknown-freebsd`
+* Linux
+  * `aarch64-unknown-linux-gnu`
+  * `aarch64-unknown-linux-musl`
+  * `arm-unknown-linux-gnueabi`
+  * `arm-unknown-linux-musleabi`
+  * `armv5te-unknown-linux-gnueabi`
+  * `armv5te-unknown-linux-musleabi`
+  * `armv7-unknown-linux-gnueabihf`
+  * `armv7-unknown-linux-musleabihf`
+  * `i586-unknown-linux-gnu`
+  * `mips-unknown-linux-gnu`
+  * `mips-unknown-linux-musl`
+  * `mips64-unknown-linux-gnuabi64`
+  * `mips64el-unknown-linux-gnuabi64`
+  * `mipsel-unknown-linux-gnu`
+  * `mipsel-unknown-linux-musl`
+  * `powerpc-unknown-linux-gnu`
+  * `powerpc64-unknown-linux-gnu`
+  * `powerpc64le-unknown-linux-gnu`
+  * `s390x-unknown-linux-gnu`
+  * `sparc64-unknown-linux-gnu`
+* MacOS/iOS
+  * `aarch64-apple-ios`
+  * `x86_64-apple-ios`
+* NetBSD
+  * `x86_64-unknown-netbsd` (no serial enumeration)
 
 Hardware Support
 ================
@@ -196,7 +192,7 @@ and driver in use.
 
 Known issues:
 
-|    Hardware   |   OS  |        Driver           |                                      Issues                                        |
+| Hardware      | OS    | Driver                  | Issues                                                                             |
 | ------------- | ----- | ----------------------- | ---------------------------------------------------------------------------------- |
 | FTDI TTL-232R | Linux | ftdi_sio, Linux 4.14.11 | Hardware doesn't support 5 or 6 data bits, but the driver lies about supporting 5. |
 
@@ -204,7 +200,6 @@ Licensing
 =========
 
 Licensed under the [Mozilla Public License, version 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
-
 
 Contributing
 ============

@@ -25,3 +25,6 @@ like:
   * `screen` (POSIX)
   * [CoolTerm](http://freeware.the-meiers.org/) (OS X)
   * [RealTerm](https://sourceforge.net/projects/realterm/) (Windows)
+  * [Moserial](https://wiki.gnome.org/Apps/Moserial) (Linux)
+  * [CuteCom](http://cutecom.sourceforge.net/) (BSD,Linux)
+  * [gtkterm](https://github.com/Jeija/gtkterm) (Linux)

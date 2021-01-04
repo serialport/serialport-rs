@@ -1,7 +1,6 @@
-use std::mem::MaybeUninit;
 use std::os::unix::prelude::*;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{io, mem};
 
 use nix::fcntl::{fcntl, OFlag};
@@ -10,8 +9,8 @@ use nix::{self, libc, unistd};
 use crate::posix::ioctl::{self, SerialLines};
 use crate::posix::termios;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
-    SerialPortBuilder, StopBits,
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, ReadMode, Result, SerialPort,
+    SerialPortBuilder, StopBits, WriteMode,
 };
 
 /// Convenience method for removing exclusive access from
@@ -40,7 +39,8 @@ fn close(fd: RawFd) {
 #[derive(Debug)]
 pub struct TTYPort {
     fd: RawFd,
-    timeout: Duration,
+    read_mode: ReadMode,
+    write_mode: WriteMode,
     exclusive: bool,
     port_name: Option<String>,
     #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -59,10 +59,7 @@ pub enum BreakDuration {
 impl TTYPort {
     /// Opens a TTY device as a serial port.
     ///
-    /// `path` should be the path to a TTY device, e.g., `/dev/ttyS0`.
-    ///
-    /// Ports are opened in exclusive mode by default. If this is undesireable
-    /// behavior, use `TTYPort::set_exclusive(false)`.
+    /// `path` should be the path to a TTY device, e.g. `/dev/ttyS0` or `/dev/ttyUSB0`
     ///
     /// ## Errors
     ///
@@ -71,9 +68,6 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
-        use nix::fcntl::FcntlArg::F_SETFL;
-        use nix::libc::{cfmakeraw, tcflush, tcgetattr, tcsetattr};
-
         let path = Path::new(&builder.path);
         let fd = nix::fcntl::open(
             path,
@@ -81,74 +75,52 @@ impl TTYPort {
             nix::sys::stat::Mode::empty(),
         )?;
 
-        let mut termios = MaybeUninit::uninit();
-        let res = unsafe { tcgetattr(fd, termios.as_mut_ptr()) };
-        if let Err(e) = nix::errno::Errno::result(res) {
-            close(fd);
-            return Err(e.into());
-        }
-        let mut termios = unsafe { termios.assume_init() };
-
+        // Configure the low-level port settings
         // If any of these steps fail, then we should abort creation of the
         // TTYPort and ensure the file descriptor is closed.
         // So we wrap these calls in a block and check the result.
-        {
-            // setup TTY for binary serial port access
-            // Enable reading from the port and ignore all modem control lines
-            termios.c_cflag |= libc::CREAD | libc::CLOCAL;
-            // Enable raw mode which disables any implicit processing of the input or output data streams
-            // This also sets no timeout period and a read will block until at least one character is
-            // available.
-            unsafe { cfmakeraw(&mut termios) };
+        // {
+        //     let mut termios = termios::get_termios(fd)?;
+            //termios::init_termios(&mut termios); // Seems to still have newline processing enabled
+        //     termios::set_parity(&mut termios, builder.parity);
+        //     termios::set_flow_control(&mut termios, builder.flow_control);
+        //     termios::set_data_bits(&mut termios, builder.data_bits);
+        //     termios::set_stop_bits(&mut termios, builder.stop_bits);
+        //     #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        //     termios::set_baud_rate(&mut termios, builder.baud_rate);
+        //     #[cfg(any(target_os = "ios", target_os = "macos"))]
+        //     termios::set_termios(fd, &termios, builder.baud_rate)?;
+        //     #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        //     termios::set_termios(fd, &termios)?;
 
-            // write settings to TTY
-            unsafe { tcsetattr(fd, libc::TCSANOW, &termios) };
+            // Clear both input and output buffers in case there is any left over detritus, for
+            // example if a port was disconnected.
+        //     unsafe { nix::libc::tcflush(fd, libc::TCIOFLUSH) };
 
-            // Read back settings from port and confirm they were applied correctly
-            let mut actual_termios = MaybeUninit::uninit();
-            unsafe { tcgetattr(fd, actual_termios.as_mut_ptr()) };
-            let actual_termios = unsafe { actual_termios.assume_init() };
+        //     Ok(())
+        // }
+        // .map_err(|e: Error| {
+        //     close(fd);
+        //     e
+        // })?;
 
-            if actual_termios.c_iflag != termios.c_iflag
-                || actual_termios.c_oflag != termios.c_oflag
-                || actual_termios.c_lflag != termios.c_lflag
-                || actual_termios.c_cflag != termios.c_cflag
-            {
-                return Err(Error::new(
-                    ErrorKind::Unknown,
-                    "Settings did not apply correctly",
-                ));
-            };
 
-            unsafe { tcflush(fd, libc::TCIOFLUSH) };
+    let mut termios = std::mem::MaybeUninit::uninit();
+    let res = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
+    nix::errno::Errno::result(res)?;
+    let mut termios = unsafe { termios.assume_init() };
 
-            // clear O_NONBLOCK flag
-            fcntl(fd, F_SETFL(nix::fcntl::OFlag::empty()))?;
-
-            Ok(())
-        }
-        .map_err(|e: Error| {
-            close(fd);
-            e
-        })?;
-
-        // Configure the low-level port settings
-        let mut termios = termios::get_termios(fd)?;
-        termios::set_parity(&mut termios, builder.parity);
-        termios::set_flow_control(&mut termios, builder.flow_control);
-        termios::set_data_bits(&mut termios, builder.data_bits);
-        termios::set_stop_bits(&mut termios, builder.stop_bits);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
-        termios::set_baud_rate(&mut termios, builder.baud_rate);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
-        termios::set_termios(fd, &termios, builder.baud_rate)?;
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
-        termios::set_termios(fd, &termios)?;
+    // termios.c_cflag |= libc::CLOCAL | libc::CREAD;
+    unsafe { nix::libc::cfmakeraw(&mut termios) };
+    termios.c_cc[libc::VMIN] = 1;
+    termios.c_cc[libc::VTIME] = 0;
+    unsafe { nix::libc::tcsetattr(fd, libc::TCSANOW, &termios) };
 
         // Return the final port object
         Ok(TTYPort {
             fd,
-            timeout: builder.timeout,
+            read_mode: builder.read_mode,
+            write_mode: builder.write_mode,
             exclusive: false,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -247,46 +219,16 @@ impl TTYPort {
         ))]
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
-        // Open the slave port
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
-        let baud_rate = 9600;
-        let fd = nix::fcntl::open(
-            Path::new(&ptty_name),
-            OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
-            nix::sys::stat::Mode::empty(),
-        )?;
-
-        // Set the port to a raw state. Using these ports will not work without this.
-        let mut termios = MaybeUninit::uninit();
-        let res = unsafe { crate::posix::tty::libc::tcgetattr(fd, termios.as_mut_ptr()) };
-        if let Err(e) = nix::errno::Errno::result(res) {
-            close(fd);
-            return Err(e.into());
-        }
-        let mut termios = unsafe { termios.assume_init() };
-        unsafe { crate::posix::tty::libc::cfmakeraw(&mut termios) };
-        unsafe { crate::posix::tty::libc::tcsetattr(fd, libc::TCSANOW, &termios) };
-
-        fcntl(
-            fd,
-            nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
-        )?;
-
-        let slave_tty = TTYPort {
-            fd,
-            timeout: Duration::from_millis(100),
-            exclusive: true,
-            port_name: Some(ptty_name),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate,
-        };
+        let baud_rate = 9600; // Baud rate doesn't matter here, so set it to something well supported
+        let slave_tty = crate::new(ptty_name, baud_rate).open_native().unwrap();
 
         // Manually construct the master port here because the
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
         // BSDs when used on the master port.
         let master_tty = TTYPort {
             fd: next_pty_fd.into_raw_fd(),
-            timeout: Duration::from_millis(100),
+            read_mode: ReadMode::Immediate,
+            write_mode: WriteMode::Immediate,
             exclusive: true,
             port_name: None,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -325,7 +267,8 @@ impl TTYPort {
             fd: fd_cloned,
             exclusive: self.exclusive,
             port_name: self.port_name.clone(),
-            timeout: self.timeout,
+            read_mode: self.read_mode,
+            write_mode: self.write_mode,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: self.baud_rate,
         })
@@ -370,7 +313,8 @@ impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         TTYPort {
             fd,
-            timeout: Duration::from_millis(100),
+            read_mode: ReadMode::Immediate,
+            write_mode: WriteMode::Immediate,
             exclusive: ioctl::tiocexcl(fd).is_ok(),
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
@@ -386,21 +330,132 @@ impl FromRawFd for TTYPort {
 
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(Error::from(e)));
-        }
+        let mut chars_left_to_read = buf.len();
+        let timeout = match self.read_mode().unwrap() { // Can't fail on POSIX
+            ReadMode::Timeout(t) => Duration::from_millis(t.get() as u64),
+            ReadMode::Immediate => Duration::default(), // FIXME: Replace with `Duration::ZERO` once it stabilizes
+            ReadMode::Blocking => Duration::new(u64::MAX, 1_000_000_000 - 1), // FIXME: Replace with `Duration::MAX` once it stabilizes
+        };
+        let start_instant = Instant::now();
 
-        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        //println!("Starting loop!");
+        while chars_left_to_read > 0 {
+            //println!("chars_left_to_read: {}, start_instant.elapsed: {}", chars_left_to_read, start_instant.elapsed().as_millis());
+            use nix::errno::Errno::{EIO, EPIPE};
+            use nix::poll::{PollFd, PollFlags};
+
+            // For poll's timeouts:
+            //   * 0 => return immediately, even if fd isn't ready,
+            //   * negative timeout => infinite timeout,
+            //   * X => timeout is >= X ms
+            let poll_timeout = match self.read_mode().unwrap() { // Can't fail on POSIX
+                ReadMode::Blocking => -1 as nix::libc::c_int,
+                _ => timeout.as_millis() as nix::libc::c_int,
+            };
+            let poll_events = PollFlags::POLLIN;
+            let mut fd = PollFd::new(self.fd, poll_events);
+            //println!("poll()");
+            let wait = nix::poll::poll(std::slice::from_mut(&mut fd), poll_timeout)
+                .map_err(|e| io::Error::from(crate::Error::from(e)))?;
+
+            // All errors generated by poll are already caught by the nix wrapper around libc, so
+            // we only need to check if there's at least 1 event. If there isn't, it means `poll`
+            // timed out without any new input, so we can just return.
+            if wait != 1 {
+                //println!("Timing out!");
+                break;
+            }
+
+            // Check the result of poll() by looking at the revents field
+            match fd.revents() {
+                Some(e) if e == poll_events => (),
+                // If there was a hangout or invalid request
+                Some(e) if e.contains(PollFlags::POLLHUP) || e.contains(PollFlags::POLLNVAL) => {
+                    return Err(io::Error::new(io::ErrorKind::BrokenPipe, EPIPE.desc()))
+                }
+                Some(_) | None => return Err(io::Error::new(io::ErrorKind::Other, EIO.desc())),
+            };
+
+            let bytes_read = buf.len() - chars_left_to_read;
+            //println!("read(&mut buf[{}...])", &bytes_read);
+            let current_read = nix::unistd::read(self.fd, &mut buf[bytes_read..])
+                .map_err(|e| io::Error::from(Error::from(e)))?;
+            //println!("Read {} chars", &current_read);
+            chars_left_to_read -= current_read;
+
+            if start_instant.elapsed() >= timeout {
+                break;
+            }
+        }
+        // println!("Made it! ({} chars left)", buf.len() - chars_left_to_read);
+
+        Ok(buf.len() - chars_left_to_read)
     }
 }
 
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(Error::from(e)));
-        }
+        let mut chars_left_to_write = buf.len();
+        let timeout = match self.write_mode().unwrap() { // Can't fail on POSIX
+            WriteMode::Timeout(t) => Duration::from_millis(t.get() as u64),
+            WriteMode::Immediate => Duration::default(), // FIXME: Replace with `Duration::ZERO` once it stabilizes
+            WriteMode::Blocking => Duration::new(u64::MAX, 1_000_000_000 - 1), // FIXME: Replace with `Duration::MAX` once it stabilizes
+        };
+        let start_instant = Instant::now();
 
-        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        println!("Starting loop!");
+        let elapsed = start_instant.elapsed();
+        println!("chars_left_to_write: {}, start_instant.elapsed: {}, timeout: {}", chars_left_to_write, elapsed.as_nanos(), timeout.as_nanos());
+        while chars_left_to_write > 0 {
+            use nix::errno::Errno::{EIO, EPIPE};
+            use nix::poll::{PollFd, PollFlags};
+            println!("!!");
+            // For poll's timeouts:
+            //   * 0 => return immediately, even if fd isn't ready,
+            //   * negative timeout => infinite timeout,
+            //   * X => timeout is >= X ms
+            let poll_timeout = match self.write_mode().unwrap() { // Can't fail on POSIX
+                WriteMode::Blocking => -1 as nix::libc::c_int,
+                _ => timeout.as_millis() as nix::libc::c_int,
+            };
+            let poll_events = PollFlags::POLLOUT;
+            let mut fd = PollFd::new(self.fd, poll_events);
+            println!("poll()");
+            let wait = nix::poll::poll(std::slice::from_mut(&mut fd), poll_timeout)
+                .map_err(|e| io::Error::from(crate::Error::from(e)))?;
+
+            // All errors generated by poll are already caught by the nix wrapper around libc, so
+            // we only need to check if there's at least 1 event. If there isn't, it means `poll`
+            // timed out without any new input, so we can just return.
+            if wait != 1 {
+                println!("Timing out!");
+                break;
+            }
+
+            // Check the result of poll() by looking at the revents field
+            match fd.revents() {
+                Some(e) if e == poll_events => (),
+                // If there was a hangout or invalid request
+                Some(e) if e.contains(PollFlags::POLLHUP) || e.contains(PollFlags::POLLNVAL) => {
+                    return Err(io::Error::new(io::ErrorKind::BrokenPipe, EPIPE.desc()))
+                }
+                Some(_) | None => return Err(io::Error::new(io::ErrorKind::Other, EIO.desc())),
+            };
+
+            let bytes_written = buf.len() - chars_left_to_write;
+            println!("write(&mut buf[{}...])", &bytes_written);
+            let current_write = nix::unistd::write(self.fd, &buf[bytes_written..])
+                .map_err(|e| io::Error::from(Error::from(e)))?;
+            println!("Wrote {} chars", &current_write);
+            chars_left_to_write -= current_write;
+
+            if start_instant.elapsed() >= timeout {
+                break;
+            }
+        }
+        println!("Made it! ({} chars written)", buf.len() - chars_left_to_write);
+
+        Ok(buf.len() - chars_left_to_write)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -579,8 +634,12 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn timeout(&self) -> Duration {
-        self.timeout
+    fn read_mode(&self) -> Result<ReadMode> {
+        Ok(self.read_mode)
+    }
+
+    fn write_mode(&self) -> Result<WriteMode> {
+        Ok(self.write_mode)
     }
 
     #[cfg(any(
@@ -641,8 +700,13 @@ impl SerialPort for TTYPort {
         return termios::set_termios(self.fd, &termios);
     }
 
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        self.timeout = timeout;
+    fn set_read_mode(&mut self, read_mode: ReadMode) -> Result<()> {
+        self.read_mode = read_mode;
+        Ok(())
+    }
+
+    fn set_write_mode(&mut self, write_mode: WriteMode) -> Result<()> {
+        self.write_mode = write_mode;
         Ok(())
     }
 
@@ -715,6 +779,7 @@ fn test_ttyport_into_raw_fd() {
     //       https://github.com/rust-lang/rust/issues/15701 is on stable.
     // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
     #![allow(unused_variables)]
+    use std::mem::MaybeUninit;
     let (master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
 
     // First test with the master
