@@ -14,6 +14,7 @@ use CoreFoundation_sys::*;
 use IOKit_sys::*;
 
 #[cfg(any(
+    target_os = "android",
     target_os = "freebsd",
     target_os = "ios",
     target_os = "linux",
@@ -27,7 +28,6 @@ use crate::SerialPortType;
 ))]
 use crate::UsbPortInfo;
 #[cfg(any(
-    target_os = "android",
     target_os = "ios",
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
     target_os = "macos",
@@ -361,13 +361,11 @@ cfg_if! {
             }
             Ok(vec)
         }
-    } else if #[cfg(target_os = "linux")] {
+    } else if #[cfg(any(target_os = "android", target_os = "linux"))] {
         use std::fs::File;
         use std::io::Read;
         use std::path::Path;
 
-        /// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
-        /// default feature.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             let sys_path = Path::new("/sys/class/tty/");
