@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+* Properly initialize DCB structure on Windows. This fixes some non-functional devices.
+  [!97](https://gitlab.com/susurrus/serialport-rs/-/merge_requests/97)
 ### Removed
 
 ## [4.0.0] - 2020-12-17

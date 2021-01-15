@@ -73,6 +73,7 @@ impl COMPort {
         }
 
         let mut dcb = dcb::get_dcb(handle)?;
+        dcb::init(&mut dcb);
         dcb::set_baud_rate(&mut dcb, builder.baud_rate);
         dcb::set_data_bits(&mut dcb, builder.data_bits);
         dcb::set_parity(&mut dcb, builder.parity);

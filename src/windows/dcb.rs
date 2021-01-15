@@ -17,6 +17,44 @@ pub(crate) fn get_dcb(handle: HANDLE) -> Result<DCB> {
     }
 }
 
+/// Initialize the DCB struct
+/// Set all values that won't be affected by `SerialPortBuilder` options.
+pub(crate) fn init(dcb: &mut DCB) {
+    // dcb.DCBlength
+    // dcb.BaudRate
+    // dcb.BitFields
+    // dcb.wReserved
+    // dcb.XonLim
+    // dcb.XoffLim
+    // dcb.ByteSize
+    // dcb.Parity
+    // dcb.StopBits
+    dcb.XonChar = 17;
+    dcb.XoffChar = 19;
+    dcb.ErrorChar = '\0' as winapi::ctypes::c_char;
+    dcb.EofChar = 26;
+    // dcb.EvtChar
+    // always true for communications resources
+    dcb.set_fBinary(TRUE);
+    // dcb.set_fParity()
+    // dcb.set_fOutxCtsFlow()
+    // serialport-rs doesn't support toggling DSR: so disable fOutxDsrFlow
+    dcb.set_fOutxDsrFlow(FALSE);
+    dcb.set_fDtrControl(DTR_CONTROL_DISABLE);
+    // disable because fOutxDsrFlow is disabled as well
+    dcb.set_fDsrSensitivity(FALSE);
+    // dcb.set_fTXContinueOnXoff()
+    // dcb.set_fOutX()
+    // dcb.set_fInX()
+    dcb.set_fErrorChar(FALSE);
+    // fNull: when set to TRUE null bytes are discarded when received.
+    // null bytes won't be discarded by serialport-rs
+    dcb.set_fNull(FALSE);
+    // dcb.set_fRtsControl()
+    // serialport-rs does not handle the fAbortOnError behaviour, so we must make sure it's not enabled
+    dcb.set_fAbortOnError(FALSE);
+}
+
 pub(crate) fn set_dcb(handle: HANDLE, mut dcb: DCB) -> Result<()> {
     if unsafe { SetCommState(handle, &mut dcb as *mut _) != 0 } {
         return Ok(());
@@ -44,6 +82,8 @@ pub(crate) fn set_parity(dcb: &mut DCB, parity: Parity) {
         Parity::Odd => ODDPARITY as u8,
         Parity::Even => EVENPARITY as u8,
     };
+
+    dcb.set_fParity(if parity == Parity::None { 0 } else { 1 });
 }
 
 pub(crate) fn set_stop_bits(dcb: &mut DCB, stop_bits: StopBits) {
