@@ -202,10 +202,7 @@ pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> Result<()> {
 pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> Result<()> {
     match unsafe { raw::iossiospeed(fd, baud_rate) } {
         Ok(_) => Ok(()),
-        Err(e) => match e {
-            nix::Error::Sys(nix::errno::Errno::ENOTTY) => Ok(()),
-            b => Err(b),
-        },
+        Err(nix::Error::Sys(nix::errno::Errno::ENOTTY)) => Ok(()),
+        Err(e) => Err(e.into()),
     }
-    .map_err(|e| e.into())
 }
