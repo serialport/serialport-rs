@@ -200,7 +200,12 @@ pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> Result<()> {
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> Result<()> {
-    unsafe { raw::iossiospeed(fd, baud_rate) }
-        .map(|_| ())
-        .map_err(|e| e.into())
+    match unsafe { raw::iossiospeed(fd, baud_rate) } {
+        Ok(_) => Ok(()),
+        Err(e) => match e {
+            nix::Error::Sys(nix::errno::Errno::ENOTTY) => Ok(()),
+            b => Err(b),
+        },
+    }
+    .map_err(|e| e.into())
 }
