@@ -209,9 +209,125 @@ pub(crate) fn set_stop_bits(termios: &mut Termios, stop_bits: StopBits) {
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     termios.c_cflag &= !nix::libc::CBAUD;
-    termios.c_cflag |= nix::libc::BOTHER;
-    termios.c_ispeed = baud_rate;
-    termios.c_ospeed = baud_rate;
+
+    // Some serial port drivers support the cflag baud rate constants but not BOTHER with
+    // an arbitrary baud rate. Let's try to find a matching BXXX cflag and fall back to BOTHER
+    // only for non-standard baud rates.
+
+    if let Some(cflag) = baud_to_cflag(baud_rate) {
+        termios.c_cflag |= cflag;
+        termios.c_ispeed = 0;
+        termios.c_ospeed = 0;
+    } else {
+        termios.c_cflag |= nix::libc::BOTHER;
+        termios.c_ispeed = baud_rate;
+        termios.c_ospeed = baud_rate;
+    }
+}
+
+/// Get the BXXX cflag corresponding to a given baud rate
+#[cfg(any(
+    target_os = "android",
+    all(
+        target_os = "linux",
+        not(any(
+            target_env = "musl",
+            target_arch = "sparc64",
+            target_arch = "powerpc",
+            target_arch = "powerpc64"
+        ))
+    )
+))]
+fn baud_to_cflag(baud_rate: u32) -> Option<libc::speed_t> {
+    use self::libc::{
+        B1000000, B110, B115200, B1152000, B1200, B134, B150, B1500000, B1800, B19200, B200,
+        B2000000, B230400, B2400, B2500000, B300, B3000000, B3500000, B38400, B4000000, B460800,
+        B4800, B50, B500000, B57600, B576000, B600, B75, B921600, B9600,
+    };
+
+    Some(match baud_rate {
+        50 => B50,
+        75 => B75,
+        110 => B110,
+        134 => B134,
+        150 => B150,
+        200 => B200,
+        300 => B300,
+        600 => B600,
+        1200 => B1200,
+        1800 => B1800,
+        2400 => B2400,
+        4800 => B4800,
+        9600 => B9600,
+        19_200 => B19200,
+        38_400 => B38400,
+        57_600 => B57600,
+        115_200 => B115200,
+        230_400 => B230400,
+        460_800 => B460800,
+        500_000 => B500000,
+        576_000 => B576000,
+        921_600 => B921600,
+        1_000_000 => B1000000,
+        1_152_000 => B1152000,
+        1_500_000 => B1500000,
+        2_000_000 => B2000000,
+        2_500_000 => B2500000,
+        3_000_000 => B3000000,
+        3_500_000 => B3500000,
+        4_000_000 => B4000000,
+        _ => {
+            return None;
+        }
+    })
+}
+
+/// Get the BXXX cflag corresponding to a given baud rate
+///
+/// sparc64 has a unique set of baudrates
+#[cfg(all(target_os = "linux", target_arch = "sparc64"))]
+fn baud_to_cflag(baud_rate: u32) -> Option<libc::speed_t> {
+    use self::libc::{
+        B1000000, B110, B115200, B1152000, B1200, B134, B150, B1500000, B153600, B1800, B19200,
+        B200, B2000000, B230400, B2400, B300, B307200, B38400, B460800, B4800, B50, B500000,
+        B57600, B576000, B600, B614400, B75, B76800, B921600, B9600,
+    };
+
+    Some(match baud_rate {
+        50 => B50,
+        75 => B75,
+        110 => B110,
+        134 => B134,
+        150 => B150,
+        200 => B200,
+        300 => B300,
+        600 => B600,
+        1200 => B1200,
+        1800 => B1800,
+        2400 => B2400,
+        4800 => B4800,
+        9600 => B9600,
+        19_200 => B19200,
+        38_400 => B38400,
+        57_600 => B57600,
+        76_800 => B76800,
+        115_200 => B115200,
+        230_400 => B230400,
+        460_800 => B460800,
+        153_600 => B153600,
+        307_200 => B307200,
+        614_400 => B614400,
+        921_600 => B921600,
+        500_000 => B500000,
+        576_000 => B576000,
+        1_000_000 => B1000000,
+        1_152_000 => B1152000,
+        1_500_000 => B1500000,
+        2_000_000 => B2000000,
+        _ => {
+            return None;
+        }
+    })
 }
 
 // BSDs use the baud rate as the constant value so there's no translation necessary
