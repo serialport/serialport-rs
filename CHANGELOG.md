@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## UNRELEASED
+### Added
+### Changed
+### Fixed
+### Removed
+
 ## [4.0.1] - 2020-04-17
 ### Added
 ### Changed
@@ -265,7 +271,8 @@ Unreleased, happened due to a user error using `cargo-release`
 * Initial release.
 
 
-[Unreleased]: https://gitlab.com/susurrus/serialport-rs/-/compare/4.0.0...HEAD
+[Unreleased]: https://gitlab.com/susurrus/serialport-rs/-/compare/4.0.1...HEAD
+[4.0.1]: https://gitlab.com/susurrus/serialport-rs/-/compare/4.0.0...4.0.1
 [4.0.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.3.0...4.0.0
 [3.3.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.2.0...3.3.0
 [3.2.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.1.0...3.2.0
