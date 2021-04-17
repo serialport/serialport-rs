@@ -12,6 +12,7 @@ description = "A cross-platform low-level serial port library"
 documentation = "https://docs.rs/serialport/*/serialport"
 
 [badges]
+maintenance = { status = "looking-for-maintainer" }
 appveyor = { repository = "Susurrus/serialport-rs", service = "gitlab" }
 gitlab = { repository = "susurrus/serialport-rs" }
 travis-ci = { repository = "Susurrus/serialport-rs" }
