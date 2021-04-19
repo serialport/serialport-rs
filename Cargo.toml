@@ -43,3 +43,4 @@ features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handlea
 IOKit-sys = "0.1"
 mach = "0.2"
 CoreFoundation-sys = "0.1.3"
+os-version = "0.1.1"
