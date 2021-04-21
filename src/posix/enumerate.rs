@@ -180,41 +180,17 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
-fn macos_legacy_usb() -> bool {
-    let version = os_version::detect();
-    match version {
-        Ok(OsVersion::OSX(version)) => {
-            let version_parts: Vec<_> = version
-                .version
-                .split(".")
-                .filter_map(|s| s.parse::<u32>().ok())
-                .collect();
-            if version_parts.len() >= 2 {
-                let major = version_parts[0];
-                let minor = version_parts[1];
-                // OSX versions began with 10.0 so 9.11 is impossible
-                return major < 11 && minor <= 10;
-            }
-        }
-        _ => {}
-    }
-
-    false
-}
-
-#[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
-    let usb_device_class_name = if macos_legacy_usb() {
-        // deprecated after macos 10.10: https://developer.apple.com/documentation/kernel/iousbdevice
-        kIOUSBDeviceClassName()
-    } else {
-        b"IOUSBHostDevice\0".as_ptr() as *const c_char
-    };
+    let usb_device_class_name = b"IOUSBHostDevice\0".as_ptr() as *const c_char;
+    let legacy_usb_device_class_name = kIOUSBDeviceClassName();
 
-    if let Some(usb_device) = get_parent_device_by_type(service, usb_device_class_name) {
+    let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name).or(
+        get_parent_device_by_type(service, legacy_usb_device_class_name),
+    );
+    if let Some(usb_device) = maybe_usb_device {
         SerialPortType::UsbPort(UsbPortInfo {
             vid: get_int_property(usb_device, "idVendor", kCFNumberSInt16Type).unwrap_or_default()
                 as u16,
