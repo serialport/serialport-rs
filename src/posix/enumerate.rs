@@ -1,7 +1,5 @@
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use nix::libc::{c_char, c_void};
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use os_version::OsVersion;
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use std::ffi::OsStr;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
