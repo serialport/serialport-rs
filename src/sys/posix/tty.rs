@@ -13,6 +13,7 @@ use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result,
     SerialPortBuilder, StopBits,
 };
+use crate::posix::{BreakDuration, SerialPortExt};
 
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
@@ -45,15 +46,6 @@ pub struct SerialPort {
     port_name: Option<String>,
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     baud_rate: u32,
-}
-
-/// Specifies the duration of a transmission break
-#[derive(Clone, Copy, Debug)]
-pub enum BreakDuration {
-    /// 0.25-0.5s
-    Short,
-    /// Specifies a break duration that is platform-dependent
-    Arbitrary(std::num::NonZeroI32),
 }
 
 impl SerialPort {
@@ -156,38 +148,6 @@ impl SerialPort {
         })
     }
 
-    /// Returns the exclusivity of the port
-    ///
-    /// If a port is exclusive, then trying to open the same device path again
-    /// will fail.
-    pub fn exclusive(&self) -> bool {
-        self.exclusive
-    }
-
-    /// Sets the exclusivity of the port
-    ///
-    /// If a port is exclusive, then trying to open the same device path again
-    /// will fail.
-    ///
-    /// See the man pages for the tiocexcl and tiocnxcl ioctl's for more details.
-    ///
-    /// ## Errors
-    ///
-    /// * `Io` for any error while setting exclusivity for the port.
-    pub fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
-        let setting_result = if exclusive {
-            ioctl::tiocexcl(self.fd)
-        } else {
-            ioctl::tiocnxcl(self.fd)
-        };
-
-        if let Err(err) = setting_result {
-            Err(err)
-        } else {
-            self.exclusive = exclusive;
-            Ok(())
-        }
-    }
 
     fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> Result<()> {
         if level {
@@ -199,110 +159,6 @@ impl SerialPort {
 
     fn read_pin(&mut self, pin: ioctl::SerialLines) -> Result<bool> {
         ioctl::tiocmget(self.fd).map(|pins| pins.contains(pin))
-    }
-
-    /// Create a pair of pseudo serial terminals
-    ///
-    /// ## Returns
-    /// Two connected `SerialPort` objects: `(master, slave)`
-    ///
-    /// ## Errors
-    /// Attempting any IO or parameter settings on the slave tty after the master
-    /// tty is closed will return errors.
-    ///
-    /// On some platforms manipulating the master port will fail and only
-    /// modifying the slave port is possible.
-    ///
-    /// ## Examples
-    ///
-    /// ```
-    /// use serialport::SerialPort;
-    ///
-    /// let (master, slave) = SerialPort::pair().unwrap();
-    /// ```
-    pub fn pair() -> Result<(Self, Self)> {
-        // Open the next free pty.
-        let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::OFlag::O_RDWR)?;
-
-        // Grant access to the associated slave pty
-        nix::pty::grantpt(&next_pty_fd)?;
-
-        // Unlock the slave pty
-        nix::pty::unlockpt(&next_pty_fd)?;
-
-        // Get the path of the attached slave ptty
-        #[cfg(not(any(
-            target_os = "linux",
-            target_os = "android",
-            target_os = "emscripten",
-            target_os = "fuchsia"
-        )))]
-        let ptty_name = unsafe { nix::pty::ptsname(&next_pty_fd)? };
-
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "android",
-            target_os = "emscripten",
-            target_os = "fuchsia"
-        ))]
-        let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
-
-        // Open the slave port
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
-        let baud_rate = 9600;
-        let fd = nix::fcntl::open(
-            Path::new(&ptty_name),
-            OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
-            nix::sys::stat::Mode::empty(),
-        )?;
-
-        // Set the port to a raw state. Using these ports will not work without this.
-        let mut termios = MaybeUninit::uninit();
-        let res = unsafe { crate::sys::posix::tty::libc::tcgetattr(fd, termios.as_mut_ptr()) };
-        if let Err(e) = nix::errno::Errno::result(res) {
-            close(fd);
-            return Err(e.into());
-        }
-        let mut termios = unsafe { termios.assume_init() };
-        unsafe { crate::sys::posix::tty::libc::cfmakeraw(&mut termios) };
-        unsafe { crate::sys::posix::tty::libc::tcsetattr(fd, libc::TCSANOW, &termios) };
-
-        fcntl(
-            fd,
-            nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
-        )?;
-
-        let slave_tty = SerialPort {
-            fd,
-            timeout: Duration::from_millis(100),
-            exclusive: true,
-            port_name: Some(ptty_name),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate,
-        };
-
-        // Manually construct the master port here because the
-        // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
-        // BSDs when used on the master port.
-        let master_tty = SerialPort {
-            fd: next_pty_fd.into_raw_fd(),
-            timeout: Duration::from_millis(100),
-            exclusive: true,
-            port_name: None,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate,
-        };
-
-        Ok((master_tty, slave_tty))
-    }
-
-    /// Sends 0-valued bits over the port for a set duration
-    pub fn send_break(&self, duration: BreakDuration) -> Result<()> {
-        match duration {
-            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0),
-            BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(self.fd, n.get()),
-        }
-        .map_err(|e| e.into())
     }
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
@@ -694,6 +550,145 @@ impl io::Write for &SerialPort {
     fn flush(&mut self) -> io::Result<()> {
         nix::sys::termios::tcdrain(self.fd)
             .map_err(|_| io::Error::new(io::ErrorKind::Other, "flush failed"))
+    }
+}
+
+impl SerialPortExt for SerialPort {
+    /// Create a pair of pseudo serial terminals
+    ///
+    /// ## Returns
+    /// Two connected `SerialPort` objects: `(master, slave)`
+    ///
+    /// ## Errors
+    /// Attempting any IO or parameter settings on the slave tty after the master
+    /// tty is closed will return errors.
+    ///
+    /// On some platforms manipulating the master port will fail and only
+    /// modifying the slave port is possible.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// use serialport::SerialPort;
+    ///
+    /// let (master, slave) = SerialPort::pair().unwrap();
+    /// ```
+    fn pair() -> Result<(Self, Self)> {
+        // Open the next free pty.
+        let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::OFlag::O_RDWR)?;
+
+        // Grant access to the associated slave pty
+        nix::pty::grantpt(&next_pty_fd)?;
+
+        // Unlock the slave pty
+        nix::pty::unlockpt(&next_pty_fd)?;
+
+        // Get the path of the attached slave ptty
+        #[cfg(not(any(
+            target_os = "linux",
+            target_os = "android",
+            target_os = "emscripten",
+            target_os = "fuchsia"
+        )))]
+        let ptty_name = unsafe { nix::pty::ptsname(&next_pty_fd)? };
+
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "android",
+            target_os = "emscripten",
+            target_os = "fuchsia"
+        ))]
+        let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
+
+        // Open the slave port
+        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        let baud_rate = 9600;
+        let fd = nix::fcntl::open(
+            Path::new(&ptty_name),
+            OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
+            nix::sys::stat::Mode::empty(),
+        )?;
+
+        // Set the port to a raw state. Using these ports will not work without this.
+        let mut termios = MaybeUninit::uninit();
+        let res = unsafe { crate::sys::posix::tty::libc::tcgetattr(fd, termios.as_mut_ptr()) };
+        if let Err(e) = nix::errno::Errno::result(res) {
+            close(fd);
+            return Err(e.into());
+        }
+        let mut termios = unsafe { termios.assume_init() };
+        unsafe { crate::sys::posix::tty::libc::cfmakeraw(&mut termios) };
+        unsafe { crate::sys::posix::tty::libc::tcsetattr(fd, libc::TCSANOW, &termios) };
+
+        fcntl(
+            fd,
+            nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
+        )?;
+
+        let slave_tty = SerialPort {
+            fd,
+            timeout: Duration::from_millis(100),
+            exclusive: true,
+            port_name: Some(ptty_name),
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate,
+        };
+
+        // Manually construct the master port here because the
+        // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
+        // BSDs when used on the master port.
+        let master_tty = SerialPort {
+            fd: next_pty_fd.into_raw_fd(),
+            timeout: Duration::from_millis(100),
+            exclusive: true,
+            port_name: None,
+            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            baud_rate,
+        };
+
+        Ok((master_tty, slave_tty))
+    }
+
+    /// Returns the exclusivity of the port
+    ///
+    /// If a port is exclusive, then trying to open the same device path again
+    /// will fail.
+    fn exclusive(&self) -> bool {
+        self.exclusive
+    }
+
+    /// Sets the exclusivity of the port
+    ///
+    /// If a port is exclusive, then trying to open the same device path again
+    /// will fail.
+    ///
+    /// See the man pages for the tiocexcl and tiocnxcl ioctl's for more details.
+    ///
+    /// ## Errors
+    ///
+    /// * `Io` for any error while setting exclusivity for the port.
+    fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
+        let setting_result = if exclusive {
+            ioctl::tiocexcl(self.fd)
+        } else {
+            ioctl::tiocnxcl(self.fd)
+        };
+
+        if let Err(err) = setting_result {
+            Err(err)
+        } else {
+            self.exclusive = exclusive;
+            Ok(())
+        }
+    }
+
+    /// Sends 0-valued bits over the port for a set duration
+    fn send_break(&self, duration: BreakDuration) -> Result<()> {
+        match duration {
+            BreakDuration::Short => nix::sys::termios::tcsendbreak(self.fd, 0),
+            BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(self.fd, n.get()),
+        }
+        .map_err(|e| e.into())
     }
 }
 
