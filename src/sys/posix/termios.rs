@@ -93,14 +93,14 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     )
 ))]
 pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
-    crate::posix::ioctl::tcgets2(fd).into()
+    crate::sys::posix::ioctl::tcgets2(fd).into()
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos",))]
 pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) -> Result<()> {
     let res = unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) };
     nix::errno::Errno::result(res)?;
-    crate::posix::ioctl::iossiospeed(fd, &(baud_rate as libc::speed_t))?;
+    crate::sys::posix::ioctl::iossiospeed(fd, &(baud_rate as libc::speed_t))?;
     Ok(())
 }
 
@@ -136,7 +136,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios) -> Result<()> {
     )
 ))]
 pub(crate) fn set_termios(fd: RawFd, termios: &Termios) -> Result<()> {
-    crate::posix::ioctl::tcsets2(fd, &termios)
+    crate::sys::posix::ioctl::tcsets2(fd, &termios)
 }
 
 pub(crate) fn set_parity(termios: &mut Termios, parity: Parity) {
