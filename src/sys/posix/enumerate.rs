@@ -304,17 +304,17 @@ cfg_if! {
 
                         let type_id = CFGetTypeID(value);
                         if type_id == CFStringGetTypeID() {
-                            let mut buf = Vec::with_capacity(256);
+                            let mut buf = [u8; 256];
 
                             CFStringGetCString(
                                 value as CFStringRef,
-                                buf.as_mut_ptr(),
-                                256,
+                                &buf[..].as_mut_ptr(),
+                                buf.len(),
                                 kCFStringEncodingUTF8,
                             );
                             let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
                             vec.push(SerialPortInfo {
-                                port_name: path.to_string(),
+                                port_name: path,
                                 port_type: port_type(modem_service),
                             });
                         } else {
@@ -348,7 +348,7 @@ cfg_if! {
                         if let Some(devnode) = d.devnode() {
                             if let Some(path) = devnode.to_str() {
                                 if let Some(driver) = p.driver() {
-                                    if driver == "serial8250" && crate::new(path, 9600).open().is_err() {
+                                    if driver == "serial8250" && crate::SerialPort::open(path, 9600).is_err() {
                                         continue;
                                     }
                                 }
