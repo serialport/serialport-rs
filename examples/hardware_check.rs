@@ -15,13 +15,13 @@
 //!  3) With two ports physically connected to each other
 //!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1`
 
-use std::io::Write;
+use std::io::{Write, Read};
 use std::str;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
+use serialport::{SerialPort, ClearBuffer, DataBits, FlowControl, Parity, StopBits};
 
 fn main() {
     let matches = App::new("Serialport Example - Hardware Check")
@@ -53,28 +53,28 @@ fn main() {
     }
 
     // Run single-port tests on port1
-    let mut port1 = match serialport::new(port1_name, 9600).open() {
+    let mut port1 = match SerialPort::builder().open(port1_name) {
         Err(e) => {
             eprintln!("Failed to open \"{}\". Error: {}", port1_name, e);
             ::std::process::exit(1);
         }
         Ok(p) => p,
     };
-    test_single_port(&mut *port1, port1_loopback);
+    test_single_port(&mut port1, port1_loopback);
 
     if port2_name != "" {
         // Run single-port tests on port2
-        let mut port2 = match serialport::new(port2_name, 9600).open() {
+        let mut port2 = match SerialPort::builder().open(port2_name) {
             Err(e) => {
                 eprintln!("Failed to open \"{}\". Error: {}", port2_name, e);
                 ::std::process::exit(1);
             }
             Ok(p) => p,
         };
-        test_single_port(&mut *port2, false);
+        test_single_port(&mut port2, false);
 
         // Test loopback pair
-        test_dual_ports(&mut *port1, &mut *port2);
+        test_dual_ports(&mut port1, &mut port2);
     }
 }
 
@@ -186,7 +186,7 @@ macro_rules! call_query_method_check {
     };
 }
 
-fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
+fn test_single_port(port: &mut SerialPort, loopback: bool) {
     println!("Testing '{}':", port.name().unwrap());
 
     // Test setting standard baud rates
@@ -262,7 +262,7 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
     }
 }
 
-fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn serialport::SerialPort) {
+fn test_dual_ports(port1: &mut SerialPort, port2: &mut SerialPort) {
     println!(
         "Testing paired ports '{}' and '{}':",
         port1.name().unwrap(),
@@ -420,7 +420,7 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     }
 }
 
-fn set_defaults(port: &mut dyn serialport::SerialPort) {
+fn set_defaults(port: &mut SerialPort) {
     port.set_baud_rate(9600).unwrap();
     port.set_data_bits(DataBits::Eight).unwrap();
     port.set_flow_control(FlowControl::Software).unwrap();

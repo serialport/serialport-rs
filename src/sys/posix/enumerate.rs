@@ -342,7 +342,7 @@ cfg_if! {
                         if let Some(devnode) = d.devnode() {
                             if let Some(path) = devnode.to_str() {
                                 if let Some(driver) = p.driver() {
-                                    if driver == "serial8250" && crate::SerialPort::open(path, 9600).is_err() {
+                                    if driver == "serial8250" && crate::SerialPort::builder().open(path).is_err() {
                                         continue;
                                     }
                                 }

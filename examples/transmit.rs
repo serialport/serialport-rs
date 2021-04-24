@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::{DataBits, StopBits};
+use serialport::{SerialPort, DataBits, StopBits};
 
 fn main() {
     let matches = App::new("Serialport Example - Heartbeat")
@@ -67,11 +67,12 @@ fn main() {
     let rate = matches.value_of("rate").unwrap().parse::<u32>().unwrap();
     let string = matches.value_of("string").unwrap();
 
-    let builder = serialport::new(port_name, baud_rate)
+    let builder = SerialPort::builder()
+        .baud_rate(baud_rate)
         .stop_bits(stop_bits)
         .data_bits(data_bits);
     println!("{:?}", &builder);
-    let mut port = builder.open().unwrap_or_else(|e| {
+    let mut port = builder.open(port_name).unwrap_or_else(|e| {
         eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
         ::std::process::exit(1);
     });
