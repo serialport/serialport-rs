@@ -1,8 +1,8 @@
 #![cfg(unix)]
 extern crate serialport;
 
-use serialport::SerialPort;
 use serialport::posix::SerialPortExt;
+use serialport::SerialPort;
 use std::io::{Read, Write};
 
 // Test that cloning a port works as expected

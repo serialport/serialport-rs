@@ -7,13 +7,13 @@ use std::{io, mem};
 use nix::fcntl::{fcntl, OFlag};
 use nix::{self, libc, unistd};
 
+use crate::posix::{BreakDuration, SerialPortExt};
 use crate::sys::posix::ioctl::{self, SerialLines};
 use crate::sys::posix::termios;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result,
-    SerialPortBuilder, StopBits,
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
+    StopBits,
 };
-use crate::posix::{BreakDuration, SerialPortExt};
 
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
@@ -147,7 +147,6 @@ impl SerialPort {
             baud_rate: builder.baud_rate,
         })
     }
-
 
     fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> Result<()> {
         if level {

@@ -23,7 +23,7 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 
-use serialport::{SerialPort,ClearBuffer};
+use serialport::{ClearBuffer, SerialPort};
 
 const DEFAULT_BLOCK_SIZE: &str = "128";
 

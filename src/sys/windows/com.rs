@@ -1,9 +1,9 @@
+use std::ffi::OsStr;
 use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
-use std::time::Duration;
 use std::path::Path;
-use std::ffi::OsStr;
-use std::{io, ptr, mem};
+use std::time::Duration;
+use std::{io, mem, ptr};
 
 use winapi::shared::minwindef::*;
 use winapi::um::commapi::*;
@@ -17,8 +17,8 @@ use winapi::um::winnt::{
 
 use crate::sys::windows::dcb;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result,
-    SerialPortBuilder, StopBits,
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
+    StopBits,
 };
 
 /// A serial port implementation for Windows COM ports
@@ -349,7 +349,6 @@ impl SerialPort {
             Err(super::error::last_os_error())
         }
     }
-
 }
 
 impl Drop for SerialPort {
