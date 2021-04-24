@@ -14,6 +14,9 @@ use serialport::posix::SerialPortExt;
 #[test]
 fn test_ttyport_pair() {
     // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
+    // TODO: Find out what's not thread-safe. Looks like the call to ptsname (used on non-linux 
+    // platforms) is considered not-thread-safe, but unclear if anything else is.
+    // If that function isn't thread safe, perhaps a better fix would be to lock within the pair() function.
     let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
     master
         .set_timeout(Duration::from_millis(10))
