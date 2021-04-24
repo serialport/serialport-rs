@@ -1,7 +1,9 @@
 use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
 use std::time::Duration;
-use std::{io, ptr};
+use std::path::Path;
+use std::ffi::OsStr;
+use std::{io, ptr, mem};
 
 use winapi::shared::minwindef::*;
 use winapi::um::commapi::*;
@@ -15,7 +17,7 @@ use winapi::um::winnt::{
 
 use crate::sys::windows::dcb;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result,
     SerialPortBuilder, StopBits,
 };
 
@@ -32,7 +34,7 @@ pub struct SerialPort {
     port_name: Option<String>,
 }
 
-unsafe impl Send for SerialPort {
+unsafe impl Send for SerialPort {}
 
 impl SerialPort {
     /// Opens a COM port as a serial device.
@@ -296,7 +298,7 @@ impl SerialPort {
         dcb::set_dcb(self.handle, dcb)
     }
 
-    fn bytes_to_read(&self) -> Result<u32> {
+    pub fn bytes_to_read(&self) -> Result<u32> {
         let mut errors: DWORD = 0;
         let mut comstat = MaybeUninit::uninit();
 
@@ -364,9 +366,38 @@ impl AsRawHandle for SerialPort {
     }
 }
 
+impl AsRawHandle for crate::SerialPort {
+    fn as_raw_handle(&self) -> RawHandle {
+        self.0.as_raw_handle()
+    }
+}
+
+impl IntoRawHandle for SerialPort {
+    fn into_raw_handle(self) -> RawHandle {
+        let handle = self.handle as RawHandle;
+        // Forget self to avoid running the destructor.
+        mem::forget(self);
+        handle
+    }
+}
+
+impl IntoRawHandle for crate::SerialPort {
+    fn into_raw_handle(self) -> RawHandle {
+        // crate::SerialPort doesn't explicitly implement Drop, so we can just take
+        // out the inner value.
+        self.0.into_raw_handle()
+    }
+}
+
 impl FromRawHandle for SerialPort {
     unsafe fn from_raw_handle(handle: RawHandle) -> Self {
         SerialPort::open_from_raw_handle(handle)
+    }
+}
+
+impl FromRawHandle for crate::SerialPort {
+    unsafe fn from_raw_handle(handle: RawHandle) -> Self {
+        crate::SerialPort(SerialPort::from_raw_handle(handle))
     }
 }
 

@@ -507,6 +507,8 @@ impl IntoRawFd for SerialPort {
 
 impl IntoRawFd for crate::SerialPort {
     fn into_raw_fd(self) -> RawFd {
+        // crate::SerialPort doesn't explicitly implement Drop, so we can just take
+        // out the inner value.
         self.0.into_raw_fd()
     }
 }
