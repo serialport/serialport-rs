@@ -32,7 +32,9 @@ pub trait SerialPortExt {
     ///
     /// let (master, slave) = SerialPort::pair().unwrap();
     /// ```
-    fn pair() -> Result<(Self, Self)> where Self: Sized;
+    fn pair() -> Result<(Self, Self)>
+    where
+        Self: Sized;
 
     /// Returns the exclusivity of the port
     ///

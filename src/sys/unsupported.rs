@@ -1,4 +1,3 @@
-
 use std::io;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo};
@@ -12,7 +11,7 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
 
 /// Unsupported serial port type can never be constructed.
 #[derive(Debug)]
-pub enum SerialPort { }
+pub enum SerialPort {}
 
 impl SerialPort {
     pub fn open(builder: SerialPortBuilder, path: impl AsRef<Path>) -> Result<SerialPort> {
@@ -39,7 +38,7 @@ impl SerialPort {
     }
 
     pub fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
-       unimplemented!()
+        unimplemented!()
     }
 
     pub fn read_clear_to_send(&mut self) -> Result<bool> {
