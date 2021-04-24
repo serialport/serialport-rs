@@ -28,7 +28,7 @@ pub trait SerialPortExt {
     /// ## Examples
     ///
     /// ```
-    /// use serialport::SerialPort;
+    /// use serialport::{SerialPort, posix::SerialPortExt};
     ///
     /// let (master, slave) = SerialPort::pair().unwrap();
     /// ```

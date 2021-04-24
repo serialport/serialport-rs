@@ -15,15 +15,15 @@
 //
 
 use std::error::Error;
-use std::io::{self, Read};
 use std::panic::panic_any;
+use std::io::{self, Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 
-use serialport::ClearBuffer;
+use serialport::{SerialPort,ClearBuffer};
 
 const DEFAULT_BLOCK_SIZE: &str = "128";
 
@@ -68,9 +68,10 @@ fn run(port_name: &str, baud_rate: &str, block_size: usize) -> Result<(), Box<dy
         .parse::<u32>()
         .map_err(|_| format!("Invalid baud rate '{}' specified", baud_rate))?;
 
-    let mut port = serialport::new(port_name, rate)
+    let mut port = SerialPort::builder()
+        .baud_rate(rate)
         .timeout(Duration::from_millis(10))
-        .open()
+        .open(port_name)
         .map_err(|ref e| format!("Port '{}' not available: {}", &port_name, e))?;
 
     let chan_clear_buf = input_service();

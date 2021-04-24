@@ -8,9 +8,11 @@ fn main() {
     use std::thread;
     use std::time;
 
-    use serialport::{SerialPort, TTYPort};
+    use serialport::SerialPort;
+    use serialport::posix::SerialPortExt;
 
-    let (mut master, mut slave) = TTYPort::pair().expect("Unable to create pseudo-terminal pair");
+    let (mut master, mut slave) = SerialPort::pair()
+        .expect("Unable to create pseudo-terminal pair");
 
     // Master ptty has no associated path on the filesystem.
     println!(

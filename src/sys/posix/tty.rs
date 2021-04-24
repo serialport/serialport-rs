@@ -488,6 +488,12 @@ impl AsRawFd for SerialPort {
     }
 }
 
+impl AsRawFd for crate::SerialPort {
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.as_raw_fd()
+    }
+}
+
 impl IntoRawFd for SerialPort {
     fn into_raw_fd(self) -> RawFd {
         // Pull just the file descriptor out. We also prevent the destructor
@@ -496,6 +502,12 @@ impl IntoRawFd for SerialPort {
         let SerialPort { fd, .. } = self;
         mem::forget(self);
         fd
+    }
+}
+
+impl IntoRawFd for crate::SerialPort {
+    fn into_raw_fd(self) -> RawFd {
+        self.0.into_raw_fd()
     }
 }
 
@@ -525,6 +537,12 @@ impl FromRawFd for SerialPort {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: get_termios_speed(fd),
         }
+    }
+}
+
+impl FromRawFd for crate::SerialPort {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        crate::SerialPort(SerialPort::from_raw_fd(fd))
     }
 }
 
@@ -569,7 +587,7 @@ impl SerialPortExt for SerialPort {
     /// ## Examples
     ///
     /// ```
-    /// use serialport::SerialPort;
+    /// use serialport::{SerialPort, posix::SerialPortExt};
     ///
     /// let (master, slave) = SerialPort::pair().unwrap();
     /// ```
@@ -689,6 +707,25 @@ impl SerialPortExt for SerialPort {
             BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(self.fd, n.get()),
         }
         .map_err(|e| e.into())
+    }
+}
+
+impl SerialPortExt for crate::SerialPort {
+    fn pair() -> Result<(Self, Self)> {
+        let (master, slave) = SerialPort::pair()?;
+        Ok((crate::SerialPort(master), crate::SerialPort(slave)))
+    }
+
+    fn exclusive(&self) -> bool {
+        self.0.exclusive()
+    }
+
+    fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
+        self.0.set_exclusive(exclusive)
+    }
+
+    fn send_break(&self, duration: BreakDuration) -> Result<()> {
+        self.0.send_break(duration)
     }
 }
 

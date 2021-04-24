@@ -218,48 +218,53 @@ pub struct SerialPortBuilder {
 
 impl SerialPortBuilder {
     /// Construct a new `SerialPortBuilder` with the default settings.
-    pub fn new(baud_rate: u32) -> Self {
-        SerialPortBuilder {
-            baud_rate,
-            data_bits: DataBits::Eight,
-            flow_control: FlowControl::None,
-            parity: Parity::None,
-            stop_bits: StopBits::One,
-            timeout: Duration::from_millis(0),
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
-    /// Set the baud rate in symbols-per-second
+    /// Set the baud rate in symbols-per-second.
+    /// 
+    /// Default: `9600`
     pub fn baud_rate(mut self, baud_rate: u32) -> Self {
         self.baud_rate = baud_rate;
         self
     }
 
     /// Set the number of bits used to represent a character sent on the line
+    /// 
+    /// Default: `DataBits::Eight`
     pub fn data_bits(mut self, data_bits: DataBits) -> Self {
         self.data_bits = data_bits;
         self
     }
 
     /// Set the type of signalling to use for controlling data transfer
+    /// 
+    /// Default: `FlowControl::None`
     pub fn flow_control(mut self, flow_control: FlowControl) -> Self {
         self.flow_control = flow_control;
         self
     }
 
     /// Set the type of parity to use for error checking
+    /// 
+    /// Default: `Parity::None`
     pub fn parity(mut self, parity: Parity) -> Self {
         self.parity = parity;
         self
     }
 
     /// Set the number of bits to use to signal the end of a character
+    /// 
+    /// Default: `StopBits::One`
     pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
         self.stop_bits = stop_bits;
         self
     }
 
     /// Set the amount of time to wait to receive data before timing out
+    /// 
+    /// Default: `Duration::from_millis(0)`
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
@@ -273,6 +278,19 @@ impl SerialPortBuilder {
     }
 }
 
+impl Default for SerialPortBuilder {
+    fn default() -> Self {
+        SerialPortBuilder {
+            baud_rate: 9600,
+            data_bits: DataBits::Eight,
+            flow_control: FlowControl::None,
+            parity: Parity::None,
+            stop_bits: StopBits::One,
+            timeout: Duration::from_millis(0),
+        }
+    }
+}
+
 /// A trait for serial port devices
 ///
 /// This trait is all that's necessary to implement a new serial port driver
@@ -281,14 +299,9 @@ impl SerialPortBuilder {
 pub struct SerialPort(sys::SerialPort);
 
 impl SerialPort {
-    /// Open a `SerialPort` at the given path with the given baud rate and default settings.
-    pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> Result<Self> {
-        SerialPortBuilder::new(baud_rate).open(path)
-    }
-
-    /// Get a builder for a serial port with the given baud_rate.
-    pub fn builder(baud_rate: u32) -> SerialPortBuilder {
-        SerialPortBuilder::new(baud_rate)
+    /// Get a builder for a serial port with the default settings.
+    pub fn builder() -> SerialPortBuilder {
+        Default::default()
     }
 
     // Port settings getters
@@ -580,26 +593,6 @@ impl io::Write for &SerialPort {
 
     fn flush(&mut self) -> io::Result<()> {
         io::Write::flush(&mut &self.0)
-    }
-}
-
-#[cfg(unix)]
-impl posix::SerialPortExt for SerialPort {
-    fn pair() -> Result<(Self, Self)> {
-        let (master, slave) = <sys::SerialPort as posix::SerialPortExt>::pair()?;
-        Ok((SerialPort(master), SerialPort(slave)))
-    }
-
-    fn exclusive(&self) -> bool {
-        posix::SerialPortExt::exclusive(&self.0)
-    }
-
-    fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
-        posix::SerialPortExt::set_exclusive(&mut self.0, exclusive)
-    }
-
-    fn send_break(&self, duration: posix::BreakDuration) -> Result<()> {
-        posix::SerialPortExt::send_break(&self.0, duration)
     }
 }
 

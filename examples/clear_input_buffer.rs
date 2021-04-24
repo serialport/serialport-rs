@@ -42,7 +42,7 @@ use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
-use serialport::ClearBuffer;
+use serialport::{SerialPort, ClearBuffer};
 
 fn main() {
     let matches = App::new("Serialport Example - Clear Input Buffer")
@@ -76,9 +76,10 @@ fn run(port_name: &str, baud_rate: &str) -> Result<(), Box<dyn Error>> {
         .parse::<u32>()
         .map_err(|_| format!("Invalid baud rate '{}' specified", baud_rate))?;
 
-    let port = serialport::new(port_name, rate)
+    let port = SerialPort::builder()
+        .baud_rate(rate)
         .timeout(Duration::from_millis(10))
-        .open()
+        .open(port_name)
         .map_err(|ref e| format!("Port '{}' not available: {}", &port_name, e))?;
 
     let chan_clear_buf = input_service();
@@ -124,7 +125,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     break;
                 }
                 Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
-                Err(e) => panic!(e),
+                Err(e) => panic!("{}", e),
             }
         }
     });
