@@ -223,7 +223,7 @@ impl SerialPortBuilder {
     }
 
     /// Set the baud rate in symbols-per-second.
-    /// 
+    ///
     /// Default: `9600`
     pub fn baud_rate(mut self, baud_rate: u32) -> Self {
         self.baud_rate = baud_rate;
@@ -231,7 +231,7 @@ impl SerialPortBuilder {
     }
 
     /// Set the number of bits used to represent a character sent on the line
-    /// 
+    ///
     /// Default: `DataBits::Eight`
     pub fn data_bits(mut self, data_bits: DataBits) -> Self {
         self.data_bits = data_bits;
@@ -239,7 +239,7 @@ impl SerialPortBuilder {
     }
 
     /// Set the type of signalling to use for controlling data transfer
-    /// 
+    ///
     /// Default: `FlowControl::None`
     pub fn flow_control(mut self, flow_control: FlowControl) -> Self {
         self.flow_control = flow_control;
@@ -247,7 +247,7 @@ impl SerialPortBuilder {
     }
 
     /// Set the type of parity to use for error checking
-    /// 
+    ///
     /// Default: `Parity::None`
     pub fn parity(mut self, parity: Parity) -> Self {
         self.parity = parity;
@@ -255,7 +255,7 @@ impl SerialPortBuilder {
     }
 
     /// Set the number of bits to use to signal the end of a character
-    /// 
+    ///
     /// Default: `StopBits::One`
     pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
         self.stop_bits = stop_bits;
@@ -263,7 +263,7 @@ impl SerialPortBuilder {
     }
 
     /// Set the amount of time to wait to receive data before timing out
-    /// 
+    ///
     /// Default: `Duration::from_millis(0)`
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
@@ -271,7 +271,7 @@ impl SerialPortBuilder {
     }
 
     /// Open a cross-platform interface to the port with the specified settings.
-    /// 
+    ///
     /// On windows, the path must start with the device prefix, e.g. `\\.\`.
     pub fn open(self, path: impl AsRef<Path>) -> Result<SerialPort> {
         Ok(SerialPort(sys::SerialPort::open(self, path)?))

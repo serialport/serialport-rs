@@ -298,12 +298,12 @@ cfg_if! {
 
                         let type_id = CFGetTypeID(value);
                         if type_id == CFStringGetTypeID() {
-                            let mut buf = [u8; 256];
+                            let mut buf = Vec::with_capacity(256);
 
                             CFStringGetCString(
                                 value as CFStringRef,
-                                &buf[..].as_mut_ptr(),
-                                buf.len(),
+                                buf.as_mut_ptr(),
+                                256,
                                 kCFStringEncodingUTF8,
                             );
                             let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
