@@ -185,7 +185,7 @@ impl SerialPort {
     }
 
     pub fn name(&self) -> Option<&str> {
-        self.port_name.as_deref()
+        self.port_name.as_ref().map(|s| &**s)
     }
 
     /// Returns the port's baud rate
