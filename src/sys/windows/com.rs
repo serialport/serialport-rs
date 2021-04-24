@@ -51,7 +51,7 @@ impl SerialPort {
     /// * `Io` for any other I/O error while opening or initializing the device.
     pub fn open(builder: SerialPortBuilder, path: impl AsRef<Path>) -> Result<SerialPort> {
         let path = path.as_ref();
-        
+
         let name: Vec<u16> = OsStr::new(r"\\.\")
             .encode_wide()
             .chain(path.as_os_str().encode_wide())
