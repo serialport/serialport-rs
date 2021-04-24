@@ -1,1 +1,0 @@
-//! Provides windows-only extensions to the SerialPort type.
