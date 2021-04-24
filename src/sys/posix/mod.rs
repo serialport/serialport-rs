@@ -1,5 +1,5 @@
-pub use self::enumerate::*;
-pub use self::tty::*;
+pub use enumerate::available_ports;
+pub use tty::SerialPort;
 
 mod enumerate;
 mod error;
