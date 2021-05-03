@@ -181,16 +181,22 @@ impl SerialPort {
         self.set_timeouts(self.read_timeout, write_timeout)
     }
 
-    fn set_timeouts(&mut self, read_timeout: Option<Duration>, write_timeout: Option<Duration>) -> Result<()> {
+    fn set_timeouts(
+        &mut self,
+        read_timeout: Option<Duration>,
+        write_timeout: Option<Duration>,
+    ) -> Result<()> {
         let read_timeout_ms = match read_timeout {
-            Some(duration) => DWORD::try_from(duration.as_millis())
-                .map_or(DWORD::MAX, |timeout| timeout.max(1)),
+            Some(duration) => {
+                DWORD::try_from(duration.as_millis()).map_or(DWORD::MAX, |timeout| timeout.max(1))
+            }
             None => 0,
         };
 
         let write_timeout_ms = match write_timeout {
-            Some(duration) => DWORD::try_from(duration.as_millis())
-                .map_or(DWORD::MAX, |timeout| timeout.max(1)),
+            Some(duration) => {
+                DWORD::try_from(duration.as_millis()).map_or(DWORD::MAX, |timeout| timeout.max(1))
+            }
             None => 0,
         };
 
