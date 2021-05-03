@@ -33,7 +33,7 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Option<Duration>) -> io::Resul
     let wait_res = {
         use std::convert::TryFrom;
         let milliseconds = match timeout {
-            Some(duration) => i32::try_from(duration.as_millis()).or(i32::MAX),
+            Some(duration) => i32::try_from(duration.as_millis()).unwrap_or(i32::MAX),
             None => -1,
         };
         nix::poll::poll(slice::from_mut(&mut fd), milliseconds)
