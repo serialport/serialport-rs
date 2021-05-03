@@ -209,8 +209,10 @@ pub struct SerialPortBuilder {
     parity: Parity,
     /// Number of bits to use to signal the end of a character
     stop_bits: StopBits,
-    /// Amount of time to wait to receive data before timing out
-    timeout: Duration,
+    /// Amount of time to wait to receive data before timing out.
+    read_timeout: Option<Duration>,
+    /// Amount of time to wait to write data before timing out.
+    write_timeout: Option<Duration>,
 }
 
 impl SerialPortBuilder {
@@ -259,11 +261,21 @@ impl SerialPortBuilder {
         self
     }
 
-    /// Set the amount of time to wait to receive data before timing out
+    /// Set the amount of time to wait to receive data before timing out. If set
+    /// to `None`, hang indefinitely.
     ///
-    /// Default: `Duration::from_millis(0)`
-    pub fn timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+    /// Default: `None`
+    pub fn read_timeout(mut self, read_timeout: Option<Duration>) -> Self {
+        self.read_timeout = read_timeout;
+        self
+    }
+
+    /// Set the amount of time to wait to write data before timing out. If set to
+    /// `None`, hang indefinitely.
+    ///
+    /// Default: `None`
+    pub fn write_timeout(mut self, write_timeout: Option<Duration>) -> Self {
+        self.write_timeout = write_timeout;
         self
     }
 
@@ -283,7 +295,8 @@ impl Default for SerialPortBuilder {
             flow_control: FlowControl::None,
             parity: Parity::None,
             stop_bits: StopBits::One,
-            timeout: Duration::from_millis(0),
+            read_timeout: None,
+            write_timeout: None,
         }
     }
 }
@@ -359,9 +372,14 @@ impl SerialPort {
         self.0.stop_bits()
     }
 
-    /// Returns the current timeout.
-    pub fn timeout(&self) -> Duration {
-        self.0.timeout()
+    /// Returns the current read timeout.
+    pub fn read_timeout(&self) -> Option<Duration> {
+        self.0.read_timeout()
+    }
+
+    /// Returns the current write timeout.
+    pub fn write_timeout(&self) -> Option<Duration> {
+        self.0.write_timeout()
     }
 
     // Port settings setters
@@ -397,9 +415,14 @@ impl SerialPort {
         self.0.set_stop_bits(stop_bits)
     }
 
-    /// Sets the timeout for future I/O operations.
-    pub fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        self.0.set_timeout(timeout)
+    /// Sets the read timeout for future I/O operations.
+    pub fn set_read_timeout(&mut self, read_timeout: Option<Duration>) -> Result<()> {
+        self.0.set_read_timeout(read_timeout)
+    }
+
+    /// Sets the write timeout for future I/O operations.
+    pub fn set_write_timeout(&mut self, write_timeout: Option<Duration>) -> Result<()> {
+        self.0.set_write_timeout(write_timeout)
     }
 
     // Functions for setting non-data control signal pins

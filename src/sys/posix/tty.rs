@@ -41,7 +41,8 @@ fn close(fd: RawFd) {
 #[derive(Debug)]
 pub struct SerialPort {
     fd: RawFd,
-    timeout: Duration,
+    read_timeout: Option<Duration>,
+    write_timeout: Option<Duration>,
     exclusive: bool,
     port_name: Option<String>,
     #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -140,7 +141,8 @@ impl SerialPort {
         // Return the final port object
         Ok(SerialPort {
             fd,
-            timeout: builder.timeout,
+            read_timeout: builder.read_timeout,
+            write_timeout: builder.write_timeout,
             exclusive: false,
             port_name: Some(path.to_string_lossy().into_owned()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -178,7 +180,8 @@ impl SerialPort {
             fd: fd_cloned,
             exclusive: self.exclusive,
             port_name: self.port_name.clone(),
-            timeout: self.timeout,
+            read_timeout: self.read_timeout,
+            write_timeout: self.write_timeout,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: self.baud_rate,
         })
@@ -353,8 +356,12 @@ impl SerialPort {
         }
     }
 
-    pub fn timeout(&self) -> Duration {
-        self.timeout
+    pub fn read_timeout(&self) -> Option<Duration> {
+        self.read_timeout
+    }
+
+    pub fn write_timeout(&self) -> Option<Duration> {
+        self.write_timeout
     }
 
     #[cfg(any(
@@ -415,8 +422,13 @@ impl SerialPort {
         return termios::set_termios(self.fd, &termios);
     }
 
-    pub fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        self.timeout = timeout;
+    pub fn set_read_timeout(&mut self, read_timeout: Option<Duration>) -> Result<()> {
+        self.read_timeout = read_timeout;
+        Ok(())
+    }
+
+    pub fn set_write_timeout(&mut self, write_timeout: Option<Duration>) -> Result<()> {
+        self.write_timeout = write_timeout;
         Ok(())
     }
 
@@ -527,7 +539,8 @@ impl FromRawFd for SerialPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         SerialPort {
             fd,
-            timeout: Duration::from_millis(100),
+            read_timeout: None,
+            write_timeout: None,
             exclusive: ioctl::tiocexcl(fd).is_ok(),
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
@@ -549,7 +562,7 @@ impl FromRawFd for crate::SerialPort {
 
 impl io::Read for &SerialPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
+        if let Err(e) = super::poll::wait_read_fd(self.fd, self.read_timeout) {
             return Err(io::Error::from(Error::from(e)));
         }
 
@@ -559,7 +572,7 @@ impl io::Read for &SerialPort {
 
 impl io::Write for &SerialPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
+        if let Err(e) = super::poll::wait_write_fd(self.fd, self.write_timeout) {
             return Err(io::Error::from(Error::from(e)));
         }
 
@@ -646,7 +659,8 @@ impl SerialPortExt for SerialPort {
 
         let slave_tty = SerialPort {
             fd,
-            timeout: Duration::from_millis(100),
+            read_timeout: None,
+            write_timeout: None,
             exclusive: true,
             port_name: Some(ptty_name),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -658,7 +672,8 @@ impl SerialPortExt for SerialPort {
         // BSDs when used on the master port.
         let master_tty = SerialPort {
             fd: next_pty_fd.into_raw_fd(),
-            timeout: Duration::from_millis(100),
+            read_timeout: None,
+            write_timeout: None,
             exclusive: true,
             port_name: None,
             #[cfg(any(target_os = "ios", target_os = "macos"))]

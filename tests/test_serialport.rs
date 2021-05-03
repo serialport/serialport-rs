@@ -33,7 +33,8 @@ fn test_configuring_ports() {
         .flow_control(FlowControl::None)
         .parity(Parity::None)
         .stop_bits(StopBits::One)
-        .timeout(Duration::from_millis(1))
+        .read_timeout(Some(Duration::from_millis(1)))
+        .write_timeout(Some(Duration::from_millis(1)))
         .open("/dev/ttyUSB0");
 }
 
@@ -45,7 +46,8 @@ fn test_duplicating_port_config() {
         .flow_control(FlowControl::None)
         .parity(Parity::None)
         .stop_bits(StopBits::One)
-        .timeout(Duration::from_millis(1));
+        .read_timeout(Some(Duration::from_millis(1)))
+        .write_timeout(Some(Duration::from_millis(1)));
 
     let port2_config = port1_config.clone().baud_rate(115_200);
 

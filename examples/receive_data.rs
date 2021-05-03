@@ -28,7 +28,8 @@ fn main() {
 
     let port = SerialPort::builder()
         .baud_rate(baud_rate)
-        .timeout(Duration::from_millis(10))
+        .read_timeout(Some(Duration::from_millis(10)))
+        .write_timeout(Some(Duration::from_millis(10)))
         .open(port_name);
 
     match port {

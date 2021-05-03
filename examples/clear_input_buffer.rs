@@ -78,7 +78,8 @@ fn run(port_name: &str, baud_rate: &str) -> Result<(), Box<dyn Error>> {
 
     let port = SerialPort::builder()
         .baud_rate(rate)
-        .timeout(Duration::from_millis(10))
+        .read_timeout(Some(Duration::from_millis(10)))
+        .write_timeout(Some(Duration::from_millis(10)))
         .open(port_name)
         .map_err(|ref e| format!("Port '{}' not available: {}", &port_name, e))?;
 

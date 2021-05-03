@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
@@ -30,7 +31,8 @@ use crate::{
 #[derive(Debug)]
 pub struct SerialPort {
     handle: HANDLE,
-    timeout: Duration,
+    read_timeout: Option<Duration>,
+    write_timeout: Option<Duration>,
     port_name: Option<String>,
 }
 
@@ -86,7 +88,7 @@ impl SerialPort {
         dcb::set_dcb(handle, dcb)?;
 
         let mut com = SerialPort::open_from_raw_handle(handle as RawHandle);
-        com.set_timeout(builder.timeout)?;
+        com.set_timeouts(builder.read_timeout, builder.write_timeout)?;
         com.port_name = Some(path.to_string_lossy().into_owned());
         Ok(com)
     }
@@ -120,7 +122,8 @@ impl SerialPort {
                 Ok(SerialPort {
                     handle: cloned_handle,
                     port_name: self.port_name.clone(),
-                    timeout: self.timeout,
+                    read_timeout: self.read_timeout,
+                    write_timeout: self.write_timeout,
                 })
             } else {
                 Err(super::error::last_os_error())
@@ -145,11 +148,15 @@ impl SerialPort {
     }
 
     fn open_from_raw_handle(handle: RawHandle) -> Self {
-        // It is not trivial to get the file path corresponding to a handle.
-        // We'll punt and set it `None` here.
         SerialPort {
             handle: handle as HANDLE,
-            timeout: Duration::from_millis(100),
+            // It's possible to retrieve the COMMTIMEOUTS struct from the handle,
+            // but mapping that back to simple timeout durations would be difficult.
+            // Instead we just set `None` and add a warning to `FromRawHandle`.
+            read_timeout: None,
+            write_timeout: None,
+            // It is not trivial to get the file path corresponding to a handle.
+            // We'll punt and set it `None` here.
             port_name: None,
         }
     }
@@ -158,26 +165,49 @@ impl SerialPort {
         self.port_name.as_ref().map(|s| &**s)
     }
 
-    pub fn timeout(&self) -> Duration {
-        self.timeout
+    pub fn read_timeout(&self) -> Option<Duration> {
+        self.read_timeout
     }
 
-    pub fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
+    pub fn write_timeout(&self) -> Option<Duration> {
+        self.write_timeout
+    }
+
+    pub fn set_read_timeout(&mut self, read_timeout: Option<Duration>) -> Result<()> {
+        self.set_timeouts(read_timeout, self.write_timeout)
+    }
+
+    pub fn set_write_timeout(&mut self, write_timeout: Option<Duration>) -> Result<()> {
+        self.set_timeouts(self.read_timeout, write_timeout)
+    }
+
+    fn set_timeouts(&mut self, read_timeout: Option<Duration>, write_timeout: Option<Duration>) -> Result<()> {
+        let read_timeout_ms = match read_timeout {
+            Some(duration) => DWORD::try_from(duration.as_millis())
+                .map_or(DWORD::MAX, |timeout| timeout.max(1)),
+            None => 0,
+        };
+
+        let write_timeout_ms = match write_timeout {
+            Some(duration) => DWORD::try_from(duration.as_millis())
+                .map_or(DWORD::MAX, |timeout| timeout.max(1)),
+            None => 0,
+        };
 
         let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: 0,
+            ReadIntervalTimeout: 1,
             ReadTotalTimeoutMultiplier: 0,
-            ReadTotalTimeoutConstant: milliseconds as DWORD,
+            ReadTotalTimeoutConstant: read_timeout_ms,
             WriteTotalTimeoutMultiplier: 0,
-            WriteTotalTimeoutConstant: 0,
+            WriteTotalTimeoutConstant: write_timeout_ms,
         };
 
         if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
             return Err(super::error::last_os_error());
         }
 
-        self.timeout = timeout;
+        self.read_timeout = read_timeout;
+        self.write_timeout = write_timeout;
         Ok(())
     }
 
@@ -395,6 +425,13 @@ impl FromRawHandle for SerialPort {
 }
 
 impl FromRawHandle for crate::SerialPort {
+    /// Create a SerialPort from a raw handle.
+    ///
+    /// Warning: the returned `SerialPort` will report timeouts of `None` for
+    /// `read_timeout` and `write_timeout`, however the actual timeouts set on the
+    /// underlying handle may be different. You can use `set_read_timeout` and
+    /// `set_write_timeout` to reset the timeouts on the handle to make them match
+    /// the values on the `SerialPort`.
     unsafe fn from_raw_handle(handle: RawHandle) -> Self {
         crate::SerialPort(SerialPort::from_raw_handle(handle))
     }

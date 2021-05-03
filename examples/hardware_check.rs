@@ -17,7 +17,6 @@
 
 use std::io::{Read, Write};
 use std::str;
-use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
 
@@ -426,5 +425,6 @@ fn set_defaults(port: &mut SerialPort) {
     port.set_flow_control(FlowControl::Software).unwrap();
     port.set_parity(Parity::None).unwrap();
     port.set_stop_bits(StopBits::One).unwrap();
-    port.set_timeout(Duration::from_millis(0)).unwrap();
+    port.set_read_timeout(None).unwrap();
+    port.set_write_timeout(None).unwrap();
 }

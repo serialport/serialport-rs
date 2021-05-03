@@ -19,11 +19,17 @@ fn test_ttyport_pair() {
     // If that function isn't thread safe, perhaps a better fix would be to lock within the pair() function.
     let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
     master
-        .set_timeout(Duration::from_millis(10))
-        .expect("Unable to set timeout on the master");
+        .set_read_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set read timeout on the master");
+    master
+        .set_write_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set write timeout on the master");
     slave
-        .set_timeout(Duration::from_millis(10))
-        .expect("Unable to set timeout on the slave");
+        .set_read_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set read timeout on the slave");
+    slave
+        .set_write_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set write timeout on the slave");
 
     // Test file descriptors.
     assert!(
@@ -76,7 +82,8 @@ fn test_ttyport_timeout() {
     std::thread::spawn(move || {
         // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
         let (mut master, _slave) = SerialPort::pair().expect("Unable to create ptty pair");
-        master.set_timeout(Duration::new(1, 0)).unwrap();
+        master.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
+        master.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
 
         let mut buffer = [0u8];
         let read_res = master.read(&mut buffer);
