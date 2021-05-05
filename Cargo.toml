@@ -37,7 +37,7 @@ regex = "1.5.4"
 [target."cfg(windows)".dependencies.winapi]
 version = "0.3.9"
 features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
-            "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt"]
+            "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt", "ioapiset", "synchapi"]
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
 IOKit-sys = "0.1.5"

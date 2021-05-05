@@ -7,9 +7,13 @@ use std::time::Duration;
 use std::{io, mem, ptr};
 
 use winapi::shared::minwindef::*;
+use winapi::shared::winerror::ERROR_IO_PENDING;
 use winapi::um::commapi::*;
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
+use winapi::um::ioapiset::GetOverlappedResult;
+use winapi::um::minwinbase::OVERLAPPED;
 use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::winbase::*;
 use winapi::um::winnt::{
@@ -18,6 +22,7 @@ use winapi::um::winnt::{
 
 use crate::sys::windows::dcb;
 use crate::windows::{CommTimeouts, SerialPortExt};
+use crate::sys::windows::event_cache::EventCache;
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
     StopBits,
@@ -32,6 +37,8 @@ use crate::{
 #[derive(Debug)]
 pub struct SerialPort {
     handle: HANDLE,
+    read_event: EventCache,
+    write_event: EventCache,
     read_timeout: Option<Duration>,
     write_timeout: Option<Duration>,
     port_name: Option<String>,
@@ -70,7 +77,7 @@ impl SerialPort {
                 0,
                 ptr::null_mut(),
                 OPEN_EXISTING,
-                FILE_ATTRIBUTE_NORMAL,
+                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                 0 as HANDLE,
             )
         };
@@ -119,16 +126,18 @@ impl SerialPort {
                 TRUE,
                 DUPLICATE_SAME_ACCESS,
             );
-            if cloned_handle != INVALID_HANDLE_VALUE {
-                Ok(SerialPort {
-                    handle: cloned_handle,
-                    port_name: self.port_name.clone(),
-                    read_timeout: self.read_timeout,
-                    write_timeout: self.write_timeout,
-                })
-            } else {
-                Err(super::error::last_os_error())
-            }
+        }
+        if cloned_handle != INVALID_HANDLE_VALUE {
+            Ok(SerialPort {
+                handle: cloned_handle,
+                read_event: EventCache::new(),
+                write_event: EventCache::new(),
+                port_name: self.port_name.clone(),
+                read_timeout: self.read_timeout,
+                write_timeout: self.write_timeout,
+            })
+        } else {
+            Err(super::error::last_os_error())
         }
     }
 
@@ -151,6 +160,8 @@ impl SerialPort {
     fn open_from_raw_handle(handle: RawHandle) -> Self {
         SerialPort {
             handle: handle as HANDLE,
+            read_event: EventCache::new(),
+            write_event: EventCache::new(),
             // It's possible to retrieve the COMMTIMEOUTS struct from the handle,
             // but mapping that back to simple timeout durations would be difficult.
             // Instead we just set `None` and add a warning to `FromRawHandle`.
@@ -409,11 +420,34 @@ impl AsRawHandle for crate::SerialPort {
 }
 
 impl IntoRawHandle for SerialPort {
-    fn into_raw_handle(self) -> RawHandle {
-        let handle = self.handle as RawHandle;
-        // Forget self to avoid running the destructor.
+    fn into_raw_handle(mut self) -> RawHandle {
+        // into_raw_handle needs to remove the handle from the `SerialPort` to
+        // return it, but also needs to prevent Drop from being called, since
+        // that would close the handle and make `into_raw_handle` unusuable.
+        // However, we also want to avoid leaking the rest of the contents of the
+        // struct, so we either need to take it out or be sure it doesn't need to
+        // be dropped.
+        let handle = self.handle;
+        // Take the port_name out of the option to drop it now.
+        self.port_name.take();
+
+        // Read out both the read_event and write event into different variables
+        // before forgetting. This is to prevent a double-free, which could happen
+        // if either of their destructors panics. For example, suppose we instead
+        // did ptr::drop_in_place(&self.read_event); If that call panics, we will
+        // double-free read_event, since we haven't forgotten self yet so the
+        // destructor for SerialPort will run and try to drop read_event again.
+        // This is even worse for write_event, since that would double-free both
+        // read_event and write_event. Therefore we want to pull these both out
+        // without dropping them, then forget self, then drop them, so that at
+        // worst a panic causes us to leak a handle rather than double-free.
+        //
+        // Unsafe safety: these reads are safe because we are going to forget
+        // self afterward so won't double-free.
+        let _read_event = unsafe { ptr::read(&self.read_event) };
+        let _write_event = unsafe { ptr::read(&self.write_event) };
         mem::forget(self);
-        handle
+        handle as RawHandle
     }
 }
 
@@ -448,26 +482,34 @@ impl io::Read for &SerialPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut len: DWORD = 0;
 
+        let read_event = self.read_event.take_or_create()?;
+        let mut overlapped: OVERLAPPED = unsafe { MaybeUninit::zeroed().assume_init() };
+        overlapped.hEvent = read_event.handle();
+
         match unsafe {
             ReadFile(
                 self.handle,
                 buf.as_mut_ptr() as LPVOID,
                 buf.len() as DWORD,
                 &mut len,
-                ptr::null_mut(),
+                &mut overlapped,
             )
         } {
-            0 => Err(io::Error::last_os_error()),
-            _ => {
-                if len != 0 {
-                    Ok(len as usize)
-                } else {
-                    Err(io::Error::new(
-                        io::ErrorKind::TimedOut,
-                        "Operation timed out",
-                    ))
-                }
-            }
+            0 if unsafe { GetLastError() } == ERROR_IO_PENDING => {}
+            0 => return Err(io::Error::last_os_error()),
+            _ => return Ok(len as usize),
+        }
+
+        if unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        match len {
+            0 if buf.len() == 0 => Ok(0),
+            0 => Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "ReadFile() timed out (0 bytes read)",
+            )),
+            _ => Ok(len as usize),
         }
     }
 }

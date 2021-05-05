@@ -506,11 +506,17 @@ impl AsRawFd for crate::SerialPort {
 }
 
 impl IntoRawFd for SerialPort {
-    fn into_raw_fd(self) -> RawFd {
-        // Pull just the file descriptor out. We also prevent the destructor
-        // from being run by calling `mem::forget`. If we didn't do this, the
-        // port would be closed, which would make `into_raw_fd` unusable.
-        let SerialPort { fd, .. } = self;
+    fn into_raw_fd(mut self) -> RawFd {
+        // into_raw_fd needs to remove the file descriptor from the `SerialPort`
+        // to return it, but also needs to prevent Drop from being called, since
+        // that would close the file descriptor and make `into_raw_fd` unusuable.
+        // However, we also want to avoid leaking the rest of the contents of the
+        // struct, so we either need to take it out or be sure it doesn't need to
+        // be dropped.
+        let fd = self.fd;
+        // Currently port_name is the only field that needs to be dropped, and we
+        // can do that by taking it out of the optional before we forget the struct.
+        self.port_name.take();
         mem::forget(self);
         fd
     }
