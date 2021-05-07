@@ -45,6 +45,7 @@ pub struct SerialPort {
 }
 
 unsafe impl Send for SerialPort {}
+unsafe impl Sync for SerialPort {}
 
 impl SerialPort {
     /// Opens a COM port as a serial device.
