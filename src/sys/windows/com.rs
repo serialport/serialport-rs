@@ -480,6 +480,7 @@ impl FromRawHandle for crate::SerialPort {
 
 impl io::Read for &SerialPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        assert!(buf.len() <= DWORD::MAX as usize);
         let mut len: DWORD = 0;
 
         let read_event = self.read_event.take_or_create()?;
@@ -495,12 +496,12 @@ impl io::Read for &SerialPort {
                 &mut overlapped,
             )
         } {
-            0 if unsafe { GetLastError() } == ERROR_IO_PENDING => {}
-            0 => return Err(io::Error::last_os_error()),
+            FALSE if unsafe { GetLastError() } == ERROR_IO_PENDING => {}
+            FALSE => return Err(io::Error::last_os_error()),
             _ => return Ok(len as usize),
         }
 
-        if unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) } == 0 {
+        if unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) } == FALSE {
             return Err(io::Error::last_os_error());
         }
         match len {
@@ -516,7 +517,12 @@ impl io::Read for &SerialPort {
 
 impl io::Write for &SerialPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        assert!(buf.len() <= DWORD::MAX as usize);
         let mut len: DWORD = 0;
+
+        let write_event = self.write_event.take_or_create()?;
+        let mut overlapped: OVERLAPPED = unsafe { MaybeUninit::zeroed().assume_init() };
+        overlapped.hEvent = write_event.handle();
 
         match unsafe {
             WriteFile(
@@ -524,10 +530,38 @@ impl io::Write for &SerialPort {
                 buf.as_ptr() as LPVOID,
                 buf.len() as DWORD,
                 &mut len,
-                ptr::null_mut(),
+                &mut overlapped,
             )
         } {
-            0 => Err(io::Error::last_os_error()),
+            FALSE if unsafe { GetLastError() } == ERROR_IO_PENDING => {}
+            FALSE => return Err(io::Error::last_os_error()),
+            _ => return Ok(len as usize),
+        }
+
+        if unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) } == FALSE {
+            return Err(io::Error::last_os_error());
+            // // WriteFile() may fail with ERROR_SEM_TIMEOUT, which is not
+            // // io::ErrorKind::TimedOut prior to Rust 1.46, so create a custom
+            // // error with kind TimedOut to simplify subsequent error handling.
+            // // https://github.com/rust-lang/rust/pull/71756
+            // let error = io::Error::last_os_error();
+            // // TODO: wrap if clause in if_rust_version! { < 1.46 { ... }}
+            // if error.raw_os_error().unwrap() as DWORD == ERROR_SEM_TIMEOUT
+            //     && error.kind() != io::ErrorKind::TimedOut
+            // {
+            //     return Err(io::Error::new(
+            //         io::ErrorKind::TimedOut,
+            //         "WriteFile() timed out (ERROR_SEM_TIMEOUT)",
+            //     ));
+            // }
+            // return Err(error);
+        }
+        match len {
+            0 if buf.len() == 0 => Ok(0),
+            0 => Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "WriteFile() timed out (0 bytes written)",
+            )),
             _ => Ok(len as usize),
         }
     }
