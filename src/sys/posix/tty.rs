@@ -711,25 +711,6 @@ impl SerialPortExt for SerialPort {
     }
 }
 
-impl SerialPortExt for crate::SerialPort {
-    fn pair() -> Result<(Self, Self)> {
-        let (master, slave) = SerialPort::pair()?;
-        Ok((crate::SerialPort(master), crate::SerialPort(slave)))
-    }
-
-    fn exclusive(&self) -> bool {
-        self.0.exclusive()
-    }
-
-    fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
-        self.0.set_exclusive(exclusive)
-    }
-
-    fn send_break(&self, duration: BreakDuration) -> Result<()> {
-        self.0.send_break(duration)
-    }
-}
-
 #[test]
 fn test_ttyport_into_raw_fd() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.

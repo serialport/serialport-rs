@@ -57,3 +57,22 @@ pub trait SerialPortExt {
     /// Sends 0-valued bits over the port for a set duration
     fn send_break(&self, duration: BreakDuration) -> Result<()>;
 }
+
+impl SerialPortExt for crate::SerialPort {
+    fn pair() -> Result<(Self, Self)> {
+        let (master, slave) = crate::sys::SerialPort::pair()?;
+        Ok((crate::SerialPort(master), crate::SerialPort(slave)))
+    }
+
+    fn exclusive(&self) -> bool {
+        self.0.exclusive()
+    }
+
+    fn set_exclusive(&mut self, exclusive: bool) -> Result<()> {
+        self.0.set_exclusive(exclusive)
+    }
+
+    fn send_break(&self, duration: BreakDuration) -> Result<()> {
+        self.0.send_break(duration)
+    }
+}
