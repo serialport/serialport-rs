@@ -6,15 +6,36 @@
 //!
 //! # Feature Overview
 //!
-//! The library has been organized such that there is a high-level `SerialPort` trait that provides
-//! a cross-platform API for accessing serial ports. This is the preferred method of interacting
-//! with ports. The `SerialPort::new().open*()` and `available_ports()` functions in the root
-//! provide cross-platform functionality.
+//! The library provides a single `SerialPort` type which works across the supported platforms. Some
+//! platform-specific functionality is available through platform-specific extension traits provided
+//! in the [`posix`] and [`windows`] modules, which can be imported when platform-specific functions are
+//! needed.
 //!
-//! For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
-//! corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait).
-//! Using the platform-specific `SerialPort::new().open*()` functions will return the
-//! platform-specific port object which allows access to platform-specific functionality.
+//! To open a [`SerialPort`], create a builder with [`SerialPort::builder()`]. The [`SerialPortBuilder`]
+//! can be used to customize settings such as baud rate, number of data bits, flow control, parity
+//! and timeouts before opening the port. Note that most of these settings can be changed after opening
+//! as well, but they are provided on the builder for convenience.
+//!
+//! For normal reading and writing, `SerialPort` implements the standard [`Read`][io::Read] and
+//! [`Write`][io::Write] traits.
+//!
+//! ```no_run
+//! use std::io::Read;
+//! use serialport::SerialPort;
+//! # fn main() -> serialport::Result<()> {
+//! let mut port = SerialPort::builder().baud_rate(115200).open("/dev/ttyUSB0")?;
+//! let mut buf = [0u8; 1024];
+//! let bytes_read = port.read(&mut buf[..])?;
+//! println!("Read {} bytes: {:?}", bytes_read, &buf[..bytes_read]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! `SerialPort` instances are thread-safe, and both read and write are implemeted for both
+//! `SerialPort` and `&SerialPort`. This allows you to share a single `SerialPort` instance
+//! between threads without locking. This is primarily intended to allow having 1 thread for
+//! reading and 1 thread for writing. It is also possible to get separate SerialPort instances
+//! which have the same underlying serial device using [`try_clone`][SerialPort::try_clone()].
 
 #![deny(
     missing_docs,
@@ -219,7 +240,7 @@ pub struct SerialPortBuilder {
 }
 
 impl SerialPortBuilder {
-    /// Construct a new `SerialPortBuilder` with the default settings.
+    /// Construct a new [`SerialPortBuilder`] with the default settings.
     pub fn new() -> Self {
         Default::default()
     }
@@ -234,7 +255,7 @@ impl SerialPortBuilder {
 
     /// Set the number of bits used to represent a character sent on the line
     ///
-    /// Default: `DataBits::Eight`
+    /// Default: [`DataBits::Eight`]
     pub fn data_bits(mut self, data_bits: DataBits) -> Self {
         self.data_bits = data_bits;
         self
@@ -242,7 +263,7 @@ impl SerialPortBuilder {
 
     /// Set the type of signalling to use for controlling data transfer
     ///
-    /// Default: `FlowControl::None`
+    /// Default: [`FlowControl::None`]
     pub fn flow_control(mut self, flow_control: FlowControl) -> Self {
         self.flow_control = flow_control;
         self
@@ -250,7 +271,7 @@ impl SerialPortBuilder {
 
     /// Set the type of parity to use for error checking
     ///
-    /// Default: `Parity::None`
+    /// Default: [`Parity::None`]
     pub fn parity(mut self, parity: Parity) -> Self {
         self.parity = parity;
         self
@@ -258,7 +279,7 @@ impl SerialPortBuilder {
 
     /// Set the number of bits to use to signal the end of a character
     ///
-    /// Default: `StopBits::One`
+    /// Default: [`StopBits::One`]
     pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
         self.stop_bits = stop_bits;
         self
@@ -267,7 +288,7 @@ impl SerialPortBuilder {
     /// Set the amount of time to wait to receive data before timing out. If set
     /// to `None`, hang indefinitely.
     ///
-    /// Default: `None`
+    /// Default: [`None`]
     pub fn read_timeout(mut self, read_timeout: Option<Duration>) -> Self {
         self.read_timeout = read_timeout;
         self
@@ -276,7 +297,7 @@ impl SerialPortBuilder {
     /// Set the amount of time to wait to write data before timing out. If set to
     /// `None`, hang indefinitely.
     ///
-    /// Default: `None`
+    /// Default: [`None`]
     pub fn write_timeout(mut self, write_timeout: Option<Duration>) -> Self {
         self.write_timeout = write_timeout;
         self
@@ -304,10 +325,9 @@ impl Default for SerialPortBuilder {
     }
 }
 
-/// A trait for serial port devices
+/// A Serial Port device.
 ///
-/// This trait is all that's necessary to implement a new serial port driver
-/// for a new platform.
+/// See module-level documentation for an overview.
 #[derive(Debug)]
 pub struct SerialPort(sys::SerialPort);
 
@@ -322,7 +342,8 @@ impl SerialPort {
     /// Returns the name of this port if it exists.
     ///
     /// This name may not be the canonical device name and instead be shorthand.
-    /// Additionally it may not exist for virtual ports.
+    /// Additionally it may not exist for virtual ports or ports created from a raw
+    /// handle or file descriptor.
     pub fn name(&self) -> Option<&str> {
         self.0.name()
     }

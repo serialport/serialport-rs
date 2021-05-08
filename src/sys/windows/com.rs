@@ -21,8 +21,8 @@ use winapi::um::winnt::{
 };
 
 use crate::sys::windows::dcb;
-use crate::windows::{CommTimeouts, SerialPortExt};
 use crate::sys::windows::event_cache::EventCache;
+use crate::windows::{CommTimeouts, SerialPortExt};
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
     StopBits,

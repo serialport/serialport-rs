@@ -16,11 +16,11 @@ For async I/O functionality, see the [mio-serial](https://github.com/berkowski/m
 
 # Overview
 
-The library exposes cross-platform serial port functionality through the `SerialPort` trait. This
-library is structured to make this the simplest API to use to encourate cross-platform development
-by default. Working with the resultant `Box<dyn SerialPort>` type is therefore recommended. To
-expose additional platform-specific functionality use the platform-specific structs directly:
-`TTYPort` for POSIX systems and `COMPort` for Windows.
+The library exposes cross-platform serial port functionality through the
+`SerialPort` struct. Additional platform-dependent features can be enabled by
+importing platform-specific `SerialPortExt` traits. `SerialPort` implements the
+standard `Read` and `Write` traits.
+
 
 Serial enumeration is provided on most platforms. The implementation on Linux using `glibc` relies
 on `libudev`, an external dynamic library that will need to be available on the system the final
@@ -41,36 +41,50 @@ let ports = serialport::available_ports().expect("No ports found!");
 for p in ports {
     println!("{}", p.port_name);
 }
-
 ```
 
 Opening and configuring a port:
 
 ```rust
-let port = serialport::new("/dev/ttyUSB0", 115_200)
-    .timeout(Duration::from_millis(10))
-    .open().expect("Failed to open port");
+let port = SerialPort::builder()
+    .baud_rate(115_200)
+    .read_timeout(Duration::from_millis(10))
+    .open("/dev/ttyUSB0")
+    .expect("Failed to open port");
 ```
 
 Writing to a port:
 
 ```rust
+use std::io::Write;
+
 let output = "This is a test. This is only a test.".as_bytes();
 port.write(output).expect("Write failed!");
 ```
 
-Reading from a port (default is blocking with a 0ms timeout):
+Reading from a port:
 
 ```rust
+use std::io::Read;
+
 let mut serial_buf: Vec<u8> = vec![0; 32];
-port.read(serial_buf.as_mut_slice()).expect("Found no data!");
+port.read(serial_buf.as_mut_slice()).expect("Read failed");
 ```
 
-Some platforms expose additional functionality, which is opened using the `open_native()` method:
+Some platforms expose additional functionality, which is accessed by importing the platform-specific extension trait.
 
 ```rust
-let port = serialport::new("/dev/ttyUSB0", 115_200)
-    .open_native().expect("Failed to open port");
+let port = SerialPort::builder()
+    .baud_rate(115_200)
+    .read_timeout(Duration::from_millis(10))
+    .open("/dev/ttyUSB0")
+    .expect("Failed to open port");
+
+#[cfg(windows)]
+use serialport::windows::SerialPortExt;
+
+#[cfg(unix)]
+use serialport::posix::SerialPortExt;
 ```
 
 Closing a port:
@@ -78,6 +92,51 @@ Closing a port:
 `serialport-rs` uses the Resource Acquisition Is Initialization (RAII) paradigm and so closing a
 port is done when the `SerialPort` object is `Drop`ed either implicitly or explicitly using
 `std::mem::drop` (`std::mem::drop(port)`).
+
+# Migrating to Version 5
+
+Prior to version 5 of this library, the `SerialPort` type was a trait, and
+cross-platform functionality was provided by using `Box<dyn SerialPort>`.
+Platform-specific functionality required using the platform-specific structs,
+`COMPort` and `TTYPort`.
+
+In version 5, these types have been unified, with a single `SerialPort` struct
+as the only serial port type exposed by the library. Platform-specific
+functionality is implemented through extension traits, which can be imported
+when needed on a particular platform, to allow you to call extra functions on
+the `SerialPort` struct. Using a struct instead of a trait means you no longer
+need to `Box` `SerialPort` instances, and the extension traits should make it
+easier to write cross-platform code that only occasionally needs access to
+platform-specific features.
+
+For example, to send a break on a TTY port, in version 4 and earlier, you would
+have to use the `TTYPort` struct instead of the cross-platform `dyn SerialPort`:
+
+```rust
+use serialport::BreakDuration;
+
+let port = serialport::new("/dev/ttyUSB0", 9600).open_native()?;
+port.send_break(BreakDuration::Short)?;
+```
+
+In version 5, you can now use the common `SerialPort` type everywhere, and to
+gain access to the platform-specific `send_break` method, you just have to
+import the platform-specific trait.
+
+```rust
+use serialport::posix::{SerialPortExt, BreakDuration};
+use serialport::SerialPort;
+
+let port = SerialPort::builder().open("/dev/ttyUSB0")?;
+port.send_break(BreakDuration::Short)?;
+```
+
+One other consequence of the switch to a having `SerialPort` as a struct rather
+than a trait is that you will now need to import `std::io::Read` and
+`std::io::Write` traits explicitly. Previously, the `SerialPort` trait inherited
+from `Read` and `Write` so you could call read and write without importing them
+whenever the `SerialPort` trait was in scope. With `SerialPort` as a struct, you
+now need to explicitly import `Read` and `Write`.
 
 # Examples
 

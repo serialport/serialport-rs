@@ -13,20 +13,25 @@ use winapi::um::winbase::COMMTIMEOUTS;
 
 use crate::Result;
 
-/// Represents COM Port Timeouts. Equivalent to
-/// https://docs.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts.
-///
-/// See official documentation of the `COMMTIMEOUTS` C struct for details.
+/// Represents COM Port Timeouts. Equivalent to [`COMMTIMEOUTS`](
+/// https://docs.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts).
+/// See official documentation of the [`COMMTIMEOUTS`](https://docs.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts)
+/// struct in the windows API for details of how the fields affect timeout behavior.
 ///
 /// Timeouts are given as durations instead of integer milliseconds. When applied,
-/// they will have at-most millisecond precision.
+/// sub-millisecond times will be truncated.
 #[derive(Debug, Copy, Clone)]
 pub struct CommTimeouts {
-    read_interval_timeout: Duration,
-    read_total_timeout_multiplier: Duration,
-    read_total_timeout_constant: Duration,
-    write_total_timeout_multiplier: Duration,
-    write_total_timeout_constant: Duration,
+    #[allow(missing_docs)]
+    pub read_interval_timeout: Duration,
+    #[allow(missing_docs)]
+    pub read_total_timeout_multiplier: Duration,
+    #[allow(missing_docs)]
+    pub read_total_timeout_constant: Duration,
+    #[allow(missing_docs)]
+    pub write_total_timeout_multiplier: Duration,
+    #[allow(missing_docs)]
+    pub write_total_timeout_constant: Duration,
 }
 
 #[cfg(windows)]
