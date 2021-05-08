@@ -17,6 +17,7 @@ use winapi::um::winnt::{
 };
 
 use crate::sys::windows::dcb;
+use crate::windows::{CommTimeouts, SerialPortExt};
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
     StopBits,
@@ -208,7 +209,7 @@ impl SerialPort {
             WriteTotalTimeoutConstant: write_timeout_ms,
         };
 
-        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == FALSE {
             return Err(super::error::last_os_error());
         }
 
@@ -494,5 +495,23 @@ impl io::Write for &SerialPort {
             0 => Err(io::Error::last_os_error()),
             _ => Ok(()),
         }
+    }
+}
+
+impl SerialPortExt for SerialPort {
+    fn comm_timeouts(&self) -> Result<CommTimeouts> {
+        let mut timeouts: COMMTIMEOUTS = unsafe { MaybeUninit::zeroed().assume_init() };
+        if unsafe { GetCommTimeouts(self.handle, &mut timeouts) } == FALSE {
+            return Err(super::error::last_os_error());
+        }
+        Ok(timeouts.into())
+    }
+
+    fn set_comm_timeouts(&self, timeouts: CommTimeouts) -> Result<()> {
+        let mut timeouts: COMMTIMEOUTS = timeouts.into();
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == FALSE {
+            return Err(super::error::last_os_error());
+        }
+        Ok(())
     }
 }
