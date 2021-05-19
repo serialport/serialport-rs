@@ -72,7 +72,9 @@ impl EventCache {
 impl Drop for EventCache {
     fn drop(&mut self) {
         let handle = (*self.handle.get_mut()) as HANDLE;
-        unsafe { CloseHandle(handle) };
+        if handle != NULL {
+            unsafe { CloseHandle(handle) };
+        }
     }
 }
 
