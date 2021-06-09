@@ -93,16 +93,6 @@ impl COMPort {
         Ok(com)
     }
 
-    fn set_all(com: &mut COMPort, builder: &SerialPortBuilder) -> Result<()> {
-        com.set_baud_rate(builder.baud_rate)?;
-        com.set_data_bits(builder.data_bits)?;
-        com.set_flow_control(builder.flow_control)?;
-        com.set_parity(builder.parity)?;
-        com.set_stop_bits(builder.stop_bits)?;
-        com.set_timeout(builder.timeout)?;
-        Ok(())
-    }
-
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
@@ -203,8 +193,8 @@ impl io::Read for COMPort {
             let evt_handle: HANDLE = unsafe {
                 CreateEventW(
                     ptr::null_mut(),
-                    true as BOOL,
-                    false as BOOL,
+                    TRUE,
+                    FALSE,
                     ptr::null_mut(),
                 )
             };
@@ -223,18 +213,15 @@ impl io::Read for COMPort {
                     &mut overlapped,
                 )
             };
-            if read_result == 0
-                && unsafe {
-                    GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_OPERATION_ABORTED
-                }
-            {
-                unsafe {
-                    CloseHandle(overlapped.hEvent);
-                }
-                return Err(io::Error::last_os_error());
+            let last_error = unsafe { GetLastError() };
+            if read_result == 0 && last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED {
+                    unsafe {
+                        CloseHandle(overlapped.hEvent);
+                    }
+                    return Err(io::Error::last_os_error());
             }
             let overlapped_result = unsafe {
-                GetOverlappedResult(self.handle, &mut overlapped, &mut len, true as BOOL)
+                GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE)
             };
             unsafe {
                 CloseHandle(overlapped.hEvent);
@@ -258,13 +245,11 @@ impl io::Read for COMPort {
 
 impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let _bytes_to_write = self.bytes_to_write()? as usize;
-
         let evt_handle: HANDLE = unsafe {
             CreateEventW(
                 ptr::null_mut(),
-                true as BOOL,
-                false as BOOL,
+                TRUE,
+                FALSE,
                 ptr::null_mut(),
             )
         };
@@ -283,10 +268,9 @@ impl io::Write for COMPort {
                 &mut overlapped,
             )
         };
-        if write_result == 0
-            && unsafe {
-                GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_OPERATION_ABORTED
-            }
+        let last_error = unsafe{ GetLastError() };
+        if write_result == 0 &&  last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED
+
         {
             unsafe {
                 CloseHandle(overlapped.hEvent);
@@ -294,7 +278,7 @@ impl io::Write for COMPort {
             return Err(io::Error::last_os_error());
         }
         let overlapped_result =
-            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, true as BOOL) };
+            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
         unsafe {
             CloseHandle(overlapped.hEvent);
         }
