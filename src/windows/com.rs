@@ -265,8 +265,6 @@ impl io::Read for COMPort {
 
 impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let _bytes_to_write = self.bytes_to_write()? as usize;
-
         let evt_handle: HANDLE = unsafe {
             CreateEventW(
                 ptr::null_mut(),
