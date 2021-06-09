@@ -190,14 +190,8 @@ impl io::Read for COMPort {
             }
         }
         if read_size > 0 {
-            let evt_handle: HANDLE = unsafe {
-                CreateEventW(
-                    ptr::null_mut(),
-                    TRUE,
-                    FALSE,
-                    ptr::null_mut(),
-                )
-            };
+            let evt_handle: HANDLE =
+                unsafe { CreateEventW(ptr::null_mut(), TRUE, FALSE, ptr::null_mut()) };
             if evt_handle == NULL {
                 return Err(io::Error::last_os_error());
             }
@@ -214,15 +208,17 @@ impl io::Read for COMPort {
                 )
             };
             let last_error = unsafe { GetLastError() };
-            if read_result == 0 && last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED {
-                    unsafe {
-                        CloseHandle(overlapped.hEvent);
-                    }
-                    return Err(io::Error::last_os_error());
+            if read_result == 0
+                && last_error != ERROR_IO_PENDING
+                && last_error != ERROR_OPERATION_ABORTED
+            {
+                unsafe {
+                    CloseHandle(overlapped.hEvent);
+                }
+                return Err(io::Error::last_os_error());
             }
-            let overlapped_result = unsafe {
-                GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE)
-            };
+            let overlapped_result =
+                unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
             unsafe {
                 CloseHandle(overlapped.hEvent);
             }
@@ -245,14 +241,8 @@ impl io::Read for COMPort {
 
 impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let evt_handle: HANDLE = unsafe {
-            CreateEventW(
-                ptr::null_mut(),
-                TRUE,
-                FALSE,
-                ptr::null_mut(),
-            )
-        };
+        let evt_handle: HANDLE =
+            unsafe { CreateEventW(ptr::null_mut(), TRUE, FALSE, ptr::null_mut()) };
         if evt_handle == NULL {
             return Err(io::Error::last_os_error());
         }
@@ -268,9 +258,10 @@ impl io::Write for COMPort {
                 &mut overlapped,
             )
         };
-        let last_error = unsafe{ GetLastError() };
-        if write_result == 0 &&  last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED
-
+        let last_error = unsafe { GetLastError() };
+        if write_result == 0
+            && last_error != ERROR_IO_PENDING
+            && last_error != ERROR_OPERATION_ABORTED
         {
             unsafe {
                 CloseHandle(overlapped.hEvent);
