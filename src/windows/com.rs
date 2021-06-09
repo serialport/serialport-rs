@@ -213,8 +213,8 @@ impl io::Read for COMPort {
             let evt_handle: HANDLE = unsafe {
                 CreateEventW(
                     ptr::null_mut(),
-                    true as BOOL,
-                    false as BOOL,
+                    TRUE,
+                    FALSE,
                     ptr::null_mut(),
                 )
             };
@@ -244,7 +244,7 @@ impl io::Read for COMPort {
                 return Err(io::Error::last_os_error());
             }
             let overlapped_result = unsafe {
-                GetOverlappedResult(self.handle, &mut overlapped, &mut len, true as BOOL)
+                GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE)
             };
             unsafe {
                 CloseHandle(overlapped.hEvent);
@@ -273,8 +273,8 @@ impl io::Write for COMPort {
         let evt_handle: HANDLE = unsafe {
             CreateEventW(
                 ptr::null_mut(),
-                true as BOOL,
-                false as BOOL,
+                TRUE,
+                FALSE,
                 ptr::null_mut(),
             )
         };
@@ -304,7 +304,7 @@ impl io::Write for COMPort {
             return Err(io::Error::last_os_error());
         }
         let overlapped_result =
-            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, true as BOOL) };
+            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
         unsafe {
             CloseHandle(overlapped.hEvent);
         }
