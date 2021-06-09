@@ -233,15 +233,12 @@ impl io::Read for COMPort {
                     &mut overlapped,
                 )
             };
-            if read_result == 0
-                && unsafe {
-                    GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_OPERATION_ABORTED
-                }
-            {
-                unsafe {
-                    CloseHandle(overlapped.hEvent);
-                }
-                return Err(io::Error::last_os_error());
+            let last_error = unsafe { GetLastError() };
+            if read_result == 0 && last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED {
+                    unsafe {
+                        CloseHandle(overlapped.hEvent);
+                    }
+                    return Err(io::Error::last_os_error());
             }
             let overlapped_result = unsafe {
                 GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE)
@@ -293,10 +290,9 @@ impl io::Write for COMPort {
                 &mut overlapped,
             )
         };
-        if write_result == 0
-            && unsafe {
-                GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_OPERATION_ABORTED
-            }
+        let last_error = unsafe{ GetLastError() };
+        if write_result == 0 &&  last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED
+
         {
             unsafe {
                 CloseHandle(overlapped.hEvent);
