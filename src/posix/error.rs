@@ -1,7 +1,3 @@
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-use libudev;
-use nix;
-
 use std::io;
 
 use crate::{Error, ErrorKind};
@@ -51,6 +47,12 @@ impl From<nix::Error> for Error {
             }
             nix::Error::Sys(e @ nix::errno::Errno::EINTR) => {
                 Error::new(ErrorKind::Io(io::ErrorKind::Interrupted), e.desc())
+            }
+            nix::Error::Sys(e @ nix::errno::Errno::EACCES) => {
+                Error::new(ErrorKind::Io(io::ErrorKind::PermissionDenied), e.desc())
+            }
+            nix::Error::Sys(e @ nix::errno::Errno::ENOENT) => {
+                Error::new(ErrorKind::Io(io::ErrorKind::NotFound), e.desc())
             }
             nix::Error::Sys(e) => Error::new(ErrorKind::Unknown, e.desc()),
         }

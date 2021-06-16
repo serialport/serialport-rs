@@ -1,8 +1,7 @@
 #![cfg(unix)]
 extern crate serialport;
 
-use serialport::posix::TTYPort;
-use serialport::SerialPort;
+use serialport::{SerialPort, TTYPort};
 use std::io::{Read, Write};
 
 // Test that cloning a port works as expected
@@ -15,7 +14,7 @@ fn test_try_clone() {
     {
         let mut clone = master.try_clone().expect("Failed to clone");
         let bytes = [b'a', b'b', b'c', b'd', b'e', b'f'];
-        clone.write(&bytes).unwrap();
+        clone.write_all(&bytes).unwrap();
         let mut buffer = [0; 6];
         slave.read_exact(&mut buffer).unwrap();
         assert_eq!(buffer, [b'a', b'b', b'c', b'd', b'e', b'f']);
@@ -25,7 +24,7 @@ fn test_try_clone() {
     {
         let mut clone = master.try_clone().expect("Failed to clone");
         let bytes = [b'g', b'h', b'i', b'j', b'k', b'l'];
-        clone.write(&bytes).unwrap();
+        clone.write_all(&bytes).unwrap();
         let mut buffer = [0; 6];
         slave.read_exact(&mut buffer).unwrap();
         assert_eq!(buffer, [b'g', b'h', b'i', b'j', b'k', b'l']);
@@ -42,10 +41,9 @@ fn test_try_clone_move() {
     let mut clone = master.try_clone().expect("Failed to clone the slave");
     let loopback = thread::spawn(move || {
         let bytes = [b'a', b'b', b'c', b'd', b'e', b'f'];
-        clone.write(&bytes).unwrap();
+        clone.write_all(&bytes).unwrap();
     });
 
-    // Create clone in an inner scope to test that dropping a clone does not destroy the serialport
     let mut buffer = [0; 6];
     slave.read_exact(&mut buffer).unwrap();
     assert_eq!(buffer, [b'a', b'b', b'c', b'd', b'e', b'f']);

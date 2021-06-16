@@ -1,7 +1,5 @@
 //! Pseudo terminal example.
 
-extern crate serialport;
-
 #[cfg(unix)]
 fn main() {
     use std::io::{Read, Write};
@@ -10,8 +8,7 @@ fn main() {
     use std::thread;
     use std::time;
 
-    use serialport::posix::TTYPort;
-    use serialport::SerialPort;
+    use serialport::{SerialPort, TTYPort};
 
     let (mut master, mut slave) = TTYPort::pair().expect("Unable to create pseudo-terminal pair");
 
