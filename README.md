@@ -40,7 +40,7 @@ Usage
 Listing available ports:
 
 ```rust
-let ports = serialport::available_ports().expect("No ports found!");
+let mut ports = serialport::available_ports().expect("No ports found!");
 for p in ports {
     println!("{}", p.port_name);
 }
@@ -50,7 +50,7 @@ for p in ports {
 Opening and configuring a port:
 
 ```rust
-let port = serialport::new("/dev/ttyUSB0", 115_200)
+let mut port = serialport::new("/dev/ttyUSB0", 115_200)
     .timeout(Duration::from_millis(10))
     .open().expect("Failed to open port");
 ```
