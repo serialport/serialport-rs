@@ -8,13 +8,13 @@
 //!
 //! The library has been organized such that there is a high-level `SerialPort` trait that provides
 //! a cross-platform API for accessing serial ports. This is the preferred method of interacting
-//! with ports and as such is part of the `prelude`. The `open*()` and `available_ports()` functions
-//! in the root provide cross-platform functionality.
+//! with ports. The `SerialPort::new().open*()` and `available_ports()` functions in the root
+//! provide cross-platform functionality.
 //!
 //! For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
 //! corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait).
-//! Using the platform-specific `open*()` functions will return the platform-specific port object
-//! which allows access to platform-specific functionality.
+//! Using the platform-specific `SerialPort::new().open*()` functions will return the
+//! platform-specific port object which allows access to platform-specific functionality.
 
 #![deny(
     missing_docs,
