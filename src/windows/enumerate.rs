@@ -6,6 +6,7 @@ use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::CHAR;
 use winapi::shared::winerror::*;
+use winapi::um::cfgmgr32::{CM_Get_Device_IDA, CM_Get_Parent, CR_SUCCESS, DEVINST};
 use winapi::um::cguid::GUID_NULL;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::setupapi::*;
@@ -151,13 +152,24 @@ impl PortDevice {
     fn instance_id(&mut self) -> Option<String> {
         let mut result_buf = [0i8; MAX_PATH];
         let res = unsafe {
-            SetupDiGetDeviceInstanceIdA(
-                self.hdi,
-                &mut self.devinfo_data,
-                result_buf.as_mut_ptr(),
-                (result_buf.len() - 1) as DWORD,
-                ptr::null_mut(),
-            )
+            let mut parent: DEVINST = 0;
+            let r = CM_Get_Parent(&mut parent, self.devinfo_data.DevInst, 0);
+            println!("{} {}", r, parent);
+            if r == CR_SUCCESS {
+                let r = CM_Get_Device_IDA(
+                    parent,
+                    result_buf.as_mut_ptr(),
+                    (result_buf.len() - 1) as DWORD,
+                    0,
+                );
+                if r == CR_SUCCESS {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            } else {
+                FALSE
+            }
         };
         if res == FALSE {
             // Try to retrieve hardware id property.
