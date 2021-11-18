@@ -9,10 +9,10 @@ environment:
       CHANNEL: stable
       TARGET: x86_64-apple-darwin
     - APPVEYOR_BUILD_WORKER_IMAGE: macOS
-      CHANNEL: 1.36.0
+      CHANNEL: 1.46.0
       TARGET: x86_64-apple-darwin
     - APPVEYOR_BUILD_WORKER_IMAGE: macOS
-      CHANNEL: beta # Requires at least 1.48.0-beta
+      CHANNEL: stable
       TARGET: aarch64-apple-darwin
       DISABLE_TESTS: 1
 
@@ -44,7 +44,7 @@ environment:
       TARGET: i686-pc-windows-gnu
       BITS: 32
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      CHANNEL: 1.36.0
+      CHANNEL: 1.46.0
       TARGET: x86_64-pc-windows-msvc
       BITS: 64
 

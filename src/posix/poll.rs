@@ -29,7 +29,7 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     #[cfg(target_os = "linux")]
     let wait_res = {
         let timespec = TimeSpec::milliseconds(milliseconds);
-        nix::poll::ppoll(slice::from_mut(&mut fd), timespec, SigSet::empty())
+        nix::poll::ppoll(slice::from_mut(&mut fd), Some(timespec), SigSet::empty())
     };
     #[cfg(not(target_os = "linux"))]
     let wait_res = nix::poll::poll(slice::from_mut(&mut fd), milliseconds as nix::libc::c_int);
