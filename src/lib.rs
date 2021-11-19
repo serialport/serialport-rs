@@ -519,6 +519,10 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
+    /// Manufacturer from database (arbitrary string)
+    pub manufacturer_database: Option<String>,
+    /// Product name from database (arbitrary string)
+    pub product_database: Option<String>,
 }
 
 /// The physical type of a `SerialPort`
