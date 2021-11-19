@@ -239,10 +239,19 @@ impl SerialPort for COMPort {
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
 
-        let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: 0,
-            ReadTotalTimeoutMultiplier: 0,
+        // populate COMMTIMEOUTS struct
+        // https://docs.microsoft.com/en-us/windows/win32/devio/time-outs
+        // https://docs.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts
+        let timeouts = COMMTIMEOUTS {
+            // return as soon as bytes become available (like POSIX would) and
+            // block up to given duration otherwise
+            // https://docs.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts#remarks
+            ReadIntervalTimeout: MAXDWORD,
+            ReadTotalTimeoutMultiplier: MAXDWORD,
             ReadTotalTimeoutConstant: milliseconds as DWORD,
+            // block without timeout until write is complete
+            // MAXDWORD is *not* a reserved WriteTotalTimeoutMultiplier
+            // value, i.e., setting it incurs a long write timeout
             WriteTotalTimeoutMultiplier: 0,
             WriteTotalTimeoutConstant: 0,
         };
