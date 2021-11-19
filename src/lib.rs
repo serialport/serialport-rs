@@ -550,7 +550,7 @@ pub struct SerialPortInfo {
 /// multiple serial ports a little easier.
 ///
 /// To open a new serial port:
-/// ```fail
+/// ```no_run
 /// serialport::new("/dev/ttyUSB0", 9600).open().expect("Failed to open port");
 /// ```
 pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> SerialPortBuilder {
