@@ -24,7 +24,7 @@ default = ["libudev"]
 clap = "2.32"
 
 [target."cfg(unix)".dependencies]
-nix = "0.16.1"
+nix = "0.18.0"
 bitflags = "1.0.4"
 cfg-if = "0.1"
 
