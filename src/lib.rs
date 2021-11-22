@@ -582,3 +582,9 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
         "available_ports() not implemented for platform",
     ))
 }
+
+#[cfg(doctest)]
+use doc_comment::doctest;
+
+#[cfg(doctest)]
+doctest!("../README.md");
