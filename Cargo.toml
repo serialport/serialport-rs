@@ -22,6 +22,7 @@ default = ["libudev"]
 
 [dev-dependencies]
 clap = "2.32"
+doc-comment = "0.3.3"
 
 [target."cfg(unix)".dependencies]
 nix = "0.16.1"
