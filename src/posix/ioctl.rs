@@ -118,8 +118,9 @@ pub fn tiocnxcl(fd: RawFd) -> Result<()> {
 
 pub fn tiocmget(fd: RawFd) -> Result<SerialLines> {
     let mut status: libc::c_int = 0;
-    let x = unsafe { raw::tiocmget(fd, &mut status) };
-    x.map(SerialLines::from_bits_truncate).map_err(|e| e.into())
+    unsafe { raw::tiocmget(fd, &mut status) }
+        .map(|_| SerialLines::from_bits_truncate(status))
+        .map_err(|e| e.into())
 }
 
 pub fn tiocsbrk(fd: RawFd) -> Result<()> {
