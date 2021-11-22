@@ -39,7 +39,7 @@ Usage
 
 Listing available ports:
 
-```rust
+```rust,no_run
 let mut ports = serialport::available_ports().expect("No ports found!");
 for p in ports {
     println!("{}", p.port_name);
@@ -49,7 +49,7 @@ for p in ports {
 
 Opening and configuring a port:
 
-```rust
+```rust,no_run
 let mut port = serialport::new("/dev/ttyUSB0", 115_200)
     .timeout(Duration::from_millis(10))
     .open().expect("Failed to open port");
@@ -57,21 +57,21 @@ let mut port = serialport::new("/dev/ttyUSB0", 115_200)
 
 Writing to a port:
 
-```rust
+```rust,no_run
 let output = "This is a test. This is only a test.".as_bytes();
 port.write(output).expect("Write failed!");
 ```
 
 Reading from a port (default is blocking with a 0ms timeout):
 
-```rust
+```rust,no_run
 let mut serial_buf: Vec<u8> = vec![0; 32];
 port.read(serial_buf.as_mut_slice()).expect("Found no data!");
 ```
 
 Some platforms expose additional functionality, which is opened using the `open_native()` method:
 
-```rust
+```rust,no_run
 let port = serialport::new("/dev/ttyUSB0", 115_200)
     .open_native().expect("Failed to open port");
 ```
