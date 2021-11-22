@@ -123,7 +123,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     break;
                 }
                 Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
-                Err(e) => panic!(e),
+                Err(e) => panic!("{}", e),
             }
         }
     });
