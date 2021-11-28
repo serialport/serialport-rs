@@ -29,8 +29,7 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
 
     // Size vector to hold 1 result (which is the most common result).
     let mut num_guids: DWORD = 0;
-    let mut guids: Vec<GUID> = Vec::new();
-    guids.push(GUID_NULL); // Placeholder for first result
+    let mut guids: Vec<GUID> = vec![GUID_NULL]; // Placeholder for first result
 
     // Find out how many GUIDs are associated with "Ports". Initially we assume
     // that there is only 1. num_guids will tell us how many there actually are.
@@ -49,17 +48,14 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
         ));
     }
     if num_guids == 0 {
-        // We got a successful result of no GUIDs, so pop the placeholder that
-        // we created before.
-        guids.pop();
+        // We got a successful result of no GUIDs, so return an empty vector
+        return Ok(Vec::new());
     }
 
     if num_guids as usize > guids.len() {
         // It turns out we needed more that one slot. num_guids will contain the number of slots
         // that we actually need, so go ahead and expand the vector to the correct size.
-        while guids.len() < num_guids as usize {
-            guids.push(GUID_NULL);
-        }
+        guids.resize(num_guids as usize, GUID_NULL);
         let res = unsafe {
             SetupDiClassGuidsFromNameA(
                 ports_class_name.as_ptr(),
@@ -212,25 +208,28 @@ impl PortDevice {
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
     pub fn port_type(&mut self) -> SerialPortType {
-        if let Some(hardware_id) = self.instance_id() {
-            // Some examples of what the hardware_id looks like:
-            //  MicroPython pyboard:    USB\VID_F055&PID_9802\385435603432
-            //  BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
-            //  BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
-            //  FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
-
-            let re = Regex::new(concat!(
+        // Some examples of what the hardware_id looks like:
+        //  MicroPython pyboard:    USB\VID_F055&PID_9802\385435603432
+        //  BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
+        //  BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
+        //  FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
+        use once_cell::sync::Lazy;
+        static RE: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(concat!(
                 r"VID_(?P<vid>[[:xdigit:]]{4})",
                 r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
                 r"([\\+](?P<serial>\w+))?"
             ))
-            .unwrap();
-            if let Some(caps) = re.captures(&hardware_id) {
+            .unwrap()
+        });
+
+        if let Some(hardware_id) = self.instance_id() {
+            if let Some(caps) = RE.captures(&hardware_id) {
                 if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
                     if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
                         return SerialPortType::UsbPort(UsbPortInfo {
-                            vid: vid,
-                            pid: pid,
+                            vid,
+                            pid,
                             serial_number: caps.get(4).map(|m| m.as_str().to_string()),
                             manufacturer: self.property(SPDRP_MFG),
                             product: self.property(SPDRP_FRIENDLYNAME),
@@ -274,28 +273,29 @@ impl PortDevice {
 
 /// List available serial ports on the system.
 pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-    let mut ports = Vec::new();
-    for guid in get_ports_guids()? {
-        let port_devices = PortDevices::new(&guid);
-        for mut port_device in port_devices {
-            let port_name = port_device.name();
+    let ports = get_ports_guids()?
+        .iter()
+        .flat_map(|guid| {
+            PortDevices::new(guid).filter_map(|mut port_device| {
+                let port_name = port_device.name();
 
-            debug_assert!(
-                port_name.as_bytes().last().map_or(true, |c| *c != b'\0'),
-                "port_name has a trailing nul: {:?}",
-                port_name
-            );
+                debug_assert!(
+                    port_name.as_bytes().last().map_or(true, |c| *c != b'\0'),
+                    "port_name has a trailing nul: {:?}",
+                    port_name
+                );
 
-            // This technique also returns parallel ports, so we filter these out.
-            if port_name.starts_with("LPT") {
-                continue;
-            }
-
-            ports.push(SerialPortInfo {
-                port_name: port_name,
-                port_type: port_device.port_type(),
-            });
-        }
-    }
+                // This technique also returns parallel ports, so we filter these out.
+                if port_name.starts_with("LPT") {
+                    None
+                } else {
+                    Some(SerialPortInfo {
+                        port_name: port_name,
+                        port_type: port_device.port_type(),
+                    })
+                }
+            })
+        })
+        .collect();
     Ok(ports)
 }
