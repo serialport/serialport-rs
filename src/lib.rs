@@ -506,6 +506,108 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn clear_break(&self) -> Result<()>;
 }
 
+impl<T: SerialPort> SerialPort for &mut T {
+    fn name(&self) -> Option<String> {
+        (**self).name()
+    }
+
+    fn baud_rate(&self) -> Result<u32> {
+        (**self).baud_rate()
+    }
+
+    fn data_bits(&self) -> Result<DataBits> {
+        (**self).data_bits()
+    }
+
+    fn flow_control(&self) -> Result<FlowControl> {
+        (**self).flow_control()
+    }
+
+    fn parity(&self) -> Result<Parity> {
+        (**self).parity()
+    }
+
+    fn stop_bits(&self) -> Result<StopBits> {
+        (**self).stop_bits()
+    }
+
+    fn timeout(&self) -> Duration {
+        (**self).timeout()
+    }
+
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
+        (**self).set_baud_rate(baud_rate)
+    }
+
+    fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
+        (**self).set_data_bits(data_bits)
+    }
+
+    fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
+        (**self).set_flow_control(flow_control)
+    }
+
+    fn set_parity(&mut self, parity: Parity) -> Result<()> {
+        (**self).set_parity(parity)
+    }
+
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
+        (**self).set_stop_bits(stop_bits)
+    }
+
+    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
+        (**self).set_timeout(timeout)
+    }
+
+    fn write_request_to_send(&mut self, level: bool) -> Result<()> {
+        (**self).write_request_to_send(level)
+    }
+
+    fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
+        (**self).write_data_terminal_ready(level)
+    }
+
+    fn read_clear_to_send(&mut self) -> Result<bool> {
+        (**self).read_clear_to_send()
+    }
+
+    fn read_data_set_ready(&mut self) -> Result<bool> {
+        (**self).read_data_set_ready()
+    }
+
+    fn read_ring_indicator(&mut self) -> Result<bool> {
+        (**self).read_ring_indicator()
+    }
+
+    fn read_carrier_detect(&mut self) -> Result<bool> {
+        (**self).read_carrier_detect()
+    }
+
+    fn bytes_to_read(&self) -> Result<u32> {
+        (**self).bytes_to_read()
+    }
+
+    fn bytes_to_write(&self) -> Result<u32> {
+        (**self).bytes_to_write()
+    }
+
+    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()> {
+        (**self).clear(buffer_to_clear)
+    }
+
+    fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
+        (**self).try_clone()
+    }
+
+    fn set_break(&self) -> Result<()> {
+        (**self).set_break()
+    }
+
+    fn clear_break(&self) -> Result<()> {
+        (**self).clear_break()
+    }
+}
+
 /// Contains all possible USB information about a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsbPortInfo {
