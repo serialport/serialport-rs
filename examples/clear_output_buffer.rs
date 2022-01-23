@@ -14,8 +14,9 @@
 // 6. Press Ctrl+D (Unix) or Ctrl+Z (Win) to quit
 //
 
+use serialport::SerialPort;
 use std::error::Error;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -123,7 +124,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     break;
                 }
                 Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
-                Err(e) => panic!(e),
+                Err(e) => panic!("{}", e),
             }
         }
     });

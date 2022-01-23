@@ -39,6 +39,7 @@ use std::io::{self, Read};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use serialport::SerialPort;
 
 use clap::{App, AppSettings, Arg};
 
@@ -124,7 +125,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     break;
                 }
                 Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
-                Err(e) => panic!(e),
+                Err(e) => panic!("{}", e),
             }
         }
     });

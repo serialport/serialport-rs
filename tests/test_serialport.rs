@@ -26,11 +26,6 @@ fn test_opening_port() {
 }
 
 #[test]
-fn test_opening_native_port() {
-    let _port = serialport::new("/dev/ttyUSB0", 9600).open_native();
-}
-
-#[test]
 fn test_configuring_ports() {
     let _port = serialport::new("/dev/ttyUSB0", 9600)
         .data_bits(DataBits::Five)

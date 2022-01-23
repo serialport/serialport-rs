@@ -15,7 +15,8 @@
 //!  3) With two ports physically connected to each other
 //!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1`
 
-use std::io::Write;
+use serialport::NativePort;
+use std::io::{Read, Write};
 use std::str;
 use std::time::Duration;
 
@@ -60,7 +61,7 @@ fn main() {
         }
         Ok(p) => p,
     };
-    test_single_port(&mut *port1, port1_loopback);
+    test_single_port(&mut port1, port1_loopback);
 
     if port2_name != "" {
         // Run single-port tests on port2
@@ -71,10 +72,10 @@ fn main() {
             }
             Ok(p) => p,
         };
-        test_single_port(&mut *port2, false);
+        test_single_port(&mut port2, false);
 
         // Test loopback pair
-        test_dual_ports(&mut *port1, &mut *port2);
+        test_dual_ports(&mut port1, &mut port2);
     }
 }
 
@@ -186,7 +187,7 @@ macro_rules! call_query_method_check {
     };
 }
 
-fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
+fn test_single_port(port: &mut NativePort, loopback: bool) {
     println!("Testing '{}':", port.name().unwrap());
 
     // Test setting standard baud rates
@@ -262,7 +263,7 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
     }
 }
 
-fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn serialport::SerialPort) {
+fn test_dual_ports(port1: &mut NativePort, port2: &mut NativePort) {
     println!(
         "Testing paired ports '{}' and '{}':",
         port1.name().unwrap(),
@@ -420,7 +421,7 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     }
 }
 
-fn set_defaults(port: &mut dyn serialport::SerialPort) {
+fn set_defaults(port: &mut NativePort) {
     port.set_baud_rate(9600).unwrap();
     port.set_data_bits(DataBits::Eight).unwrap();
     port.set_flow_control(FlowControl::Software).unwrap();
