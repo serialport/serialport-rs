@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
