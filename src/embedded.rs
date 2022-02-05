@@ -8,17 +8,30 @@ use embedded_hal::serial;
 
 use crate::SerialPort;
 
-fn io_error_to_nb(err: io::Error) -> nb::Error<io::ErrorKind> {
-    match err.kind() {
-        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut | io::ErrorKind::Interrupted => {
-            nb::Error::WouldBlock
+#[derive(Debug, Copy, Clone)]
+pub struct SerialError {
+    kind: io::ErrorKind,
+}
+
+// Implement serial::Error for SerialError
+impl serial::Error for SerialError {
+    fn kind(&self) -> serial::ErrorKind {
+        #[allow(clippy::match_single_binding)]
+        match self.kind {
+            _other => serial::ErrorKind::Other,
         }
-        other => nb::Error::Other(other),
     }
 }
 
-impl serial::Read<u8> for Box<dyn SerialPort> {
-    type Error = io::ErrorKind;
+fn io_error_to_nb(err: io::Error) -> nb::Error<SerialError> {
+    match err.kind() {
+        io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted => nb::Error::WouldBlock,
+        other => nb::Error::Other(SerialError { kind: other }),
+    }
+}
+
+impl serial::nb::Read<u8> for Box<dyn SerialPort> {
+    type Error = SerialError;
 
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         let mut buffer = [0; 1];
@@ -31,8 +44,8 @@ impl serial::Read<u8> for Box<dyn SerialPort> {
     }
 }
 
-impl serial::Write<u8> for Box<dyn SerialPort> {
-    type Error = io::ErrorKind;
+impl serial::nb::Write<u8> for Box<dyn SerialPort> {
+    type Error = SerialError;
 
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         io::Write::write(self, &[word])
