@@ -1,0 +1,339 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------------------------------
+  # LINT
+
+  rustfmt:
+    uses: ./.github/workflows/lint.yaml
+    with:
+      command: fmt
+      args: -- --check
+
+  clippy:
+    uses: ./.github/workflows/lint.yaml
+    with:
+      command: clippy
+      args: --all-targets --all-features
+
+  # --------------------------------------------------------------------------
+  # BUILD
+
+  aarch64-apple-darwin:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_tests: true
+      runs_on: macos-latest
+      target: aarch64-apple-darwin
+
+  # aarch64-apple-ios:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_tests: true
+  #     runs_on: macos-latest
+  #     target: aarch64-apple-ios
+
+  # aarch64-linux-android:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: aarch64-linux-android
+
+  # aarch64-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+  #     target: aarch64-unknown-linux-gnu
+
+  # aarch64-unknown-linux-musl:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: gcc-aarch64-linux-gnu
+  #     target: aarch64-unknown-linux-musl
+
+  # arm-linux-androideabi:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: arm-linux-androideabi
+
+  # arm-unknown-linux-gnueabi:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-arm-linux-gnueabi libc6-dev-armel-cross
+  #     target: arm-unknown-linux-gnueabi
+
+  # arm-unknown-linux-gnueabihf:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-arm-linux-gnueabihf libc6-dev-armel-cross
+  #     target: arm-unknown-linux-gnueabihf
+
+  # arm-unknown-linux-musleabi:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_tests: true
+  #     extra_packages: gcc-arm-linux-gnueabi
+  #     target: arm-unknown-linux-musleabi
+
+  # armv5te-unknown-linux-gnueabi:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-arm-linux-gnueabi libc6-dev-armel-cross
+  #     target: armv5te-unknown-linux-gnueabi
+
+  # armv5te-unknown-linux-musleabi:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_tests: true
+  #     extra_packages: gcc-arm-linux-gnueabi
+  #     target: armv5te-unknown-linux-musleabi
+
+  # armv7-linux-androideabi:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: armv7-linux-androideabi
+
+  # armv7-unknown-linux-gnueabihf:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
+  #     target: armv7-unknown-linux-gnueabihf
+
+  # armv7-unknown-linux-musleabihf:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_tests: true
+  #     extra_packages: gcc-arm-linux-gnueabihf
+  #     target: armv7-unknown-linux-musleabihf
+
+  # i586-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-multilib
+  #     target: i586-unknown-linux-gnu
+
+  # i586-unknown-linux-musl:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     extra_packages: libudev-dev gcc-multilib
+  #     target: i586-unknown-linux-musl
+
+  # i686-linux-android:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: i686-linux-android
+
+  i686-pc-windows-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-latest
+      target: i686-pc-windows-gnu
+
+  i686-pc-windows-msvc:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-latest
+      target: i686-pc-windows-msvc
+
+  # i686-unknown-freebsd:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: i686-unknown-freebsd
+
+  i686-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      extra_packages: libudev-dev gcc-multilib
+      target: i686-unknown-linux-gnu
+
+  i686-unknown-linux-musl:
+    uses: ./.github/workflows/build.yaml
+    with:
+      extra_packages: libudev-dev gcc-multilib
+      target: i686-unknown-linux-musl
+
+  # mips-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-mips-linux-gnu libc6-dev-mips-cross
+  #     target: mips-unknown-linux-gnu
+
+  # mips-unknown-linux-musl:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: gcc-mips-linux-gnu
+  #     target: mips-unknown-linux-musl
+
+  # mips64-unknown-linux-gnuabi64:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-mips64-linux-gnuabi64 libc6-dev-mips64-cross
+  #     target: mips64-unknown-linux-gnuabi64
+
+  # mips64el-unknown-linux-gnuabi64:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-mips64el-linux-gnuabi64 libc6-dev-mips64el-cross
+  #     target: mips64el-unknown-linux-gnuabi64
+
+  # mipsel-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-mipsel-linux-gnu libc6-dev-mipsel-cross
+  #     target: mipsel-unknown-linux-gnu
+
+  # mipsel-unknown-linux-musl:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: gcc-mipsel-linux-gnu
+  #     target: mipsel-unknown-linux-musl
+
+  # powerpc-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-powerpc-linux-gnu libc6-dev-powerpc-cross
+  #     target: powerpc-unknown-linux-gnu
+
+  # powerpc64-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-powerpc64-linux-gnu libc6-dev-ppc64-cross
+  #     target: powerpc64-unknown-linux-gnu
+
+  # powerpc64le-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross
+  #     target: powerpc64le-unknown-linux-gnu
+
+  # s390x-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev gcc-s390x-linux-gnu libc6-dev-s390x-cross
+  #     target: s390x-unknown-linux-gnu
+
+  # sparc64-unknown-linux-gnu:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     extra_packages: libudev-dev
+  #     target: sparc64-unknown-linux-gnu
+
+  x86_64-apple-darwin:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: macos-latest
+      target: x86_64-apple-darwin
+
+  # x86_64-apple-ios:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_tests: true
+  #     runs_on: macos-latest
+  #     target: x86_64-apple-ios
+
+  # x86_64-linux-android:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: x86_64-linux-android
+
+  x86_64-pc-windows-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-latest
+      target: x86_64-pc-windows-gnu
+
+  x86_64-pc-windows-msvc:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-latest
+      target: x86_64-pc-windows-msvc
+
+  # x86_64-unknown-freebsd:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: x86_64-unknown-freebsd
+
+  x86_64-unknown-linux-gnu-1_46_0:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true # clap requires >=1.54.0
+      disable_tests: true
+      extra_packages: libudev-dev
+      target: x86_64-unknown-linux-gnu
+      toolchain: "1.46.0"
+
+  x86_64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      extra_packages: libudev-dev
+      target: x86_64-unknown-linux-gnu
+
+  x86_64-unknown-linux-musl:
+    uses: ./.github/workflows/build.yaml
+    with:
+      target: x86_64-unknown-linux-musl
+
+  # x86_64-unknown-netbsd:
+  #   uses: ./.github/workflows/build.yaml
+  #   with:
+  #     disable_extra_builds: true
+  #     disable_tests: true
+  #     target: x86_64-unknown-netbsd
