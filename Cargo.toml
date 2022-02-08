@@ -21,25 +21,25 @@ travis-ci = { repository = "Susurrus/serialport-rs" }
 default = ["libudev"]
 
 [dev-dependencies]
-clap = "2.32"
+clap = "3.0.14"
 
 [target."cfg(unix)".dependencies]
-nix = "0.16.1"
+nix = "0.19.1"
 bitflags = "1.0.4"
-cfg-if = "0.1"
+cfg-if = "1.0"
 
 [target.'cfg(all(target_os = "linux", not(target_env = "musl")))'.dependencies]
-libudev = { version = "0.2.0", optional = true }
+libudev = { version = "0.3.0", optional = true }
 
 [target."cfg(windows)".dependencies]
-regex = "1.0"
+regex = "1.5.4"
 
 [target."cfg(windows)".dependencies.winapi]
-version = "0.3.6"
+version = "0.3.9"
 features = ["cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
             "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt"]
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
-IOKit-sys = "0.1"
-mach = "0.2"
+IOKit-sys = "0.1.5"
+mach = "0.3.2"
 CoreFoundation-sys = "0.1.3"
