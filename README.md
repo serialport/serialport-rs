@@ -1,9 +1,10 @@
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/crate/serialport)
-[![GitLab CI status](https://gitlab.com/susurrus/serialport-rs/badges/master/pipeline.svg)](https://gitlab.com/susurrus/serialport-rs/pipelines)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jessebraham/serialport-rs/CI?label=CI&logo=github&style=flat-square)
 
-Introduction
-============
+> **Note:** This is a fork of the original [serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab. Please note there have been some changes to both the supported targets and which Tier some targets are in, and there may be further changes to this made. Additionally, all relevant issues have been migrated to this repository.
+
+# Introduction
 
 `serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
 blocking I/O interface and port enumeration on POSIX and Windows systems.
@@ -11,12 +12,7 @@ blocking I/O interface and port enumeration on POSIX and Windows systems.
 For async I/O functionality, see the [mio-serial](https://github.com/berkowski/mio-serial) and
 [tokio-serial](https://github.com/berkowski/tokio-serial) crates.
 
-The canonical repository for this crate is on [GitLab](https://gitlab.com/susurrus/serialport-rs),
-but it is mirrored on GitHub purely for testing via Travis CI. To report any issues or contribute
-code, please do so using through GitLab.
-
-Overview
-========
+# Overview
 
 The library exposes cross-platform serial port functionality through the `SerialPort` trait. This
 library is structured to make this the simplest API to use to encourate cross-platform development
@@ -34,8 +30,7 @@ can be removed by disabling the default `libudev` feature:
 $ cargo build --no-default-features
 ```
 
-Usage
-=====
+# Usage
 
 Listing available ports:
 
@@ -82,105 +77,101 @@ Closing a port:
 port is done when the `SerialPort` object is `Drop`ed either implicitly or explicitly using
 `std::mem::drop` (`std::mem::drop(port)`).
 
-
-Examples
-========
+# Examples
 
 There are several included examples, which help demonstrate the functionality of this library and
 can help debug software or hardware errors.
 
- * *clear_input_buffer* - Demonstrates querying and clearing the driver input buffer
- * *clear_output_buffer* - Demonstrates querying and clearing the driver output buffer
- * *duplex* - Tests that a port can be successfully cloned.
- * *hardware\_check* - Checks port/driver functionality for a single port or a pair of ports connected
-   to each other.
- * *list_ports* - Lists available serial ports.
- * *pseudo_terminal* - Unix only. Tests that a pseudo-terminal pair can be created.
- * *receive_data* - Output data received on a port.
- * *transmit* - Transmits data regularly on a port with various port configurations. Useful for debugging.
+- _clear_input_buffer_ - Demonstrates querying and clearing the driver input buffer
+- _clear_output_buffer_ - Demonstrates querying and clearing the driver output buffer
+- _duplex_ - Tests that a port can be successfully cloned.
+- _hardware_check_ - Checks port/driver functionality for a single port or a pair of ports connected
+  to each other.
+- _list_ports_ - Lists available serial ports.
+- _pseudo_terminal_ - Unix only. Tests that a pseudo-terminal pair can be created.
+- _receive_data_ - Output data received on a port.
+- _transmit_ - Transmits data regularly on a port with various port configurations. Useful for debugging.
 
-Dependencies
-============
+# Dependencies
 
 Rust versions 1.46.0 and higher are supported.
 
 For GNU Linux `pkg-config` headers are required:
 
-* Ubuntu: `sudo apt install pkg-config`
-* Fedora: `sudo dnf install pkgconf-pkg-config`
+- Ubuntu: `sudo apt install pkg-config`
+- Fedora: `sudo dnf install pkgconf-pkg-config`
 
 For other distros they may provide `pkg-config` through the `pkgconf` package instead.
 
 For GNU Linux `libudev` headers are required as well (unless you disable the default `libudev` feature):
 
-* Ubuntu: `sudo apt install libudev-dev`
-* Fedora: `sudo dnf install systemd-devel`
+- Ubuntu: `sudo apt install libudev-dev`
+- Fedora: `sudo dnf install systemd-devel`
 
-Platform Support
-================
+# Platform Support
 
 Platform support is broken into two tiers:
 
- * Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
- * Tier 2 - Builds for this target are run in CI. Tests are not run in CI.
+- Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
+- Tier 2 - Builds for this target are run in CI. Tests are not run in CI.
 
+**Tier 1:**
 
-Tier 1:
+- Linux
+  - `i686-unknown-linux-gnu`
+  - `i686-unknown-linux-musl`
+  - `x86_64-unknown-linux-gnu`
+  - `x86_64-unknown-linux-musl`
+- MacOS/iOS
+  - `aarch64-apple-darwin`
+  - `x86_64-apple-darwin`
+- Windows
+  - `i686-pc-windows-gnu`
+  - `i686-pc-windows-msvc`
+  - `x86_64-pc-windows-gnu`
+  - `x86_64-pc-windows-msvc`
 
- * Linux
-   * `i586-unknown-linux-musl`
-   * `i686-unknown-linux-gnu`
-   * `i686-unknown-linux-musl`
-   * `x86_64-unknown-linux-gnu`
-   * `x86_64-unknown-linux-musl`
- * MacOS/iOS
-   * `x86_64-apple-darwin`
- * Windows
-   * `i686-pc-windows-gnu`
-   * `i686-pc-windows-msvc`
-   * `x86_64-pc-windows-gnu`
-   * `x86_64-pc-windows-msvc`
+**Tier 2:**
 
-Tier 2:
+- Android
+  - `aarch64-linux-android` (no serial enumeration)
+  - `arm-linux-androideabi` (no serial enumeration)
+  - `armv7-linux-androideabi` (no serial enumeration)
+  - `i686-linux-android` (no serial enumeration)
+  - `x86_64-linux-android` (no serial enumeration)
+- FreeBSD
+  - `i686-unknown-freebsd`
+  - `x86_64-unknown-freebsd`
+- Linux
+  - `aarch64-unknown-linux-gnu`
+  - `aarch64-unknown-linux-musl`
+  - `arm-unknown-linux-gnueabi`
+  - `arm-unknown-linux-gnueabihf`
+  - `arm-unknown-linux-musleabi`
+  - `armv5te-unknown-linux-gnueabi`
+  - `armv5te-unknown-linux-musleabi`
+  - `armv7-unknown-linux-gnueabihf`
+  - `armv7-unknown-linux-musleabihf`
+  - `i586-unknown-linux-gnu`
+  - `i586-unknown-linux-musl`
+  - `mips-unknown-linux-gnu`
+  - `mips-unknown-linux-musl`
+  - `mips64-unknown-linux-gnuabi64`
+  - `mips64el-unknown-linux-gnuabi64`
+  - `mipsel-unknown-linux-gnu`
+  - `mipsel-unknown-linux-musl`
+  - `powerpc-unknown-linux-gnu`
+  - `powerpc64-unknown-linux-gnu`
+  - `powerpc64le-unknown-linux-gnu`
+  - `s390x-unknown-linux-gnu`
+  - `sparc64-unknown-linux-gnu`
+- MacOS/iOS
+  - `aarch64-apple-ios`
+  - `x86_64-apple-ios`
+- NetBSD
+  - `x86_64-unknown-netbsd` (no serial enumeration)
 
- * Android
-   * `aarch64-linux-android` (no serial enumeration)
-   * `arm-linux-androideabi` (no serial enumeration)
-   * `armv7-linux-androideabi` (no serial enumeration)
-   * `i686-linux-android` (no serial enumeration)
-   * `x86_64-linux-android` (no serial enumeration)
- * FreeBSD
-   * `i686-unknown-freebsd`
-   * `x86_64-unknown-freebsd`
- * Linux
-   * `aarch64-unknown-linux-gnu`
-   * `aarch64-unknown-linux-musl`
-   * `arm-unknown-linux-gnueabi`
-   * `arm-unknown-linux-musleabi`
-   * `armv5te-unknown-linux-gnueabi`
-   * `armv5te-unknown-linux-musleabi`
-   * `armv7-unknown-linux-gnueabihf`
-   * `armv7-unknown-linux-musleabihf`
-   * `i586-unknown-linux-gnu`
-   * `mips-unknown-linux-gnu`
-   * `mips-unknown-linux-musl`
-   * `mips64-unknown-linux-gnuabi64`
-   * `mips64el-unknown-linux-gnuabi64`
-   * `mipsel-unknown-linux-gnu`
-   * `mipsel-unknown-linux-musl`
-   * `powerpc-unknown-linux-gnu`
-   * `powerpc64-unknown-linux-gnu`
-   * `powerpc64le-unknown-linux-gnu`
-   * `s390x-unknown-linux-gnu`
-   * `sparc64-unknown-linux-gnu`
- * MacOS/iOS
-   * `aarch64-apple-ios`
-   * `x86_64-apple-ios`
- * NetBSD
-   * `x86_64-unknown-netbsd` (no serial enumeration)
-
-Hardware Support
-================
+# Hardware Support
 
 This library has been developed to support all serial port devices across all
 supported platforms. To determine how well your platform is supported, please
@@ -193,25 +184,23 @@ and driver in use.
 
 Known issues:
 
-|    Hardware   |   OS  |        Driver           |                                      Issues                                        |
+| Hardware      | OS    | Driver                  | Issues                                                                             |
 | ------------- | ----- | ----------------------- | ---------------------------------------------------------------------------------- |
 | FTDI TTL-232R | Linux | ftdi_sio, Linux 4.14.11 | Hardware doesn't support 5 or 6 data bits, but the driver lies about supporting 5. |
 
-Licensing
-=========
+# Licensing
 
 Licensed under the [Mozilla Public License, version 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
 
-
-Contributing
-============
+# Contributing
 
 Please open an issue or merge request on GitLab to contibute. Code contributions submitted for
 inclusion in the work by you, as defined in the MPL2.0 license, shall be licensed as the above
 without any additional terms or conditions.
 
-Acknowledgments
-===============
+# Acknowledgments
 
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from.
+
+Additional thanks to susurrus and all other contributors to the original [serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab.
