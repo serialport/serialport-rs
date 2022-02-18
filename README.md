@@ -4,6 +4,8 @@
 
 > **Note:** This is a fork of the original [serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab. Please note there have been some changes to both the supported targets and which Tier some targets are in, and there may be further changes to this made. Additionally, all relevant issues have been migrated to this repository.
 
+Join the discussion on Matrix! [#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
+
 # Introduction
 
 `serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
