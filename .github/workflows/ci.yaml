@@ -154,13 +154,13 @@ jobs:
   i686-pc-windows-gnu:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-latest
+      runs_on: windows-2019
       target: i686-pc-windows-gnu
 
   i686-pc-windows-msvc:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-latest
+      runs_on: windows-2019
       target: i686-pc-windows-msvc
 
   # i686-unknown-freebsd:
@@ -295,13 +295,13 @@ jobs:
   x86_64-pc-windows-gnu:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-latest
+      runs_on: windows-2019
       target: x86_64-pc-windows-gnu
 
   x86_64-pc-windows-msvc:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-latest
+      runs_on: windows-2019
       target: x86_64-pc-windows-msvc
 
   # x86_64-unknown-freebsd:
