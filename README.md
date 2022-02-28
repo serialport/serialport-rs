@@ -1,6 +1,6 @@
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/crate/serialport)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jessebraham/serialport-rs/CI?label=CI&logo=github&style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/serialport/serialport-rs/CI?label=CI&logo=github&style=flat-square)
 
 > **Note:** This is a fork of the original [serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab. Please note there have been some changes to both the supported targets and which Tier some targets are in, and there may be further changes to this made. Additionally, all relevant issues have been migrated to this repository.
 
