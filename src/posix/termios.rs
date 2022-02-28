@@ -96,12 +96,20 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     crate::posix::ioctl::tcgets2(fd).into()
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos",))]
+#[cfg(target_os = "ios")]
 pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, _baud_rate: u32) -> Result<()> {
     let res = unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) };
     nix::errno::Errno::result(res)?;
-    // TODO: Set only if baud_rate is not supported by POSIX...
-    // crate::posix::ioctl::iossiospeed(fd, &(baud_rate as libc::speed_t))?; // THIS FAILS
+    crate::posix::ioctl::iossiospeed(fd, &(baud_rate as libc::speed_t))?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) -> Result<()> {
+    let mut termios = termios;
+    set_baud_rate(&mut termios, baud_rate);
+    let res = unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) };
+    nix::errno::Errno::result(res)?;
     Ok(())
 }
 
@@ -227,14 +235,14 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     unsafe { libc::cfsetspeed(termios, baud_rate.into()) };
 }
 
-#[cfg(all(
+#[cfg(any(target_os = "macos", all(
     target_os = "linux",
     any(
         target_env = "musl",
         target_arch = "powerpc",
         target_arch = "powerpc64"
     )
-))]
+)))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     use self::libc::{
         B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000, B460800,
