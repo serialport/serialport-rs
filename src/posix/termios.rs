@@ -53,8 +53,8 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     let res = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
     nix::errno::Errno::result(res)?;
     let mut termios = unsafe { termios.assume_init() };
-    termios.c_ispeed = self::libc::B9600;
-    termios.c_ospeed = self::libc::B9600;
+    // termios.c_ispeed = self::libc::B9600;
+    // termios.c_ospeed = self::libc::B9600;
     Ok(termios)
 }
 
