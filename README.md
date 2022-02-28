@@ -1,3 +1,8 @@
+Fork of [serialport-rs](https://gitlab.com/susurrus/serialport-rs) with additional patches.
+====
+
+----
+
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/crate/serialport)
 [![GitLab CI status](https://gitlab.com/susurrus/serialport-rs/badges/master/pipeline.svg)](https://gitlab.com/susurrus/serialport-rs/pipelines)
