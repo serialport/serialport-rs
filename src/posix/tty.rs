@@ -138,12 +138,12 @@ impl TTYPort {
         termios::set_flow_control(&mut termios, builder.flow_control);
         termios::set_data_bits(&mut termios, builder.data_bits);
         termios::set_stop_bits(&mut termios, builder.stop_bits);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_os = "ios"))]
         termios::set_baud_rate(&mut termios, builder.baud_rate);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
-        termios::set_termios(fd, &termios, builder.baud_rate)?;
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_os = "ios"))]
         termios::set_termios(fd, &termios)?;
+        #[cfg(target_os = "ios")]
+        termios::set_termios(fd, &termios, builder.baud_rate)?;
 
         // Return the final port object
         Ok(TTYPort {
@@ -608,36 +608,36 @@ impl SerialPort for TTYPort {
     fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_flow_control(&mut termios, flow_control);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(any(target_os = "ios",))]
         return termios::set_termios(self.fd, &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(any(target_os = "ios",)))]
         return termios::set_termios(self.fd, &termios);
     }
 
     fn set_parity(&mut self, parity: Parity) -> Result<()> {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_parity(&mut termios, parity);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(any(target_os = "ios",))]
         return termios::set_termios(self.fd, &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(any(target_os = "ios",)))]
         return termios::set_termios(self.fd, &termios);
     }
 
     fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_data_bits(&mut termios, data_bits);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(any(target_os = "ios",))]
         return termios::set_termios(self.fd, &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(any(target_os = "ios",)))]
         return termios::set_termios(self.fd, &termios);
     }
 
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_stop_bits(&mut termios, stop_bits);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(any(target_os = "ios",))]
         return termios::set_termios(self.fd, &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(any(target_os = "ios",)))]
         return termios::set_termios(self.fd, &termios);
     }
 

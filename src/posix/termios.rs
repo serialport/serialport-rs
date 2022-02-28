@@ -52,7 +52,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     let mut termios = MaybeUninit::uninit();
     let res = unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) };
     nix::errno::Errno::result(res)?;
-    let mut termios = unsafe { termios.assume_init() };
+    let termios = unsafe { termios.assume_init() };
     // termios.c_ispeed = self::libc::B9600;
     // termios.c_ospeed = self::libc::B9600;
     Ok(termios)
@@ -104,16 +104,9 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, _baud_rate: u32) -
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
-pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) -> Result<()> {
-    let mut termios = termios;
-    set_baud_rate(&mut termios, baud_rate);
-    let res = unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) };
-    nix::errno::Errno::result(res)?;
-    Ok(())
-}
 
 #[cfg(any(
+    target_os = "macos",
     target_os = "dragonflybsd",
     target_os = "freebsd",
     target_os = "netbsd",
