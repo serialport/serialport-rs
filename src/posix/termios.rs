@@ -235,14 +235,14 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     unsafe { libc::cfsetspeed(termios, baud_rate.into()) };
 }
 
-#[cfg(any(target_os = "macos", all(
+#[cfg(all(
     target_os = "linux",
     any(
         target_env = "musl",
         target_arch = "powerpc",
         target_arch = "powerpc64"
     )
-)))]
+))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     use self::libc::{
         B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000, B460800,
@@ -284,6 +284,38 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
         3_000_000 => B3000000,
         3_500_000 => B3500000,
         4_000_000 => B4000000,
+        _ => return,
+    };
+    let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
+    nix::errno::Errno::result(res).expect("cfsetspeed failed");
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
+    use self::libc::{
+        B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800,
+        B50, B57600, B600, B75, B9600,
+    };
+
+    let baud_rate = match baud_rate {
+        50 => B50,
+        75 => B75,
+        110 => B110,
+        134 => B134,
+        150 => B150,
+        200 => B200,
+        300 => B300,
+        600 => B600,
+        1200 => B1200,
+        1800 => B1800,
+        2400 => B2400,
+        4800 => B4800,
+        9600 => B9600,
+        19_200 => B19200,
+        38_400 => B38400,
+        57_600 => B57600,
+        115_200 => B115200,
+        230_400 => B230400,
         _ => return,
     };
     let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
