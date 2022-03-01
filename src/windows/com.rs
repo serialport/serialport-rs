@@ -72,6 +72,10 @@ impl COMPort {
             return Err(super::error::last_os_error());
         }
 
+        // create the COMPort here so the handle is getting closed
+        // if one of the calls to `get_dcb()` or `set_dcb()` fails
+        let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
+
         let mut dcb = dcb::get_dcb(handle)?;
         dcb::init(&mut dcb);
         dcb::set_baud_rate(&mut dcb, builder.baud_rate);
@@ -81,7 +85,6 @@ impl COMPort {
         dcb::set_flow_control(&mut dcb, builder.flow_control);
         dcb::set_dcb(handle, dcb)?;
 
-        let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
         com.set_timeout(builder.timeout)?;
         com.port_name = Some(builder.path.clone());
         Ok(com)
