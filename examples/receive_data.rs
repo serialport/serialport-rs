@@ -1,7 +1,9 @@
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
+
+use serialport::SerialPort;
 
 fn main() {
     let matches = App::new("Serialport Example - Receive Data")
@@ -24,9 +26,11 @@ fn main() {
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap().parse::<u32>().unwrap();
 
-    let port = serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(10))
-        .open();
+    let port = SerialPort::builder()
+        .baud_rate(baud_rate)
+        .read_timeout(Some(Duration::from_millis(10)))
+        .write_timeout(Some(Duration::from_millis(10)))
+        .open(port_name);
 
     match port {
         Ok(mut port) => {

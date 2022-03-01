@@ -1,13 +1,14 @@
 #![cfg(unix)]
 extern crate serialport;
 
-use serialport::{SerialPort, TTYPort};
+use serialport::posix::SerialPortExt;
+use serialport::SerialPort;
 use std::io::{Read, Write};
 
 // Test that cloning a port works as expected
 #[test]
 fn test_try_clone() {
-    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     // Create the clone in an inner scope to test that dropping a clone doesn't close the original
     // port
@@ -36,7 +37,7 @@ fn test_try_clone() {
 fn test_try_clone_move() {
     use std::thread;
 
-    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     let mut clone = master.try_clone().expect("Failed to clone the slave");
     let loopback = thread::spawn(move || {

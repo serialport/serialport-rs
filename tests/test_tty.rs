@@ -1,4 +1,4 @@
-//! Tests for the `posix::TTYPort` struct.
+//! Tests for the `posix::SerialPort` struct.
 #![cfg(unix)]
 
 extern crate serialport;
@@ -8,18 +8,28 @@ use std::os::unix::prelude::*;
 use std::str;
 use std::time::Duration;
 
-use serialport::{SerialPort, TTYPort};
+use serialport::posix::SerialPortExt;
+use serialport::SerialPort;
 
 #[test]
 fn test_ttyport_pair() {
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-    let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
+    // TODO: Find out what's not thread-safe. Looks like the call to ptsname (used on non-linux
+    // platforms) is considered not-thread-safe, but unclear if anything else is.
+    // If that function isn't thread safe, perhaps a better fix would be to lock within the pair() function.
+    let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
     master
-        .set_timeout(Duration::from_millis(10))
-        .expect("Unable to set timeout on the master");
+        .set_read_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set read timeout on the master");
+    master
+        .set_write_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set write timeout on the master");
     slave
-        .set_timeout(Duration::from_millis(10))
-        .expect("Unable to set timeout on the slave");
+        .set_read_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set read timeout on the slave");
+    slave
+        .set_write_timeout(Some(Duration::from_millis(10)))
+        .expect("Unable to set write timeout on the slave");
 
     // Test file descriptors.
     assert!(
@@ -70,9 +80,10 @@ fn test_ttyport_timeout() {
     let result_thread = result.clone();
 
     std::thread::spawn(move || {
-        // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-        let (mut master, _slave) = TTYPort::pair().expect("Unable to create ptty pair");
-        master.set_timeout(Duration::new(1, 0)).unwrap();
+        // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
+        let (mut master, _slave) = SerialPort::pair().expect("Unable to create ptty pair");
+        master.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
+        master.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
 
         let mut buffer = [0u8];
         let read_res = master.read(&mut buffer);
@@ -98,9 +109,9 @@ fn test_ttyport_set_standard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once
     //       https://github.com/rust-lang/rust/issues/15701 is on stable.
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
     #![allow(unused_variables)]
-    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     slave.set_baud_rate(9600).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 9600);
@@ -124,9 +135,9 @@ fn test_ttyport_set_nonstandard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once
     //       https://github.com/rust-lang/rust/issues/15701 is on stable.
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
     #![allow(unused_variables)]
-    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     slave.set_baud_rate(10000).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 10000);
