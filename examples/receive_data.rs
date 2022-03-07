@@ -1,26 +1,27 @@
 use std::io::{self, Write};
 use std::time::Duration;
 
-use clap::{App, AppSettings, Arg};
+use clap::{Arg, Command};
 
 fn main() {
-    let matches = App::new("Serialport Example - Receive Data")
+    let matches = Command::new("Serialport Example - Receive Data")
         .about("Reads data from a serial port and echoes it to stdout")
-        .setting(AppSettings::DisableVersionFlag)
+        .disable_version_flag(true)
         .arg(
             Arg::new("port")
                 .help("The device path to a serial port")
-                .use_delimiter(false)
+                .use_value_delimiter(false)
                 .required(true),
         )
         .arg(
             Arg::new("baud")
                 .help("The baud rate to connect at")
-                .use_delimiter(false)
+                .use_value_delimiter(false)
                 .required(true)
                 .validator(valid_baud),
         )
         .get_matches();
+
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap().parse::<u32>().unwrap();
 

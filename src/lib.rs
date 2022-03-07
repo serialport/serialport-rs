@@ -222,42 +222,49 @@ pub struct SerialPortBuilder {
 
 impl SerialPortBuilder {
     /// Set the path to the serial port
+    #[must_use]
     pub fn path<'a>(mut self, path: impl Into<std::borrow::Cow<'a, str>>) -> Self {
         self.path = path.into().as_ref().to_owned();
         self
     }
 
     /// Set the baud rate in symbols-per-second
+    #[must_use]
     pub fn baud_rate(mut self, baud_rate: u32) -> Self {
         self.baud_rate = baud_rate;
         self
     }
 
     /// Set the number of bits used to represent a character sent on the line
+    #[must_use]
     pub fn data_bits(mut self, data_bits: DataBits) -> Self {
         self.data_bits = data_bits;
         self
     }
 
     /// Set the type of signalling to use for controlling data transfer
+    #[must_use]
     pub fn flow_control(mut self, flow_control: FlowControl) -> Self {
         self.flow_control = flow_control;
         self
     }
 
     /// Set the type of parity to use for error checking
+    #[must_use]
     pub fn parity(mut self, parity: Parity) -> Self {
         self.parity = parity;
         self
     }
 
     /// Set the number of bits to use to signal the end of a character
+    #[must_use]
     pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
         self.stop_bits = stop_bits;
         self
     }
 
     /// Set the amount of time to wait to receive data before timing out
+    #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self

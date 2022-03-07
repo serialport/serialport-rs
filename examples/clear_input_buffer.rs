@@ -36,31 +36,33 @@
 
 use std::error::Error;
 use std::io::{self, Read};
+use std::panic::panic_any;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use clap::{App, AppSettings, Arg};
+use clap::{Arg, Command};
 
 use serialport::ClearBuffer;
 
 fn main() {
-    let matches = App::new("Serialport Example - Clear Input Buffer")
+    let matches = Command::new("Serialport Example - Clear Input Buffer")
         .about("Reports how many bytes are waiting to be read and allows the user to clear the input buffer")
-        .setting(AppSettings::DisableVersionFlag)
+        .disable_version_flag(true)
         .arg(Arg::new("port")
              .help("The device path to a serial port")
-             .use_delimiter(false)
+             .use_value_delimiter(false)
              .required(true))
         .arg(Arg::new("baud")
              .help("The baud rate to connect at")
-             .use_delimiter(false)
+             .use_value_delimiter(false)
              .required(true))
         .get_matches();
+
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap();
 
-    let exit_code = match run(&port_name, &baud_rate) {
+    let exit_code = match run(port_name, baud_rate) {
         Ok(_) => 0,
         Err(e) => {
             println!("Error: {}", e);
@@ -124,7 +126,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     break;
                 }
                 Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
-                Err(e) => panic!(e),
+                Err(e) => panic_any(e),
             }
         }
     });

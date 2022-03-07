@@ -19,35 +19,36 @@ use std::io::Write;
 use std::str;
 use std::time::Duration;
 
-use clap::{App, AppSettings, Arg};
+use clap::{Arg, Command};
 
 use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
 
 fn main() {
-    let matches = App::new("Serialport Example - Hardware Check")
+    let matches = Command::new("Serialport Example - Hardware Check")
         .about("Test hardware capabilities of serial ports")
-        .setting(AppSettings::DisableVersionFlag)
+        .disable_version_flag(true)
         .arg(Arg::new("port")
              .help("The device path to a serial port")
-             .use_delimiter(false)
+             .use_value_delimiter(false)
              .required(true))
         .arg(Arg::new("loopback")
              .help("Run extra tests if the port is configured for hardware loopback. Mutually exclusive with the --loopback-port option")
-             .use_delimiter(false)
+             .use_value_delimiter(false)
              .conflicts_with("loopback-port")
              .long("loopback"))
         .arg(Arg::new("loopback-port")
              .help("The device path of a second serial port that is connected to the first serial port. Mutually exclusive with the --loopback option.")
-             .use_delimiter(false)
+             .use_value_delimiter(false)
              .takes_value(true)
              .long("loopback-port"))
         .get_matches();
+
     let port1_name = matches.value_of("port").unwrap();
     let port2_name = matches.value_of("loopback-port").unwrap_or("");
     let port1_loopback = matches.is_present("loopback");
 
     // Loopback mode is only available when a single port is specified
-    if port1_loopback && port2_name != "" {
+    if port1_loopback && !port2_name.is_empty() {
         eprintln!("ERROR: loopback mode can only be enabled when a single port is specified.");
         ::std::process::exit(1);
     }
@@ -62,7 +63,7 @@ fn main() {
     };
     test_single_port(&mut *port1, port1_loopback);
 
-    if port2_name != "" {
+    if !port2_name.is_empty() {
         // Run single-port tests on port2
         let mut port2 = match serialport::new(port2_name, 9600).open() {
             Err(e) => {
