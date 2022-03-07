@@ -112,66 +112,31 @@ For GNU Linux `libudev` headers are required as well (unless you disable the def
 
 # Platform Support
 
-Platform support is broken into two tiers:
+Builds and tests for all supported targets are run in CI. Failures of either block the inclusion of new code. This library should be compatible with additional targets not listed below, but no guarantees are made. Additional platforms may be added in the future if there is a need and/or demand.
 
-- Tier 1 - Builds and tests for this target are run in CI. Failures of either block the inclusion of new code.
-- Tier 2 - Builds for this target are run in CI. Tests are not run in CI.
-
-**Tier 1:**
-
+- Android
+  - `arm-linux-androideabi` (no serial enumeration)
+  - `armv7-linux-androideabi` (no serial enumeration)
+- FreeBSD
+  - `x86_64-unknown-freebsd`
 - Linux
+  - `aarch64-unknown-linux-gnu`
+  - `aarch64-unknown-linux-musl`
   - `i686-unknown-linux-gnu`
   - `i686-unknown-linux-musl`
   - `x86_64-unknown-linux-gnu`
   - `x86_64-unknown-linux-musl`
 - MacOS/iOS
   - `aarch64-apple-darwin`
+  - `aarch64-apple-ios`
   - `x86_64-apple-darwin`
+- NetBSD
+  - `x86_64-unknown-netbsd` (no serial enumeration)
 - Windows
   - `i686-pc-windows-gnu`
   - `i686-pc-windows-msvc`
   - `x86_64-pc-windows-gnu`
   - `x86_64-pc-windows-msvc`
-
-**Tier 2:**
-
-- Android
-  - `aarch64-linux-android` (no serial enumeration)
-  - `arm-linux-androideabi` (no serial enumeration)
-  - `armv7-linux-androideabi` (no serial enumeration)
-  - `i686-linux-android` (no serial enumeration)
-  - `x86_64-linux-android` (no serial enumeration)
-- FreeBSD
-  - `i686-unknown-freebsd`
-  - `x86_64-unknown-freebsd`
-- Linux
-  - `aarch64-unknown-linux-gnu`
-  - `aarch64-unknown-linux-musl`
-  - `arm-unknown-linux-gnueabi`
-  - `arm-unknown-linux-gnueabihf`
-  - `arm-unknown-linux-musleabi`
-  - `armv5te-unknown-linux-gnueabi`
-  - `armv5te-unknown-linux-musleabi`
-  - `armv7-unknown-linux-gnueabihf`
-  - `armv7-unknown-linux-musleabihf`
-  - `i586-unknown-linux-gnu`
-  - `i586-unknown-linux-musl`
-  - `mips-unknown-linux-gnu`
-  - `mips-unknown-linux-musl`
-  - `mips64-unknown-linux-gnuabi64`
-  - `mips64el-unknown-linux-gnuabi64`
-  - `mipsel-unknown-linux-gnu`
-  - `mipsel-unknown-linux-musl`
-  - `powerpc-unknown-linux-gnu`
-  - `powerpc64-unknown-linux-gnu`
-  - `powerpc64le-unknown-linux-gnu`
-  - `s390x-unknown-linux-gnu`
-  - `sparc64-unknown-linux-gnu`
-- MacOS/iOS
-  - `aarch64-apple-ios`
-  - `x86_64-apple-ios`
-- NetBSD
-  - `x86_64-unknown-netbsd` (no serial enumeration)
 
 # Hardware Support
 
