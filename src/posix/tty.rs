@@ -144,7 +144,7 @@ impl TTYPort {
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         termios::set_baud_rate(&mut termios, builder.baud_rate);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        termios::set_termios(fd, &termios, builder.baud_rate)?;
+        termios::set_termios(fd.0, &termios, builder.baud_rate)?;
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         termios::set_termios(fd.0, &termios)?;
 
