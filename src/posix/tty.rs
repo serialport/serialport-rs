@@ -70,7 +70,9 @@ impl Drop for OwnedFd {
 
 impl OwnedFd {
     fn into_raw(self) -> RawFd {
-        self.0
+        let fd = self.0;
+        mem::forget(self);
+        fd
     }
 }
 
