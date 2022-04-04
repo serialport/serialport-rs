@@ -11,7 +11,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 ### Removed
 
-## [4.0.1] - 2020-04-17
+## [4.1.0] - 2022-04-04
+### Added
+* impl `SerialPort` for `&mut T`. This allows a `&mut T (where T: SerialPort)` to be used in a
+  context where `impl SerialPort` is expected.
+  [!114](https://gitlab.com/susurrus/serialport-rs/-/merge_requests/114)
+### Changed
+* Updated `nix` dependency to 0.23.1.
+* Remove useless call to tcflush on open.
+  [#40](https://github.com/serialport/serialport-rs/pull/40)
+### Fixed
+* Improved support for recent versions of macOS.
+  [!104](https://gitlab.com/susurrus/serialport-rs/-/merge_requests/104)
+* Fix filehandle leak in open() on Windows.
+  [#36](https://github.com/serialport/serialport-rs/pull/36)
+* Make sure fd is properly closed if initialization fails.
+  [#39](https://github.com/serialport/serialport-rs/pull/39)
+  [#41](https://github.com/serialport/serialport-rs/pull/41)
+### Removed
+
+## [4.0.1] - 2021-04-17
 ### Added
 ### Changed
 * Update maintenance status to looking for a new maintainer.
@@ -271,24 +290,25 @@ Unreleased, happened due to a user error using `cargo-release`
 * Initial release.
 
 
-[Unreleased]: https://gitlab.com/susurrus/serialport-rs/-/compare/4.0.1...HEAD
-[4.0.1]: https://gitlab.com/susurrus/serialport-rs/-/compare/4.0.0...4.0.1
-[4.0.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.3.0...4.0.0
-[3.3.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.2.0...3.3.0
-[3.2.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.1.0...3.2.0
-[3.1.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/3.0.0...3.1.0
-[3.0.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/2.3.0...3.0.0
-[2.3.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/2.1.0...2.3.0
-[2.1.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/2.0.0...2.1.0
-[2.0.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/1.0.1...2.0.0
-[1.0.1]: https://gitlab.com/susurrus/serialport-rs/-/compare/1.0.0...1.0.1
-[1.0.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.9.0...1.0.0
-[0.9.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.3.0...v0.9.0
-[0.3.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.2.4...v0.3.0
-[0.2.4]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.2.3...v0.2.4
-[0.2.3]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.2.2...v0.2.3
-[0.2.2]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.2.1...v0.2.2
-[0.2.1]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.2.0...v0.2.1
-[0.2.0]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.1.1...v0.2.0
-[0.1.1]: https://gitlab.com/susurrus/serialport-rs/-/compare/v0.1.0...v0.1.1
-[0.1.0]: https://gitlab.com/susurrus/serialport-rs/-/tags/v0.1.0
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/serialport/serialport-rs/compare/v4.0.1...v4.1.0
+[4.0.1]: https://github.com/serialport/serialport-rs/compare/v4.0.0...v4.0.1
+[4.0.0]: https://github.com/serialport/serialport-rs/compare/v3.3.0...v4.0.0
+[3.3.0]: https://github.com/serialport/serialport-rs/compare/v3.2.0...v3.3.0
+[3.2.0]: https://github.com/serialport/serialport-rs/compare/v3.1.0...v3.2.0
+[3.1.0]: https://github.com/serialport/serialport-rs/compare/v3.0.0...v3.1.0
+[3.0.0]: https://github.com/serialport/serialport-rs/compare/v2.3.0...v3.0.0
+[2.3.0]: https://github.com/serialport/serialport-rs/compare/v2.1.0...v2.3.0
+[2.1.0]: https://github.com/serialport/serialport-rs/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/serialport/serialport-rs/compare/v1.0.1...v2.0.0
+[1.0.1]: https://github.com/serialport/serialport-rs/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/serialport/serialport-rs/compare/v0.9.0...v1.0.0
+[0.9.0]: https://github.com/serialport/serialport-rs/compare/v0.3.0...v0.9.0
+[0.3.0]: https://github.com/serialport/serialport-rs/compare/v0.2.4...v0.3.0
+[0.2.4]: https://github.com/serialport/serialport-rs/compare/v0.2.3...v0.2.4
+[0.2.3]: https://github.com/serialport/serialport-rs/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/serialport/serialport-rs/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/serialport/serialport-rs/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/serialport/serialport-rs/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/serialport/serialport-rs/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/serialport/serialport-rs/releases/tag/v0.1.0
