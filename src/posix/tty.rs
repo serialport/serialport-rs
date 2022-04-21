@@ -105,6 +105,11 @@ impl TTYPort {
             nix::sys::stat::Mode::empty(),
         )?);
 
+        // Try to claim exclusive access to the port. This is performed even
+        // if the port will later be set as non-exclusive, in order to respect
+        // other applications that may have an exclusive port lock.
+        ioctl::tiocexcl(fd.0)?;
+
         let mut termios = MaybeUninit::uninit();
         nix::errno::Errno::result(unsafe { tcgetattr(fd.0, termios.as_mut_ptr()) })?;
         let mut termios = unsafe { termios.assume_init() };
@@ -156,7 +161,7 @@ impl TTYPort {
         Ok(TTYPort {
             fd: fd.into_raw(),
             timeout: builder.timeout,
-            exclusive: false,
+            exclusive: true,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: builder.baud_rate,
