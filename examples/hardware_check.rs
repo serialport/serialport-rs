@@ -247,11 +247,13 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
         .expect("Unable to write bytes.");
     println!("success");
 
-    print!("Testing data reception...");
     if loopback {
+        print!("Testing data reception...");
+        port.set_timeout(Duration::from_millis(250)).ok();
+
         let mut buf = [0u8; 12];
-        if port.read_exact(&mut buf).is_err() {
-            println!("FAILED");
+        if let Err(e) = port.read_exact(&mut buf) {
+            println!("FAILED ({})", e);
         } else {
             assert_eq!(
                 str::from_utf8(&buf).unwrap(),
