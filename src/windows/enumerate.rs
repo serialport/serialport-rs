@@ -222,6 +222,7 @@ impl PortDevice {
             let re = Regex::new(concat!(
                 r"VID_(?P<vid>[[:xdigit:]]{4})",
                 r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
+                r"(?:[&+]MI_(?P<iid>[[:xdigit:]]{2})){0,1}",
                 r"([\\+](?P<serial>\w+))?"
             ))
             .unwrap();
@@ -231,9 +232,12 @@ impl PortDevice {
                         return SerialPortType::UsbPort(UsbPortInfo {
                             vid: vid,
                             pid: pid,
-                            serial_number: caps.get(4).map(|m| m.as_str().to_string()),
+                            serial_number: caps.name("serial").map(|m| m.as_str().to_string()),
                             manufacturer: self.property(SPDRP_MFG),
                             product: self.property(SPDRP_FRIENDLYNAME),
+                            interface: caps
+                                .name("iid")
+                                .map_or(None, |m| u8::from_str_radix(m.as_str(), 16).ok()),
                         });
                     }
                 }

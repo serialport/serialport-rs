@@ -49,10 +49,15 @@ fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
 /// string is comprised of hex digits and the integer value of this will be returned as  a u16.
 /// If the property value doesn't exist or doesn't contain valid hex digits, then an error
 /// will be returned.
+/// This function uses a built-in type's `from_str_radix` to implementation to perform the
+/// actual conversion.
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> Result<u16> {
+fn udev_hex_property_as_int<T>(
+    d: &libudev::Device, key: &str, 
+    from_str_radix: &dyn Fn(&str, u32) -> std::result::Result<T, std::num::ParseIntError>
+) -> Result<T> {
     if let Some(hex_str) = d.property_value(key).and_then(OsStr::to_str) {
-        if let Ok(num) = u16::from_str_radix(hex_str, 16) {
+        if let Ok(num) = from_str_radix(hex_str, 16) {
             Ok(num)
         } else {
             Err(Error::new(ErrorKind::Unknown, "value not hex string"))
@@ -68,13 +73,14 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
             Ok(SerialPortType::UsbPort(UsbPortInfo {
-                vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
-                pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
+                vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
+                pid: udev_hex_property_as_int(d, "ID_MODEL_ID", &u16::from_str_radix)?,
                 serial_number,
                 manufacturer: udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE")
                     .or_else(|| udev_property_as_string(d, "ID_VENDOR")),
                 product: udev_property_as_string(d, "ID_MODEL_FROM_DATABASE")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL")),
+                interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix).ok() 
             }))
         }
         Some("pci") => Ok(SerialPortType::PciPort),
@@ -129,6 +135,12 @@ fn get_int_property(
             return None;
         }
         let num = match cf_number_type {
+            kCFNumberSInt8Type => {
+                let mut num: u8 = 0;
+                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
+                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
+                Some(num as u32)
+            }
             kCFNumberSInt16Type => {
                 let mut num: u16 = 0;
                 let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
@@ -196,6 +208,8 @@ fn port_type(service: io_object_t) -> SerialPortType {
             serial_number: get_string_property(usb_device, "USB Serial Number"),
             manufacturer: get_string_property(usb_device, "USB Vendor Name"),
             product: get_string_property(usb_device, "USB Product Name"),
+            interface: get_int_property(usb_device, "iInterface", kCFNumberSInt8Type)
+                .map(|x| x as u8)
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
         SerialPortType::BluetoothPort
