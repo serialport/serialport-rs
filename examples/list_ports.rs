@@ -26,6 +26,10 @@ fn main() {
                             "           Product: {}",
                             info.product.as_ref().map_or("", String::as_str)
                         );
+                        println!(
+                            "         Interface: {}",
+                            info.interface.as_ref().map_or("".to_string(), |x| format!("{:02x}", *x))
+                        );
                     }
                     SerialPortType::BluetoothPort => {
                         println!("    Type: Bluetooth");

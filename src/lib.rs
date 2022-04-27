@@ -634,6 +634,8 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
+    /// Interface (id number for multiplexed devices)
+    pub interface: Option<u8>,
 }
 
 /// The physical type of a `SerialPort`
