@@ -37,6 +37,9 @@ features = [
     "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt",
 ]
 
+[dependencies]
+serde = { version = "1.0", features = ["derive"], optional = true }
+
 [dev-dependencies]
 clap = "3.1.6"
 

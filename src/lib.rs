@@ -128,6 +128,7 @@ impl From<Error> for io::Error {
 
 /// Number of bits per character
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DataBits {
     /// 5 bits per character
     Five,
@@ -152,6 +153,7 @@ pub enum DataBits {
 /// Parity checking is disabled by setting `None`, in which case parity bits are not
 /// transmitted.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -167,6 +169,7 @@ pub enum Parity {
 ///
 /// Stop bits are transmitted after every character.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum StopBits {
     /// One stop bit.
     One,
@@ -177,6 +180,7 @@ pub enum StopBits {
 
 /// Flow control modes
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FlowControl {
     /// No flow control.
     None,
@@ -192,6 +196,7 @@ pub enum FlowControl {
 ///
 /// [`clear`]: trait.SerialPort.html#tymethod.clear
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ClearBuffer {
     /// Specify to clear data received but not read
     Input,
@@ -617,6 +622,7 @@ impl<T: SerialPort> SerialPort for &mut T {
 
 /// Contains all possible USB information about a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UsbPortInfo {
     /// Vendor ID
     pub vid: u16,
@@ -632,6 +638,7 @@ pub struct UsbPortInfo {
 
 /// The physical type of a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SerialPortType {
     /// The serial port is connected via USB
     UsbPort(UsbPortInfo),
@@ -645,6 +652,7 @@ pub enum SerialPortType {
 
 /// A device-independent implementation of serial port information
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
