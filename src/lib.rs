@@ -72,7 +72,7 @@ pub enum ErrorKind {
 }
 
 /// An error type for serial port operations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     /// The kind of error this is
     pub kind: ErrorKind,
