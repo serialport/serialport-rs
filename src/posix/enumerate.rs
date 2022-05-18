@@ -292,35 +292,36 @@ cfg_if! {
                         0,
                     );
                     if result == KERN_SUCCESS {
-                        // We only care about the IODialinDevice, which is the device path for this port.
-                        let key = CString::new("IODialinDevice").unwrap();
-                        let key_cfstring = CFStringCreateWithCString(
-                            kCFAllocatorDefault,
-                            key.as_ptr(),
-                            kCFStringEncodingUTF8,
-                        );
-                        let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
-
-                        let type_id = CFGetTypeID(value);
-                        if type_id == CFStringGetTypeID() {
-                            let mut buf = Vec::with_capacity(256);
-
-                            CFStringGetCString(
-                                value as CFStringRef,
-                                buf.as_mut_ptr(),
-                                256,
+                        for key in ["IOCalloutDevice", "IODialinDevice"] {
+                            let key = CString::new(key).unwrap();
+                            let key_cfstring = CFStringCreateWithCString(
+                                kCFAllocatorDefault,
+                                key.as_ptr(),
                                 kCFStringEncodingUTF8,
                             );
-                            let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
-                            vec.push(SerialPortInfo {
-                                port_name: path.to_string(),
-                                port_type: port_type(modem_service),
-                            });
-                        } else {
-                            return Err(Error::new(
-                                ErrorKind::Unknown,
-                                "Found invalid type for TypeID",
-                            ));
+                            let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
+
+                            let type_id = CFGetTypeID(value);
+                            if type_id == CFStringGetTypeID() {
+                                let mut buf = Vec::with_capacity(256);
+
+                                CFStringGetCString(
+                                    value as CFStringRef,
+                                    buf.as_mut_ptr(),
+                                    256,
+                                    kCFStringEncodingUTF8,
+                                );
+                                let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
+                                vec.push(SerialPortInfo {
+                                    port_name: path.to_string(),
+                                    port_type: port_type(modem_service),
+                                });
+                            } else {
+                                return Err(Error::new(
+                                    ErrorKind::Unknown,
+                                    "Found invalid type for TypeID",
+                                ));
+                            }
                         }
                     } else {
                         return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
