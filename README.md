@@ -32,6 +32,8 @@ can be removed by disabling the default `libudev` feature:
 $ cargo build --no-default-features
 ```
 
+It should also be noted that on macOS, both the Callout (`/dev/cu.*`) and Dial-in ports (`/dev/tty.*`) ports are enumerated, resulting in two available ports per connected serial device.
+
 # Usage
 
 Listing available ports:
