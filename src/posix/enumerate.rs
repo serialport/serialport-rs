@@ -292,8 +292,8 @@ cfg_if! {
                         0,
                     );
                     if result == KERN_SUCCESS {
-                        for key in ["IOCalloutDevice", "IODialinDevice"] {
-                            let key = CString::new(key).unwrap();
+                        for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
+                            let key = CString::new(*key).unwrap();
                             let key_cfstring = CFStringCreateWithCString(
                                 kCFAllocatorDefault,
                                 key.as_ptr(),
