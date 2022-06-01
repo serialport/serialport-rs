@@ -6,6 +6,8 @@
 
 Join the discussion on Matrix! [#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
 
+**This project is looking for maintainers! If you are interested please let us know on Matrix, or by [creating a Discussion](https://github.com/serialport/serialport-rs/discussions/new).**
+
 # Introduction
 
 `serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
