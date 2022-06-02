@@ -5,10 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## UNRELEASED
+## [4.2.0] - 2022-06-02
 ### Added
+* Add `serde` support behind a feature flag.
+  [#51](https://github.com/serialport/serialport-rs/pull/51)
 ### Changed
+* Request exclusive access when opening a POSIX serial port by default.
+  [#44](https://github.com/serialport/serialport-rs/pull/44)
+* Updated `nix` dependency to 0.24.1 and limited features.
+  [#46](https://github.com/serialport/serialport-rs/pull/46)
+* Derive the `Clone` trait for `Error`.
+  [#53](https://github.com/serialport/serialport-rs/pull/53)
+* Enumerate callout devices in addition to dial-in devices on macOS.
+  [#54](https://github.com/serialport/serialport-rs/pull/54)
+* Revert to edition 2018 to allow for use with older compiler versions.
 ### Fixed
+* Set port timeout to a non-zero value before performing loopback test.
+  [#45](https://github.com/serialport/serialport-rs/pull/45)
 ### Removed
 
 ## [4.1.0] - 2022-04-04
@@ -290,7 +303,7 @@ Unreleased, happened due to a user error using `cargo-release`
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.1.0...HEAD
+[4.2.0]: https://github.com/serialport/serialport-rs/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/serialport/serialport-rs/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/serialport/serialport-rs/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/serialport/serialport-rs/compare/v3.3.0...v4.0.0
