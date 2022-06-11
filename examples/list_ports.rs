@@ -28,7 +28,9 @@ fn main() {
                         );
                         println!(
                             "         Interface: {}",
-                            info.interface.as_ref().map_or("".to_string(), |x| format!("{:02x}", *x))
+                            info.interface
+                                .as_ref()
+                                .map_or("".to_string(), |x| format!("{:02x}", *x))
                         );
                     }
                     SerialPortType::BluetoothPort => {

@@ -53,8 +53,9 @@ fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
 /// actual conversion.
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn udev_hex_property_as_int<T>(
-    d: &libudev::Device, key: &str, 
-    from_str_radix: &dyn Fn(&str, u32) -> std::result::Result<T, std::num::ParseIntError>
+    d: &libudev::Device,
+    key: &str,
+    from_str_radix: &dyn Fn(&str, u32) -> std::result::Result<T, std::num::ParseIntError>,
 ) -> Result<T> {
     if let Some(hex_str) = d.property_value(key).and_then(OsStr::to_str) {
         if let Ok(num) = from_str_radix(hex_str, 16) {
@@ -80,7 +81,8 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     .or_else(|| udev_property_as_string(d, "ID_VENDOR")),
                 product: udev_property_as_string(d, "ID_MODEL_FROM_DATABASE")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL")),
-                interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix).ok() 
+                interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
+                    .ok(),
             }))
         }
         Some("pci") => Ok(SerialPortType::PciPort),
@@ -209,7 +211,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
             manufacturer: get_string_property(usb_device, "USB Vendor Name"),
             product: get_string_property(usb_device, "USB Product Name"),
             interface: get_int_property(usb_device, "iInterface", kCFNumberSInt8Type)
-                .map(|x| x as u8)
+                .map(|x| x as u8),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
         SerialPortType::BluetoothPort
