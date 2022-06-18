@@ -210,7 +210,13 @@ fn port_type(service: io_object_t) -> SerialPortType {
             serial_number: get_string_property(usb_device, "USB Serial Number"),
             manufacturer: get_string_property(usb_device, "USB Vendor Name"),
             product: get_string_property(usb_device, "USB Product Name"),
-            interface: get_int_property(usb_device, "iInterface", kCFNumberSInt8Type)
+            // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
+            // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
+            // we will lookup the interface number using the same method. See:
+            //
+            // https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_developer_driverkit_transport_usb
+            // https://developer.apple.com/library/archive/documentation/DeviceDrivers/Conceptual/USBBook/USBOverview/USBOverview.html#//apple_ref/doc/uid/TP40002644-BBCEACAJ
+            interface: get_int_property(usb_device, "bInterfaceNumber", kCFNumberSInt8Type)
                 .map(|x| x as u8),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
