@@ -88,7 +88,7 @@ fn get_parent_device_by_type(
     parent_type: *const c_char,
 ) -> Option<io_registry_entry_t> {
     let parent_type = unsafe { CStr::from_ptr(parent_type) };
-    use mach::kern_return::KERN_SUCCESS;
+    use mach2::kern_return::KERN_SUCCESS;
     let mut device = device;
     loop {
         let mut class_name = MaybeUninit::<[c_char; 128]>::uninit();
@@ -209,8 +209,8 @@ cfg_if! {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-            use mach::kern_return::KERN_SUCCESS;
-            use mach::port::{mach_port_t, MACH_PORT_NULL};
+            use mach2::kern_return::KERN_SUCCESS;
+            use mach2::port::{mach_port_t, MACH_PORT_NULL};
 
             let mut vec = Vec::new();
             unsafe {

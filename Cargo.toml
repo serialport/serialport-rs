@@ -25,7 +25,7 @@ libudev = { version = "0.3.0", optional = true }
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
 CoreFoundation-sys = "0.1.4"
 IOKit-sys = "0.1.5"
-mach = "0.3.2"
+mach2 = "0.4.1"
 
 [target."cfg(windows)".dependencies]
 regex = "1.5.5"
