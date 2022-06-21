@@ -11,9 +11,9 @@ pub(crate) fn get_dcb(handle: HANDLE) -> Result<DCB> {
     dcb.DCBlength = std::mem::size_of::<DCB>() as u32;
 
     if unsafe { GetCommState(handle, &mut dcb) } != 0 {
-        return Ok(dcb);
+        Ok(dcb)
     } else {
-        return Err(super::error::last_os_error());
+        Err(super::error::last_os_error())
     }
 }
 
@@ -57,9 +57,9 @@ pub(crate) fn init(dcb: &mut DCB) {
 
 pub(crate) fn set_dcb(handle: HANDLE, mut dcb: DCB) -> Result<()> {
     if unsafe { SetCommState(handle, &mut dcb as *mut _) != 0 } {
-        return Ok(());
+        Ok(())
     } else {
-        return Err(super::error::last_os_error());
+        Err(super::error::last_os_error())
     }
 }
 
