@@ -4,20 +4,20 @@ use std::time::Duration;
 use std::{io, ptr};
 
 use winapi::shared::minwindef::*;
+use winapi::shared::ntdef::NULL;
+use winapi::shared::winerror::{ERROR_IO_PENDING, ERROR_OPERATION_ABORTED};
 use winapi::um::commapi::*;
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
+use winapi::um::ioapiset::GetOverlappedResult;
+use winapi::um::minwinbase::OVERLAPPED;
 use winapi::um::processthreadsapi::GetCurrentProcess;
+use winapi::um::synchapi::CreateEventW;
 use winapi::um::winbase::*;
 use winapi::um::winnt::{
     DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE,
 };
-use winapi::shared::winerror::{ERROR_IO_PENDING, ERROR_OPERATION_ABORTED};
-use winapi::shared::ntdef::NULL;
-use winapi::um::synchapi::CreateEventW;
-use winapi::um::minwinbase::OVERLAPPED;
-use winapi::um::ioapiset::GetOverlappedResult;
-use winapi::um::errhandlingapi::GetLastError;
 
 use crate::windows::dcb;
 use crate::{
@@ -32,7 +32,7 @@ impl OverlappedHandle {
     fn new() -> io::Result<Self> {
         match unsafe { CreateEventW(ptr::null_mut(), TRUE, FALSE, ptr::null_mut()) } {
             NULL => Err(io::Error::last_os_error()),
-            handle => Ok(Self(handle))
+            handle => Ok(Self(handle)),
         }
     }
 
@@ -46,12 +46,9 @@ impl OverlappedHandle {
         OVERLAPPED {
             Internal: 0,
             InternalHigh: 0,
-            u: unsafe {
-                MaybeUninit::zeroed().assume_init()
-            },
+            u: unsafe { MaybeUninit::zeroed().assume_init() },
             hEvent: self.0,
         }
-
     }
 }
 
@@ -150,12 +147,20 @@ impl COMPort {
     ///
     /// This function returns an error if the serial port couldn't be cloned.
     pub fn try_clone_native(&self) -> Result<COMPort> {
-		// duplicate communications device handle
-		let mut duplicate_handle = INVALID_HANDLE_VALUE;
-		let process = unsafe { GetCurrentProcess() };
-		let res = unsafe {
-			DuplicateHandle(process, self.handle, process, &mut duplicate_handle, 0, FALSE, DUPLICATE_SAME_ACCESS)
-		};
+        // duplicate communications device handle
+        let mut duplicate_handle = INVALID_HANDLE_VALUE;
+        let process = unsafe { GetCurrentProcess() };
+        let res = unsafe {
+            DuplicateHandle(
+                process,
+                self.handle,
+                process,
+                &mut duplicate_handle,
+                0,
+                FALSE,
+                DUPLICATE_SAME_ACCESS,
+            )
+        };
 
         match res {
             0 => Err(super::error::last_os_error()),
@@ -163,7 +168,7 @@ impl COMPort {
                 handle: duplicate_handle,
                 port_name: self.port_name.clone(),
                 timeout: self.timeout,
-            })
+            }),
         }
     }
 
@@ -240,21 +245,25 @@ impl io::Read for COMPort {
             )
         };
         let last_error = unsafe { GetLastError() };
-        if read_result == 0 && last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED {
+        if read_result == 0
+            && last_error != ERROR_IO_PENDING
+            && last_error != ERROR_OPERATION_ABORTED
+        {
             return Err(io::Error::last_os_error());
         }
-        let overlapped_result = unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
+        let overlapped_result =
+            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
         evt_handle.close();
         let last_error = unsafe { GetLastError() };
-        if overlapped_result == 0 && last_error != ERROR_OPERATION_ABORTED  {
+        if overlapped_result == 0 && last_error != ERROR_OPERATION_ABORTED {
             return Err(io::Error::last_os_error());
         }
         if len != 0 {
             Ok(len as usize)
         } else {
             Err(io::Error::new(
-                    io::ErrorKind::TimedOut,
-                    "Operation timed out",
+                io::ErrorKind::TimedOut,
+                "Operation timed out",
             ))
         }
     }
@@ -275,10 +284,14 @@ impl io::Write for COMPort {
             )
         };
         let last_error = unsafe { GetLastError() };
-        if write_result == 0 && last_error != ERROR_IO_PENDING && last_error != ERROR_OPERATION_ABORTED {
+        if write_result == 0
+            && last_error != ERROR_IO_PENDING
+            && last_error != ERROR_OPERATION_ABORTED
+        {
             return Err(io::Error::last_os_error());
         }
-        let overlapped_result = unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
+        let overlapped_result =
+            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
         evt_handle.close();
 
         let last_error = unsafe { GetLastError() };
