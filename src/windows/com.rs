@@ -67,6 +67,8 @@ impl Drop for OverlappedHandle {
 /// should not be instantiated directly by using `COMPort::open()`, instead use
 /// the cross-platform `serialport::open()` or
 /// `serialport::open_with_settings()`.
+///
+/// Port is created using `CreateFileW` syscall with following set of flags: `FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED`
 #[derive(Debug)]
 pub struct COMPort {
     handle: HANDLE,
