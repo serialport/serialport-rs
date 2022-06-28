@@ -223,13 +223,17 @@ impl io::Read for COMPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut read_size = buf.len();
 
-        let bytes_to_read = self.bytes_to_read()? as usize;
-
-        if self.timeout.as_millis() == 0 && bytes_to_read < read_size {
-            read_size = bytes_to_read;
-        }
-        if read_size == 0 {
-            return Ok(0);
+        if self.timeout.as_secs() == 0 && self.timeout.subsec_nanos() == 0 {
+            //If zero timeout then make sure we can read, before proceeding
+            //Note that zero timeout will make read operation to wait until at least
+            //1 byte becomes available.
+            let bytes_to_read = self.bytes_to_read()? as usize;
+            if bytes_to_read < read_size {
+                read_size = bytes_to_read;
+            }
+            if read_size == 0 {
+                return Ok(0);
+            }
         }
 
         let evt_handle = OverlappedHandle::new()?;
