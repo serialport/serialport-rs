@@ -26,11 +26,12 @@ mod raw {
         target_os = "ios",
         target_os = "macos",
         target_os = "netbsd",
-        target_os = "openbsd"
+        target_os = "openbsd",
+        target_os = "illumos",
     ))]
     ioctl_read!(fionread, b'f', 127, libc::c_int);
 
-    #[cfg(any(target_os = "android", target_os = "linux"))]
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "illumos"))]
     ioctl_read_bad!(tiocoutq, libc::TIOCOUTQ, libc::c_int);
 
     // See: /usr/include/sys/ttycom.h
@@ -43,6 +44,9 @@ mod raw {
         target_os = "openbsd"
     ))]
     ioctl_read!(tiocoutq, b't', 115, libc::c_int);
+
+    #[cfg(target_os = "illumos")]
+    ioctl_write_ptr_bad!(i_push, libc::I_PUSH, libc::c_char);
 
     ioctl_write_ptr_bad!(tiocmbic, libc::TIOCMBIC, libc::c_int);
     ioctl_write_ptr_bad!(tiocmbis, libc::TIOCMBIS, libc::c_int);
@@ -153,6 +157,23 @@ pub fn tiocmbis(fd: RawFd, status: SerialLines) -> Result<()> {
     unsafe { raw::tiocmbis(fd, &bits) }
         .map(|_| ())
         .map_err(|e| e.into())
+}
+
+#[cfg(target_os = "illumos")]
+pub fn i_push(fd: RawFd, module: StreamsModule) -> Result<()> {
+    let name = match module {
+        StreamsModule::Ptem => b"ptem\x00".as_slice(),
+        StreamsModule::Ldterm => b"ldterm\x00".as_slice(),
+    };
+    unsafe { raw::i_push(fd, name.as_ptr().cast()) }
+        .map(|_| ())
+        .map_err(|e| e.into())
+}
+
+#[cfg(target_os = "illumos")]
+pub enum StreamsModule {
+    Ptem,
+    Ldterm,
 }
 
 #[cfg(any(

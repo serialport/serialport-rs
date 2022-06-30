@@ -14,6 +14,7 @@ cfg_if! {
         target_os = "macos",
         target_os = "netbsd",
         target_os = "openbsd",
+        target_os = "illumos",
         all(
             target_os = "linux",
             any(
@@ -58,6 +59,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     target_os = "freebsd",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "illumos",
     all(
         target_os = "linux",
         any(target_arch = "powerpc", target_arch = "powerpc64")
@@ -102,6 +104,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) ->
     target_os = "freebsd",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "illumos",
     all(
         target_os = "linux",
         any(target_arch = "powerpc", target_arch = "powerpc64")
@@ -201,7 +204,7 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()>
     target_os = "dragonfly",
     target_os = "freebsd",
     target_os = "netbsd",
-    target_os = "openbsd"
+    target_os = "openbsd",
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
     let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
@@ -209,21 +212,27 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()>
     Ok(())
 }
 
-#[cfg(all(
-    target_os = "linux",
-    any(target_arch = "powerpc", target_arch = "powerpc64")
+#[cfg(any(
+    target_os = "illumos",
+    all(
+        target_os = "linux",
+        any(target_arch = "powerpc", target_arch = "powerpc64")
+    )
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
     use crate::{Error, ErrorKind};
 
     use self::libc::{
         B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000, B460800,
-        B500000, B576000, B921600,
+        B921600,
     };
     use self::libc::{
         B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800,
         B50, B57600, B600, B75, B9600,
     };
+
+    #[cfg(target_os = "linux")]
+    use self::libc::{B500000, B576000};
 
     let baud_rate = match baud_rate {
         50 => B50,
@@ -245,7 +254,9 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()>
         115_200 => B115200,
         230_400 => B230400,
         460_800 => B460800,
+        #[cfg(target_os = "linux")]
         500_000 => B500000,
+        #[cfg(target_os = "linux")]
         576_000 => B576000,
         921_600 => B921600,
         1_000_000 => B1000000,

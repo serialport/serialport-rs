@@ -171,6 +171,8 @@ demand.
   - `i686-pc-windows-msvc`
   - `x86_64-pc-windows-gnu`
   - `x86_64-pc-windows-msvc`
+- Illumos
+  - `x86_64-unknown-illumos`
 
 # Hardware Support
 

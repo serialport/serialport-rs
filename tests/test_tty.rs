@@ -138,6 +138,7 @@ fn test_ttyport_set_standard_baud() {
 #[cfg_attr(
     any(
         target_os = "ios",
+        target_os = "illumos",
         all(
             target_os = "linux",
             any(target_arch = "powerpc", target_arch = "powerpc64")
