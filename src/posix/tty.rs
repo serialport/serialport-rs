@@ -327,6 +327,12 @@ impl TTYPort {
             nix::sys::stat::Mode::empty(),
         )?);
 
+        let next_pty_fd = next_pty_fd.into_raw_fd();
+        #[cfg(target_os = "illumos")]
+        push_ldterm_streams_module(next_pty_fd)?;
+        #[cfg(target_os = "illumos")]
+        push_ldterm_streams_module(fd.0)?;
+
         // Set the port to a raw state. Using these ports will not work without this.
         let mut termios = MaybeUninit::uninit();
         Errno::result(unsafe { libc::tcgetattr(fd.0, termios.as_mut_ptr()) })?;
@@ -353,7 +359,7 @@ impl TTYPort {
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
         // BSDs when used on the master port.
         let master_tty = TTYPort {
-            fd: next_pty_fd.into_raw_fd(),
+            fd: next_pty_fd,
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: None,
@@ -423,6 +429,16 @@ impl IntoRawFd for TTYPort {
     }
 }
 
+#[cfg(target_os = "illumos")]
+/// Push the `ptem` and `ldterm` STREAMS modules onto `fd`.
+///
+/// See `man ptm`, `man ptem`, and `man ldterm`.
+fn push_ldterm_streams_module(fd: RawFd) -> Result<()> {
+    crate::posix::ioctl::i_push(fd, crate::posix::ioctl::StreamsModule::Ptem)?;
+    crate::posix::ioctl::i_push(fd, crate::posix::ioctl::StreamsModule::Ldterm)?;
+    Ok(())
+}
+
 /// Get the baud speed for a port from its file descriptor
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 fn get_termios_speed(fd: RawFd) -> u32 {
@@ -435,19 +451,25 @@ fn get_termios_speed(fd: RawFd) -> u32 {
     termios.c_ospeed as u32
 }
 
-#[cfg(all(
-    target_os = "linux",
-    any(target_arch = "powerpc", target_arch = "powerpc64")
+#[cfg(any(
+    target_os = "illumos",
+    all(
+        target_os = "linux",
+        any(target_arch = "powerpc", target_arch = "powerpc64")
+    )
 ))]
 fn baud_rate_from_speed(speed: libc::speed_t) -> Result<u32> {
     use libc::{
         B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000, B460800,
-        B500000, B576000, B921600,
+        B921600,
     };
     use libc::{
         B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800,
         B50, B57600, B600, B75, B9600,
     };
+
+    #[cfg(target_os = "linux")]
+    use self::libc::{B500000, B576000};
 
     match speed {
         B50 => Ok(50),
@@ -469,8 +491,10 @@ fn baud_rate_from_speed(speed: libc::speed_t) -> Result<u32> {
         B115200 => Ok(115_200),
         B230400 => Ok(230_400),
         B460800 => Ok(460_800),
-        B500000 => Ok(500_000),
-        B576000 => Ok(576_000),
+        #[cfg(target_os = "linux")]
+        B500000 => 500_000,
+        #[cfg(target_os = "linux")]
+        B576000 => 576_000,
         B921600 => Ok(921_600),
         B1000000 => Ok(1_000_000),
         B1152000 => Ok(1_152_000),
@@ -604,7 +628,7 @@ impl SerialPort for TTYPort {
         target_os = "dragonfly",
         target_os = "freebsd",
         target_os = "netbsd",
-        target_os = "openbsd"
+        target_os = "openbsd",
     ))]
     fn baud_rate(&self) -> Result<u32> {
         let termios = termios::get_termios(self.fd)?;
@@ -641,9 +665,12 @@ impl SerialPort for TTYPort {
     /// * `Io` if the termios data could not be read from the port
     /// * `Unknown` if the port reports differing input and output baud rates, or if it reports a
     ///   baud rate which is not a known `B*` constant
-    #[cfg(all(
-        target_os = "linux",
-        any(target_arch = "powerpc", target_arch = "powerpc64")
+    #[cfg(any(
+        target_os = "illumos",
+        all(
+            target_os = "linux",
+            any(target_arch = "powerpc", target_arch = "powerpc64")
+        )
     ))]
     fn baud_rate(&self) -> Result<u32> {
         let termios = termios::get_termios(self.fd)?;
@@ -717,6 +744,7 @@ impl SerialPort for TTYPort {
         target_os = "freebsd",
         target_os = "netbsd",
         target_os = "openbsd",
+        target_os = "illumos",
         target_os = "linux"
     ))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
