@@ -25,6 +25,12 @@ use crate::{
     SerialPortBuilder, StopBits,
 };
 
+const fn duration_to_win_timeout(time: Duration) -> DWORD {
+    time.as_secs()
+        .saturating_mul(1000)
+        .saturating_add((time.subsec_nanos() as u64).saturating_div(1_000_000)) as DWORD
+}
+
 struct OverlappedHandle(pub HANDLE);
 
 impl OverlappedHandle {
@@ -199,6 +205,33 @@ impl COMPort {
             port_name: None,
         }
     }
+
+    ///Sets COM port timeouts.
+    ///
+    ///Comparing to `SerialPort::set_timeout` which only sets `read` timeout, this function allows
+    ///to specify all available timeouts.
+    ///
+    ///- `data` - This timeout specifies how long to wait for next byte, since arrival of at least
+    ///one byte. Once timeout expires, read returns with available data.
+    ///`SerialPort::set_timeout` uses 0 which means no timeout.
+    ///- `read` - Specifies overall timeout for `read` as `SerialPort::set_timeout`
+    ///- `write` - Specifies overall timeout for `write` operations.
+    pub fn set_timeouts(&mut self, data: Duration, read: Duration, write: Duration) -> Result<()> {
+        let mut timeouts = COMMTIMEOUTS {
+            ReadIntervalTimeout: duration_to_win_timeout(data),
+            ReadTotalTimeoutMultiplier: 0,
+            ReadTotalTimeoutConstant: duration_to_win_timeout(read),
+            WriteTotalTimeoutMultiplier: 0,
+            WriteTotalTimeoutConstant: duration_to_win_timeout(write),
+        };
+
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
+            return Err(super::error::last_os_error());
+        }
+
+        self.timeout = read;
+        Ok(())
+    }
 }
 
 impl Drop for COMPort {
@@ -316,31 +349,19 @@ impl io::Write for COMPort {
 }
 
 impl SerialPort for COMPort {
+    #[inline]
     fn name(&self) -> Option<String> {
         self.port_name.clone()
     }
 
+    #[inline]
     fn timeout(&self) -> Duration {
         self.timeout
     }
 
+    #[inline]
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
-
-        let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: 0,
-            ReadTotalTimeoutMultiplier: 0,
-            ReadTotalTimeoutConstant: milliseconds as DWORD,
-            WriteTotalTimeoutMultiplier: 0,
-            WriteTotalTimeoutConstant: 0,
-        };
-
-        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
-            return Err(super::error::last_os_error());
-        }
-
-        self.timeout = timeout;
-        Ok(())
+        self.set_timeouts(Duration::from_secs(0), timeout, Duration::from_secs(0))
     }
 
     fn write_request_to_send(&mut self, level: bool) -> Result<()> {
