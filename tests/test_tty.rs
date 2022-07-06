@@ -90,6 +90,29 @@ fn test_ttyport_timeout() {
     }
 }
 
+#[test]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+fn test_osx_pty_pair() {
+    #![allow(unused_variables)]
+    let (mut master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (output_sink, output_stream) = std::sync::mpsc::sync_channel(1);
+    let name = slave.name().unwrap();
+
+    master.write("12".as_bytes()).expect("");
+
+    let reader_thread = std::thread::spawn(move || {
+        let mut port = TTYPort::open(&serialport::new(&name, 0)).expect("unable to open");
+        let mut buffer = [0u8; 2];
+        let amount = port.read_exact(&mut buffer);
+        output_sink
+            .send(String::from_utf8(buffer.to_vec()).expect("buffer not read as valid utf-8"))
+            .expect("unable to send from thread");
+    });
+
+    reader_thread.join().expect("unable to join sink thread");
+    assert_eq!(output_stream.recv().unwrap(), "12");
+}
+
 // On Mac this should work (in fact used to in b77768a) but now fails. It's not functionality that
 // should be required, and the ptys work otherwise. So going to just diable this test instead.
 #[test]
