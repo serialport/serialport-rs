@@ -29,8 +29,7 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
 
     // Size vector to hold 1 result (which is the most common result).
     let mut num_guids: DWORD = 0;
-    let mut guids: Vec<GUID> = Vec::new();
-    guids.push(GUID_NULL); // Placeholder for first result
+    let mut guids = vec![GUID_NULL]; // Placeholder for first result
 
     // Find out how many GUIDs are associated with "Ports". Initially we assume
     // that there is only 1. num_guids will tell us how many there actually are.
@@ -272,10 +271,8 @@ impl PortDevice {
                 ptr::null_mut(),
             )
         };
-        if res == FALSE {
-            if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
-                return None;
-            }
+        if res == FALSE && unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
+            return None;
         }
         let end_of_buffer = result_buf.len() - 1;
         result_buf[end_of_buffer] = 0;
@@ -307,7 +304,7 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             }
 
             ports.push(SerialPortInfo {
-                port_name: port_name,
+                port_name,
                 port_type: port_device.port_type(),
             });
         }

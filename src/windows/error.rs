@@ -7,7 +7,7 @@ use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::winbase::{
     FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 };
-use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT, WCHAR};
+use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT};
 
 use crate::{Error, ErrorKind};
 
@@ -35,7 +35,7 @@ fn error_string(errnum: u32) -> String {
     // MAKELANGID(LANG_SYSTEM_DEFAULT, SUBLANG_SYS_DEFAULT)
     let langId = MAKELANGID(LANG_SYSTEM_DEFAULT, SUBLANG_SYS_DEFAULT) as DWORD;
 
-    let mut buf = [0 as WCHAR; 2048];
+    let mut buf = [0u16; 2048];
 
     unsafe {
         let res = FormatMessageW(
