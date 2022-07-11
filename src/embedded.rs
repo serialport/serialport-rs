@@ -13,7 +13,7 @@ pub struct SerialError {
     kind: io::ErrorKind,
 }
 
-// Implement serial::Error for SerialError
+// Implement `serial::Error` for SerialError
 impl serial::Error for SerialError {
     fn kind(&self) -> serial::ErrorKind {
         #[allow(clippy::match_single_binding)]
@@ -30,9 +30,11 @@ fn io_error_to_nb(err: io::Error) -> nb::Error<SerialError> {
     }
 }
 
-impl serial::nb::Read<u8> for Box<dyn SerialPort> {
+impl serial::ErrorType for Box<dyn SerialPort> {
     type Error = SerialError;
+}
 
+impl serial::nb::Read<u8> for Box<dyn SerialPort> {
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         let mut buffer = [0; 1];
         let bytes_read = io::Read::read(self, &mut buffer).map_err(io_error_to_nb)?;
@@ -45,8 +47,6 @@ impl serial::nb::Read<u8> for Box<dyn SerialPort> {
 }
 
 impl serial::nb::Write<u8> for Box<dyn SerialPort> {
-    type Error = SerialError;
-
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         io::Write::write(self, &[word])
             .map_err(io_error_to_nb)
