@@ -222,7 +222,7 @@ pub struct SerialPortBuilder {
     /// Number of bits to use to signal the end of a character
     stop_bits: StopBits,
     /// Amount of time to wait to receive data before timing out
-    timeout: Duration,
+    timeout: Option<Duration>,
 }
 
 impl SerialPortBuilder {
@@ -271,7 +271,14 @@ impl SerialPortBuilder {
     /// Set the amount of time to wait to receive data before timing out
     #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+        self.timeout = Some(timeout);
+        self
+    }
+
+    /// Makes the recive blocking
+    #[must_use]
+    pub fn blocking(mut self) -> Self {
+        self.timeout = None;
         self
     }
 
@@ -357,6 +364,9 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// Returns the current timeout.
     fn timeout(&self) -> Duration;
 
+    /// Returns whether the read is blocking
+    fn blocking(&self) -> bool;
+
     // Port settings setters
 
     /// Sets the baud rate.
@@ -379,6 +389,9 @@ pub trait SerialPort: Send + io::Read + io::Write {
 
     /// Sets the number of stop bits.
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()>;
+
+    /// Sets whether the recive will be blocking
+    fn set_blocking(&mut self, value: bool) -> Result<()>;
 
     /// Sets the timeout for future I/O operations.
     fn set_timeout(&mut self, timeout: Duration) -> Result<()>;
@@ -543,6 +556,10 @@ impl<T: SerialPort> SerialPort for &mut T {
         (**self).stop_bits()
     }
 
+    fn blocking(&self) -> bool {
+        (**self).blocking()
+    }
+
     fn timeout(&self) -> Duration {
         (**self).timeout()
     }
@@ -618,6 +635,10 @@ impl<T: SerialPort> SerialPort for &mut T {
     fn clear_break(&self) -> Result<()> {
         (**self).clear_break()
     }
+
+    fn set_blocking(&mut self, value: bool) -> Result<()> {
+        (**self).set_blocking(value)
+    }
 }
 
 /// Contains all possible USB information about a `SerialPort`
@@ -680,7 +701,7 @@ pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> Se
         flow_control: FlowControl::None,
         parity: Parity::None,
         stop_bits: StopBits::One,
-        timeout: Duration::from_millis(0),
+        timeout: None,
     }
 }
 
