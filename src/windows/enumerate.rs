@@ -185,29 +185,28 @@ impl PortDevice {
                 KEY_READ,
             )
         };
-        let mut port_name_buffer = [0u8; MAX_PATH];
+
+        let mut port_name_buffer = [0u16; MAX_PATH];
         let mut port_name_len = port_name_buffer.len() as DWORD;
-        let value_name = CString::new("PortName").unwrap();
+        let value_name: Vec<u16> = "PortName".encode_utf16().chain(Some(0)).collect();
+
         unsafe {
-            RegQueryValueExA(
+            RegQueryValueExW(
                 hkey,
                 value_name.as_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
-                port_name_buffer.as_mut_ptr(),
+                port_name_buffer.as_mut_ptr() as *mut u8,
                 &mut port_name_len,
             )
         };
         unsafe { RegCloseKey(hkey) };
 
-        let mut port_name = &port_name_buffer[0..port_name_len as usize];
+        let port_name = &port_name_buffer[0..port_name_len as usize];
 
-        // Strip any nul bytes from the end of the buffer
-        while port_name.last().map_or(false, |c| *c == b'\0') {
-            port_name = &port_name[..port_name.len() - 1];
-        }
-
-        String::from_utf8_lossy(port_name).into_owned()
+        String::from_utf16_lossy(port_name)
+            .trim_end_matches(0 as char)
+            .to_string()
     }
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
