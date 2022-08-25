@@ -4,7 +4,6 @@ use std::{mem, ptr};
 use regex::Regex;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
-use winapi::shared::ntdef::CHAR;
 use winapi::shared::winerror::*;
 use winapi::um::cguid::GUID_NULL;
 use winapi::um::errhandlingapi::GetLastError;
@@ -259,30 +258,34 @@ impl PortDevice {
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
     fn property(&mut self, property_id: DWORD) -> Option<String> {
-        let mut result_buf: [CHAR; MAX_PATH] = [0; MAX_PATH];
+        let mut property_buf = [0u16; MAX_PATH];
+
         let res = unsafe {
-            SetupDiGetDeviceRegistryPropertyA(
+            SetupDiGetDeviceRegistryPropertyW(
                 self.hdi,
                 &mut self.devinfo_data,
                 property_id,
                 ptr::null_mut(),
-                result_buf.as_mut_ptr() as PBYTE,
-                (result_buf.len() - 1) as DWORD,
+                property_buf.as_mut_ptr() as PBYTE,
+                property_buf.len() as DWORD,
                 ptr::null_mut(),
             )
         };
+
         if res == FALSE {
             if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
                 return None;
             }
         }
-        let end_of_buffer = result_buf.len() - 1;
-        result_buf[end_of_buffer] = 0;
-        Some(unsafe {
-            CStr::from_ptr(result_buf.as_ptr())
-                .to_string_lossy()
-                .into_owned()
-        })
+
+        // Using the unicode version of 'SetupDiGetDeviceRegistryProperty' seems to report the
+        // entire mfg registry string. This typically includes some driver information that we should discard.
+        // Example string: 'FTDI5.inf,%ftdi%;FTDI'
+        String::from_utf16_lossy(&property_buf)
+            .trim_end_matches(0 as char)
+            .split(';')
+            .last()
+            .map(str::to_string)
     }
 }
 
