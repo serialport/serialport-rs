@@ -164,12 +164,18 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
             return None;
         }
 
-        let str_ptr = CFStringGetCStringPtr(container as CFStringRef, kCFStringEncodingMacRoman);
-        if str_ptr.is_null() {
-            CFRelease(container);
-            return None;
-        }
-        let opt_str = CStr::from_ptr(str_ptr).to_str().ok().map(String::from);
+        let mut buf = Vec::with_capacity(256);
+        let result = CFStringGetCString(
+            container as CFStringRef,
+            buf.as_mut_ptr(),
+            buf.capacity() as i64,
+            kCFStringEncodingUTF8,
+        );
+        let opt_str = if result != 0 {
+            CStr::from_ptr(buf.as_ptr()).to_str().ok().map(String::from)
+        } else {
+            None
+        };
 
         CFRelease(container);
 
