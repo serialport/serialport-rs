@@ -31,7 +31,8 @@ use crate::UsbPortInfo;
     target_os = "ios",
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
     target_os = "macos",
-    target_os = "netbsd"
+    target_os = "netbsd",
+    target_os = "openbsd",
 ))]
 use crate::{Error, ErrorKind};
 use crate::{Result, SerialPortInfo};
