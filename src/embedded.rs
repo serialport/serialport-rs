@@ -4,7 +4,7 @@
 
 use std::io;
 
-use embedded_hal::serial;
+use embedded_hal_nb::serial;
 
 use crate::SerialPort;
 
@@ -34,7 +34,7 @@ impl serial::ErrorType for Box<dyn SerialPort> {
     type Error = SerialError;
 }
 
-impl serial::nb::Read<u8> for Box<dyn SerialPort> {
+impl serial::Read<u8> for Box<dyn SerialPort> {
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         let mut buffer = [0; 1];
         let bytes_read = io::Read::read(self, &mut buffer).map_err(io_error_to_nb)?;
@@ -46,7 +46,7 @@ impl serial::nb::Read<u8> for Box<dyn SerialPort> {
     }
 }
 
-impl serial::nb::Write<u8> for Box<dyn SerialPort> {
+impl serial::Write<u8> for Box<dyn SerialPort> {
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         io::Write::write(self, &[word])
             .map_err(io_error_to_nb)
