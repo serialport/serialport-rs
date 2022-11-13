@@ -49,3 +49,7 @@ clap = "3.1.6"
 [features]
 default = ["libudev"]
 embedded = ["embedded-hal", "embedded-hal-nb", "nb"]
+
+[[example]]
+name = "embedded_hal"
+required-features = ["embedded"]

@@ -84,9 +84,15 @@ jobs:
           command: build
           args: --target=${{ inputs.target }}
 
+      - name: Build | build library with all features
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target=${{ inputs.target }} --all-features
+
       - name: Build | build examples
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --examples --target=${{ inputs.target }}
+        run: cargo build --examples --target=${{ inputs.target }} --all-features
 
       - name: Build | build tests
         if: ${{ inputs.disable_extra_builds == false }}
