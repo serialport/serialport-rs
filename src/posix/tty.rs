@@ -79,7 +79,7 @@ struct OwnedFd(RawFd);
 
 impl Drop for OwnedFd {
     fn drop(&mut self) {
-        let _ = close(self.0);
+        close(self.0);
     }
 }
 
@@ -208,12 +208,9 @@ impl TTYPort {
             ioctl::tiocnxcl(self.fd)
         };
 
-        if let Err(err) = setting_result {
-            Err(err)
-        } else {
-            self.exclusive = exclusive;
-            Ok(())
-        }
+        setting_result?;
+        self.exclusive = exclusive;
+        Ok(())
     }
 
     fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> Result<()> {
