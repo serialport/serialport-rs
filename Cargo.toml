@@ -6,7 +6,7 @@ authors = [
     "Jesse Braham <jesse@beta7.io>",
 ]
 edition = "2018"
-rust-version = "1.56.1"
+rust-version = "1.60"
 description = "A cross-platform low-level serial port library."
 documentation = "https://docs.rs/serialport"
 repository = "https://github.com/serialport/serialport-rs"
