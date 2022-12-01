@@ -59,8 +59,8 @@ fn main() {
              .required(true))
         .get_matches();
 
-    let port_name = matches.value_of("port").unwrap();
-    let baud_rate = matches.value_of("baud").unwrap();
+    let port_name = matches.get_one::<String>("port").unwrap();
+    let baud_rate = matches.get_one::<String>("baud").unwrap();
 
     let exit_code = match run(port_name, baud_rate) {
         Ok(_) => 0,
