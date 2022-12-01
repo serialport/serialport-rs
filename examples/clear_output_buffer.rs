@@ -21,7 +21,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, Command};
 
 use serialport::ClearBuffer;
 
@@ -45,14 +45,14 @@ fn main() {
              .use_value_delimiter(false)
              .required(true))
         .arg(Arg::new("block-size")
-             .help(Some(block_size_help.as_str()))
+             .help(block_size_help)
              .use_value_delimiter(false)
              .default_value(DEFAULT_BLOCK_SIZE))
         .get_matches();
 
-    let port_name = matches.value_of("port").unwrap();
-    let baud_rate = matches.value_of("baud").unwrap();
-    let block_size = ArgMatches::value_of_t(&matches, "block-size").unwrap_or_else(|e| e.exit());
+    let port_name = matches.get_one::<String>("port").unwrap();
+    let baud_rate = matches.get_one::<String>("baud").unwrap();
+    let block_size = *matches.get_one::<usize>("block-size").unwrap();
 
     let exit_code = match run(port_name, baud_rate, block_size) {
         Ok(_) => 0,

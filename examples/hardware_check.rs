@@ -39,16 +39,16 @@ fn main() {
         .arg(Arg::new("loopback-port")
              .help("The device path of a second serial port that is connected to the first serial port. Mutually exclusive with the --loopback option.")
              .use_value_delimiter(false)
-             .takes_value(true)
+             .num_args(1)
              .long("loopback-port"))
         .get_matches();
 
-    let port1_name = matches.value_of("port").unwrap();
-    let port2_name = matches.value_of("loopback-port").unwrap_or("");
-    let port1_loopback = matches.is_present("loopback");
+    let port1_name = matches.get_one::<String>("port").unwrap();
+    let port2_name = matches.get_one::<String>("loopback-port");
+    let port1_loopback = matches.get_flag("loopback");
 
     // Loopback mode is only available when a single port is specified
-    if port1_loopback && !port2_name.is_empty() {
+    if port1_loopback && port2_name.is_some() {
         eprintln!("ERROR: loopback mode can only be enabled when a single port is specified.");
         ::std::process::exit(1);
     }
@@ -63,7 +63,7 @@ fn main() {
     };
     test_single_port(&mut *port1, port1_loopback);
 
-    if !port2_name.is_empty() {
+    if let Some(port2_name) = port2_name {
         // Run single-port tests on port2
         let mut port2 = match serialport::new(port2_name, 9600).open() {
             Err(e) => {
