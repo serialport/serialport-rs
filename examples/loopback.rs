@@ -45,7 +45,7 @@ struct Args {
     /// Bytes to write to the serial port
     ///
     /// When not specified, the bytes transmitted count up
-    #[clap(short, long, use_value_delimiter = true)]
+    #[clap(long, use_value_delimiter = true)]
     bytes: Option<Vec<u8>>,
 
     /// Split the port to read/write from multiple threads
