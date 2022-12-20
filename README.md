@@ -175,7 +175,7 @@ Licensed under the [Mozilla Public License, version 2.0](https://www.mozilla.org
 
 # Contributing
 
-Please open an issue or pull request on GitHub to contibute. Code contributions submitted for
+Please open an issue or pull request on GitHub to contribute. Code contributions submitted for
 inclusion in the work by you, as defined in the MPL2.0 license, shall be licensed as the above
 without any additional terms or conditions.
 
