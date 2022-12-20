@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/)
-and this project adheres to [Semantic Versioning](http://semver.org/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/) and this
+project adheres to [Semantic Versioning](https://semver.org/).
 
 ## UNRELEASED
 ### Added
@@ -32,8 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [4.1.0] - 2022-04-04
 ### Added
-* impl `SerialPort` for `&mut T`. This allows a `&mut T (where T: SerialPort)` to be used in a
-  context where `impl SerialPort` is expected.
+* impl `SerialPort` for `&mut T`. This allows a `&mut T (where T: SerialPort)`
+  to be used in a context where `impl SerialPort` is expected.
   [!114](https://gitlab.com/susurrus/serialport-rs/-/merge_requests/114)
 ### Changed
 * Updated `nix` dependency to 0.23.1.
@@ -54,40 +54,45 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 * Update maintenance status to looking for a new maintainer.
 ### Fixed
-* Properly initialize DCB structure on Windows. This fixes some non-functional devices.
+* Properly initialize DCB structure on Windows. This fixes some non-functional
+  devices.
   [!97](https://gitlab.com/susurrus/serialport-rs/-/merge_requests/97)
 ### Removed
 
 ## [4.0.0] - 2020-12-17
 ### Added
-* Added `send_break()` to `TTYPort`
+* Added `send_break()` to `TTYPort`.
   [!69](https://gitlab.com/susurrus/serialport-rs/merge_requests/69)
-* Enable `available_ports()` for Linux musl targets and those without the `libudev`
-  feature enabled by scanning `/sys/` for ports.
+* Enable `available_ports()` for Linux musl targets and those without the
+  `libudev` feature enabled by scanning `/sys/` for ports.
   [!72](https://gitlab.com/susurrus/serialport-rs/merge_requests/72)
-* `ENOENT` and `EACCES` errors are now exposed as `NotFound` and `PermissionDenied` errors on Linux
+* `ENOENT` and `EACCES` errors are now exposed as `NotFound` and
+  `PermissionDenied` errors on Linux.
   [!80](https://gitlab.com/susurrus/serialport-rs/merge_requests/80)
-* `try_clone_native()` was added to `COMPort` and `TTYPort` to complement `SerialPort::try_clone()`
-  but returning the concrete type instead.
+* `try_clone_native()` was added to `COMPort` and `TTYPort` to complement
+  `SerialPort::try_clone()` but returning the concrete type instead.
   [!85](https://gitlab.com/susurrus/serialport-rs/merge_requests/85)
-* Added `set_break()` and `clear_break()` to `SerialPort`
+* Added `set_break()` and `clear_break()` to `SerialPort`.
   [!70](https://gitlab.com/susurrus/serialport-rs/merge_requests/70)
 
 ### Changed
-* Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit` feature.
-* The platform-specific `TTYPort`/`BreakDuration` and `COMPort` are now at the root level rather
-  than under the `posix` and `windows` submodules respectively.
-* Opening `SerialPort` s now uses the builder pattern through `serialport::new()`. See the
-  README for concrete examples.
+* Minimum supported Rust version is now 1.36.0 to support the `mem::MaybeUninit`
+  feature.
+* The platform-specific `TTYPort`/`BreakDuration` and `COMPort` are now at the
+  root level rather than under the `posix` and `windows` submodules
+  respectively.
+* Opening `SerialPort` s now uses the builder pattern through
+  `serialport::new()`. See the README for concrete examples.
   [!73](https://gitlab.com/susurrus/serialport-rs/merge_requests/73)
-* `SerialPorts` s are no longer opened with a default timeout of 1ms
-* Under linux, the `manufacturer` and `product` fields of `UsbPortInfo` now take their values from
-  the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE` udev properties respectively, instead
-  of the `ID_VENDOR` and `ID_MODEL` properties that were used before. When the `_FROM_DATABASE`
-  values are not available, it falls back to the old behavior.
+* `SerialPorts`s are no longer opened with a default timeout of 1ms.
+* Under linux, the `manufacturer` and `product` fields of `UsbPortInfo` now take
+  their values from the `ID_VENDOR_FROM_DATABASE` and `ID_MODEL_FROM_DATABASE`
+  udev properties respectively, instead of the `ID_VENDOR` and `ID_MODEL`
+  properties that were used before. When the `_FROM_DATABASE` values are not
+  available, it falls back to the old behavior.
   [!86](https://gitlab.com/susurrus/serialport-rs/merge_requests/86)
-* POSIX ports are no longer opened in exclusive mode. After opening they can be made exclusive via
-  `TTYPort::set_exclusive()`.
+* POSIX ports are no longer opened in exclusive mode. After opening they can be
+  made exclusive via `TTYPort::set_exclusive()`.
   [!98](https://gitlab.com/susurrus/serialport-rs/merge_requests/98)
 
 ### Fixed
@@ -103,13 +108,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [3.3.0] - 2019-06-12
 ### Added
-* Added support for arbitrary baud rates on Mac OS X and iOS
+* Added support for arbitrary baud rates on macOS and iOS.
 
 ### Changed
-* Minimum supported Rust version is now 1.31 to support using the 2018 edition of Rust.
+* Minimum supported Rust version is now 1.31 to support using the 2018 edition
+  of Rust.
 
 ### Fixed
-* Upgraded `sparc64-unknown-linux-gnu` to Tier 2 support
+* Upgraded `sparc64-unknown-linux-gnu` to Tier 2 support.
 
 ### Removed
 
@@ -118,11 +124,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Port enumeration is now supported on FreeBSD.
 
 ### Changed
-* Minimum supported Rust version changed to 1.24.1
-* Made `aarch64-unknown-linux-musl` a Tier-2 supported target
+* Minimum supported Rust version changed to 1.24.1.
+* Made `aarch64-unknown-linux-musl` a Tier-2 supported target.
 
 ### Fixed
-* Fixed software flow control for POSIX systems ([!54](https://gitlab.com/susurrus/serialport-rs/merge_requests/54))
+* Fixed software flow control for POSIX systems.
+  [!54](https://gitlab.com/susurrus/serialport-rs/merge_requests/54)
 
 ### Removed
 * Removed support for `x86_64-unknown-linux-gnux32`.
@@ -138,7 +145,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [3.0.0] - 2018-07-14
 ### Added
 * Arbitrary baud rates are now supported on BSDs, Linux, and Windows.
-* Added Tier 1 support for `{i586|i686|x86_64}-unknown-linux-musl`
+* Added Tier 1 support for `{i586|i686|x86_64}-unknown-linux-musl`.
 * Added Tier 2 support for:
   * `{arm|armv7}-linux-androideabi`
   * `i686-linux-android`
@@ -161,16 +168,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Renamed `SerialPort::port_name()` to `name()`.
 
 ### Fixed
-* On Windows, the `port_name` field on `SerialPortInfo` included an extraneous trailing nul byte
-  character.
+* On Windows, the `port_name` field on `SerialPortInfo` included an extraneous
+  trailing nul byte character.
 
 ### Removed
 * The `BaudRate` enum was removed in favor of a `u32`.
 
 ## [2.3.0] - 2018-03-13
 ### Added
-* Added `examples/hardware_check.rs` for use in debugging library or
-  driver issues when using physical serial ports.
+* Added `examples/hardware_check.rs` for use in debugging library or driver
+  issues when using physical serial ports.
 * Added `SerialPort::try_clone` which allows for cloning a port for full-duplex
   reading and writing.
 
@@ -183,126 +190,126 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `SerialPort::try_clone` interface to work as people expect.
 
 ### Fixed
-* `TTYPort::into_raw_fd` will now work as expected. It previously closed
-  the port so the returned file descriptor would be invalid.
+* `TTYPort::into_raw_fd` will now work as expected. It previously closed the
+  port so the returned file descriptor would be invalid.
 * 921600 baud is now supported on NetBSD and FreeBSD.
 
 ## 2.2.0 - 2018-03-13
-Unreleased, happened due to a user error using `cargo-release`
+Unreleased, happened due to a user error using `cargo-release`.
 
 ## [2.1.0] - 2018-02-14
 ### Added
-* `impl FromRawHandle` for `COMPort`
+* `impl FromRawHandle` for `COMPort`.
 
 ### Changed
-* Specific IO-related errors are now returned instead of mapping every IO
-  error to Unknown. This makes it possible to catch things like time-out
-  errors.
+* Specific IO-related errors are now returned instead of mapping every IO error
+  to Unknown. This makes it possible to catch things like time-out errors.
 * Changed all baud rates to be reported as the discrete `BaudRate::Baud*` types
   rather than as the `BaudRate::BaudOther(*)` type.
 
 ### Fixed
-* Modem-type USB serial devices are now enumerated on OS X. This now allows
+* Modem-type USB serial devices are now enumerated on macOS. This now allows
   connected Arduinos to be detected.
 * Compilation on FreeBSD and NetBSD was fixed by removing the 921600 baud rates.
   These will be re-added in a future release.
 
 ## [2.0.0] - 2017-12-18
 ### Added
-* USB device information is now returned in calls to `available_ports()`
-* Serial port enumeration is now supported on Mac
-* Serial port enumeration now attempts to return the interface used for the
-  port (USB, PCI, Bluetooth, Unknown).
+* USB device information is now returned in calls to `available_ports()`.
+* Serial port enumeration is now supported on Mac.
+* Serial port enumeration now attempts to return the interface used for the port
+  (USB, PCI, Bluetooth, Unknown).
 * `BaudRate::standard_rates()` provides a vector of cross-platform baud rates.
-* `SerialPort` trait is now `Send`
+* `SerialPort` trait is now `Send`.
 
 ### Changed
-* Software license has changed from LGPLv3+ to MPL-2.0. This makes it
-  possible to use this library in any Rust project if it's unmodified.
-* Mac is now a Tier 2 supported platform
+* Software license has changed from LGPLv3+ to MPL-2.0. This makes it possible
+  to use this library in any Rust project if it's unmodified.
+* Mac is now a Tier 2 supported platform.
 * Removed `BaudRate::from_speed(usize)` and `BaudRate::speed -> usize` in favor
   of the `From<u32>` and `Into<u32>` traits.
 * Removed `available_baud_rates` in favor of `BaudRate::platform_rates()` as
-  this has a more clear semantic meaning. The returned list of baud rates is
-  now also correct for all supported platforms.
+  this has a more clear semantic meaning. The returned list of baud rates is now
+  also correct for all supported platforms.
 * Removed `termios` dependency in favor of `nix`. This is a big step towards
   supporting additional platforms.
 
 ### Fixed
 * Stop bits are now specified properly (had been reversed). Thanks to
-  @serviushack (MR#9)
+  @serviushack. (MR#9)
 * `TTYPort::pair()` is now thread-safe.
 * `TTYPort::open()` no longer leaks file descriptors if it errors. Thanks to
-  @daniel (MR#12)
-* Fixed compilation when targeting Android
+  @daniel. (MR#12)
+* Fixed compilation when targeting Android.
 
 ## [1.0.1] - 2017-02-20
 ### Fixed
-* `read()` now properly blocks for at least one character
-* Compilation now works on Mac
+* `read()` now properly blocks for at least one character.
+* Compilation now works on Mac.
 
 ## [1.0.0] - 2017-02-13
 ### Changed
-* Various documentation/README updates
-* Minor formatting fixes (from rustfmt)
+* Various documentation/README updates.
+* Minor formatting fixes (from rustfmt).
 
 ### Fixed
-* Platform-specific examples are now only built on appropriate platforms
+* Platform-specific examples are now only built on appropriate platforms.
 
 ## [0.9.0] - 2017-02-09
 ### Added
-* `impl Debug` for `COMPort`
-* `exclusive()` and `set_exclusive()` for `TTYPort`
-* `port_name()` for `SerialPort`
-* `impl FromRawFd` and `impl IntoRawFd` for `TTYPort`
-* `pair()` for `TTYPort`
+* `impl Debug` for `COMPort`.
+* `exclusive()` and `set_exclusive()` for `TTYPort`.
+* `port_name()` for `SerialPort`.
+* `impl FromRawFd` and `impl IntoRawFd` for `TTYPort`.
+* `pair()` for `TTYPort`.
 
 ## [0.3.0] - 2017-01-28
 ### Added
-* `open_with_settings()` to support initializing the port with custom settings
+* `open_with_settings()` to support initializing the port with custom settings.
 * `SerialPortSettings` is now publically usable being exported in the prelude,
   having all public and commented fields, and a `Default` impl.
 
 ### Changed
 * `TTYPort/COMPort::open()` now take a `SerialPortSettings` argument and return
-  concrete types
-* `serialport::open()` now initializes the port to reasonable defaults
-* Removed all instances of `try!()` for `?`
-* `SerialPort::set_all()` now borrows `SerialPortSettings`
+  concrete types.
+* `serialport::open()` now initializes the port to reasonable defaults.
+* Removed all instances of `try!()` for `?`.
+* `SerialPort::set_all()` now borrows `SerialPortSettings`.
 
 ## [0.2.4] - 2017-01-26
 ### Added
-* Report an Unimplemented error for unsupported unix targets
+* Report an Unimplemented error for unsupported unix targets.
 
 ### Changed
-* Minor changes suggested by Clippy
-* Reworked Cargo.toml to more easily support additional targets
+* Minor changes suggested by Clippy.
+* Reworked Cargo.toml to more easily support additional targets.
 
 ### Fixed
-* AppVeyor badge should now be properly displayed
+* AppVeyor badge should now be properly displayed.
 
 ## [0.2.3] - 2017-01-21
 ### Added
-* Specify AppVeyor build status badge for crates.io
+* Specify AppVeyor build status badge for crates.io.
 
 ## [0.2.2] - 2017-01-21
-* No changes, purely a version increment to push new crate metadata to crates.io
+* No changes, purely a version increment to push new crate metadata to
+  crates.io.
 
 ## [0.2.1] - 2017-01-21
 ### Added
-* Specify category for crates.io
+* Specify category for crates.io.
 
 ## [0.2.0] - 2017-01-07
 ### Added
-* Added a changelog
-* Added a getter/setter pair for all settings at once
-* An error is thrown if settings weren't correctly applied on POSIX
+* Added a changelog.
+* Added a getter/setter pair for all settings at once.
+* An error is thrown if settings weren't correctly applied on POSIX.
 
 ## [0.1.1] - 2016-12-23
 ### Changed
-* Fixed compilation on x86_64-pc-windows-gnu target
-* Added contributors to README
-* Clarified license terms in the README
+* Fixed compilation on x86_64-pc-windows-gnu target.
+* Added contributors to README.
+* Clarified license terms in the README.
 
 ## [0.1.0] - 2016-12-22
 ### Added
