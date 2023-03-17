@@ -374,22 +374,26 @@ fn get_registry_com_ports() -> HashSet<String> {
     let reg_key = b"HARDWARE\\DEVICEMAP\\SERIALCOMM\0";
     let key_ptr = reg_key.as_ptr() as *const i8;
     let mut ports_key = std::ptr::null_mut();
-    unsafe {
-        let open_res = RegOpenKeyExA(HKEY_LOCAL_MACHINE, key_ptr, 0, KEY_READ, &mut ports_key);
-        if SUCCEEDED(open_res) {
-            let mut class_name_buff = [0i8; MAX_PATH];
-            let mut class_name_size = MAX_PATH as u32;
-            let mut sub_key_count = 0;
-            let mut largest_sub_key = 0;
-            let mut largest_class_string = 0;
-            let mut num_key_values = 0;
-            let mut longest_value_name = 0;
-            let mut longest_value_data = 0;
-            let mut size_security_desc = 0;
-            let mut last_write_time = FILETIME {
-                dwLowDateTime: 0,
-                dwHighDateTime: 0,
-            };
+
+    // SAFETY: ffi, all inputs are correct
+    let open_res =
+        unsafe { RegOpenKeyExA(HKEY_LOCAL_MACHINE, key_ptr, 0, KEY_READ, &mut ports_key) };
+    if SUCCEEDED(open_res) {
+        let mut class_name_buff = [0i8; MAX_PATH];
+        let mut class_name_size = MAX_PATH as u32;
+        let mut sub_key_count = 0;
+        let mut largest_sub_key = 0;
+        let mut largest_class_string = 0;
+        let mut num_key_values = 0;
+        let mut longest_value_name = 0;
+        let mut longest_value_data = 0;
+        let mut size_security_desc = 0;
+        let mut last_write_time = FILETIME {
+            dwLowDateTime: 0,
+            dwHighDateTime: 0,
+        };
+        // SAFETY: ffi, all inputs are correct
+        let query_res = unsafe {
             RegQueryInfoKeyA(
                 ports_key,
                 class_name_buff.as_mut_ptr(),
@@ -403,7 +407,9 @@ fn get_registry_com_ports() -> HashSet<String> {
                 &mut longest_value_data,
                 &mut size_security_desc,
                 &mut last_write_time,
-            );
+            )
+        };
+        if SUCCEEDED(query_res) {
             for idx in 0..num_key_values {
                 let mut val_name_buff = [0i8; MAX_PATH];
                 let mut val_name_size = MAX_PATH as u32;
@@ -411,30 +417,34 @@ fn get_registry_com_ports() -> HashSet<String> {
                 // if 100 chars is not enough for COM<number> something is very wrong
                 let mut val_data = [0; 100];
                 let mut data_size = val_data.len() as u32;
-                let res = RegEnumValueA(
-                    ports_key,
-                    idx,
-                    val_name_buff.as_mut_ptr(),
-                    &mut val_name_size,
-                    std::ptr::null_mut(),
-                    &mut value_type,
-                    val_data.as_mut_ptr(),
-                    &mut data_size,
-                );
-                if FAILED(res) {
+                // SAFETY: ffi, all inputs are correct
+                let res = unsafe {
+                    RegEnumValueA(
+                        ports_key,
+                        idx,
+                        val_name_buff.as_mut_ptr(),
+                        &mut val_name_size,
+                        std::ptr::null_mut(),
+                        &mut value_type,
+                        val_data.as_mut_ptr(),
+                        &mut data_size,
+                    )
+                };
+                if FAILED(res) || val_data.len() < data_size as usize {
                     break;
                 }
-                let val_data = CStr::from_bytes_with_nul(std::slice::from_raw_parts(
-                    val_data.as_ptr(),
-                    data_size as usize,
-                ));
+                // SAFETY: data_size is checked and pointer is valid
+                let val_data = CStr::from_bytes_with_nul(unsafe {
+                    std::slice::from_raw_parts(val_data.as_ptr(), data_size as usize)
+                });
 
                 if let Ok(port) = val_data {
                     ports_list.insert(port.to_string_lossy().into_owned());
                 }
             }
         }
-        RegCloseKey(ports_key);
+        // SAFETY: ffi, all inputs are correct
+        unsafe { RegCloseKey(ports_key) };
     }
     ports_list
 }
