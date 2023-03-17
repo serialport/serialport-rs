@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::{mem, ptr};
 
@@ -362,6 +363,82 @@ impl PortDevice {
     }
 }
 
+/// Not all COM ports are listed under the "Ports" device class
+/// The full list of COM ports is available from the registry at
+/// HKEY_LOCAL_MACHINE\HARDWARE\DEVICEMAP\SERIALCOMM
+///
+/// port of https://learn.microsoft.com/en-us/windows/win32/sysinfo/enumerating-registry-subkeys
+fn get_registry_com_ports() -> HashSet<String> {
+    let mut ports_list = HashSet::new();
+
+    let reg_key = b"HARDWARE\\DEVICEMAP\\SERIALCOMM\0";
+    let key_ptr = reg_key.as_ptr() as *const i8;
+    let mut ports_key = std::ptr::null_mut();
+    unsafe {
+        let open_res = RegOpenKeyExA(HKEY_LOCAL_MACHINE, key_ptr, 0, KEY_READ, &mut ports_key);
+        if SUCCEEDED(open_res) {
+            let mut class_name_buff = [0i8; MAX_PATH];
+            let mut class_name_size = MAX_PATH as u32;
+            let mut sub_key_count = 0;
+            let mut largest_sub_key = 0;
+            let mut largest_class_string = 0;
+            let mut num_key_values = 0;
+            let mut longest_value_name = 0;
+            let mut longest_value_data = 0;
+            let mut size_security_desc = 0;
+            let mut last_write_time = FILETIME {
+                dwLowDateTime: 0,
+                dwHighDateTime: 0,
+            };
+            RegQueryInfoKeyA(
+                ports_key,
+                class_name_buff.as_mut_ptr(),
+                &mut class_name_size,
+                std::ptr::null_mut(),
+                &mut sub_key_count,
+                &mut largest_sub_key,
+                &mut largest_class_string,
+                &mut num_key_values,
+                &mut longest_value_name,
+                &mut longest_value_data,
+                &mut size_security_desc,
+                &mut last_write_time,
+            );
+            for idx in 0..num_key_values {
+                let mut val_name_buff = [0i8; MAX_PATH];
+                let mut val_name_size = MAX_PATH as u32;
+                let mut value_type = 0;
+                // if 100 chars is not enough for COM<number> something is very wrong
+                let mut val_data = [0; 100];
+                let mut data_size = val_data.len() as u32;
+                let res = RegEnumValueA(
+                    ports_key,
+                    idx,
+                    val_name_buff.as_mut_ptr(),
+                    &mut val_name_size,
+                    std::ptr::null_mut(),
+                    &mut value_type,
+                    val_data.as_mut_ptr(),
+                    &mut data_size,
+                );
+                if FAILED(res) {
+                    break;
+                }
+                let val_data = CStr::from_bytes_with_nul(std::slice::from_raw_parts(
+                    val_data.as_ptr(),
+                    data_size as usize,
+                ));
+
+                if let Ok(port) = val_data {
+                    ports_list.insert(port.to_string_lossy().into_owned());
+                }
+            }
+        }
+        RegCloseKey(ports_key);
+    }
+    ports_list
+}
+
 /// List available serial ports on the system.
 pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     let mut ports = Vec::new();
@@ -391,6 +468,19 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
                 port_type: port_device.port_type(),
             });
         }
+    }
+    // ports identified through the registry have no additional information
+    let mut raw_ports_set = get_registry_com_ports();
+    // remove any duplicates. HashSet makes this relatively cheap
+    for port in ports.iter() {
+        raw_ports_set.remove(&port.port_name);
+    }
+    // add remaining ports as "unknown" type
+    for raw_port in raw_ports_set {
+        ports.push(SerialPortInfo {
+            port_name: raw_port,
+            port_type: SerialPortType::Unknown,
+        })
     }
     Ok(ports)
 }
