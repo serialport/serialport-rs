@@ -24,8 +24,8 @@ The BSDs basically **only** have the Termios2 API, but they call it Termios. It 
 
 ### NetBSD
 
- * http://netbsd.gw.com/cgi-bin/man-cgi?tty+4.i386+NetBSD-8.0
- * http://netbsd.gw.com/cgi-bin/man-cgi?com+4.i386+NetBSD-8.0
+ * https://man.netbsd.org/tty.4
+ * https://man.netbsd.org/com.4
  * https://www.netbsd.org/docs/Hardware/Misc/serial.html
  * https://www.netbsd.org/ports/hp300/faq.html
 
