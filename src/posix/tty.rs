@@ -458,7 +458,7 @@ impl SerialPort for TTYPort {
 
         assert!(termios2.c_ospeed == termios2.c_ispeed);
 
-        Ok(termios2.c_ospeed as u32)
+        Ok(termios2.c_ospeed)
     }
 
     /// Returns the port's baud rate
