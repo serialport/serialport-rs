@@ -15,18 +15,18 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
-// According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
-// and SetupDiGetDeviceInstanceId in order to enumerate devices.
-// https://msdn.microsoft.com/en-us/windows/hardware/drivers/install/enumerating-installed-devices
-//
-// SetupDiGetClassDevs returns the devices associated with a particular class of devices.
-// We want the list of devices which shows up in the Device Manager as "Ports (COM & LPT)"
-// which is otherwise known as the "Ports" class.
-//
-// get_pots_guids returns all of the classes (guids) associated with the name "Ports".
+/// According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
+/// and SetupDiGetDeviceInstanceId in order to enumerate devices.
+/// https://msdn.microsoft.com/en-us/windows/hardware/drivers/install/enumerating-installed-devices
 fn get_ports_guids() -> Result<Vec<GUID>> {
-    // Note; unwrap can't fail, since names are valid UTF-8.
+    // SetupDiGetClassDevs returns the devices associated with a particular class of devices.
+    // We want the list of devices which are listed as COM ports (generally those that show up in the
+    // Device Manager as "Ports (COM & LPT)" which is otherwise known as the "Ports" class).
+    //
+    // The list of system defined classes can be found here:
+    // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/system-defined-device-setup-classes-available-to-vendors
     let class_names = [
+        // Note; since names are valid UTF-8, unwrap can't fail
         CString::new("Ports").unwrap(),
         CString::new("Modem").unwrap(),
     ];
