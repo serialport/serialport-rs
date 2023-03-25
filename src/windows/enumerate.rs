@@ -471,16 +471,18 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     }
     // ports identified through the registry have no additional information
     let mut raw_ports_set = get_registry_com_ports();
-    // remove any duplicates. HashSet makes this relatively cheap
-    for port in ports.iter() {
-        raw_ports_set.remove(&port.port_name);
-    }
-    // add remaining ports as "unknown" type
-    for raw_port in raw_ports_set {
-        ports.push(SerialPortInfo {
-            port_name: raw_port,
-            port_type: SerialPortType::Unknown,
-        })
+    if raw_ports_set.len() > ports.len() {
+        // remove any duplicates. HashSet makes this relatively cheap
+        for port in ports.iter() {
+            raw_ports_set.remove(&port.port_name);
+        }
+        // add remaining ports as "unknown" type
+        for raw_port in raw_ports_set {
+            ports.push(SerialPortInfo {
+                port_name: raw_port,
+                port_type: SerialPortType::Unknown,
+            })
+        }
     }
     Ok(ports)
 }
