@@ -25,55 +25,45 @@ use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInf
 //
 // get_pots_guids returns all of the classes (guids) associated with the name "Ports".
 fn get_ports_guids() -> Result<Vec<GUID>> {
-    // Note; unwrap can't fail, since "Ports" is valid UTF-8.
-    let ports_class_name = CString::new("Ports").unwrap();
-
-    // Size vector to hold 1 result (which is the most common result).
-    let mut num_guids: DWORD = 0;
+    // Note; unwrap can't fail, since names are valid UTF-8.
+    let class_names = [
+        CString::new("Ports").unwrap(),
+        CString::new("Modem").unwrap(),
+    ];
     let mut guids: Vec<GUID> = Vec::new();
-    guids.push(GUID_NULL); // Placeholder for first result
+    for class_name in class_names {
+        let mut num_guids: DWORD = 1; // Initially assume that there is only 1 guid per name.
+        let class_start_idx = guids.len(); // start idx for this name (for potential resize with multiple guids)
 
-    // Find out how many GUIDs are associated with "Ports". Initially we assume
-    // that there is only 1. num_guids will tell us how many there actually are.
-    let res = unsafe {
-        SetupDiClassGuidsFromNameA(
-            ports_class_name.as_ptr(),
-            guids.as_mut_ptr(),
-            guids.len() as DWORD,
-            &mut num_guids,
-        )
-    };
-    if res == FALSE {
-        return Err(Error::new(
-            ErrorKind::Unknown,
-            "Unable to determine number of Ports GUIDs",
-        ));
-    }
-    if num_guids == 0 {
-        // We got a successful result of no GUIDs, so pop the placeholder that
-        // we created before.
-        guids.pop();
-    }
-
-    if num_guids as usize > guids.len() {
-        // It turns out we needed more that one slot. num_guids will contain the number of slots
-        // that we actually need, so go ahead and expand the vector to the correct size.
-        while guids.len() < num_guids as usize {
-            guids.push(GUID_NULL);
-        }
-        let res = unsafe {
-            SetupDiClassGuidsFromNameA(
-                ports_class_name.as_ptr(),
-                guids.as_mut_ptr(),
-                guids.len() as DWORD,
-                &mut num_guids,
-            )
-        };
-        if res == FALSE {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "Unable to retrieve Ports GUIDs",
-            ));
+        // first attempt with size == 1, second with the size returned from the first try
+        for _ in 0..2 {
+            guids.resize(class_start_idx + num_guids as usize, GUID_NULL);
+            let guid_buffer = &mut guids[class_start_idx..];
+            // Find out how many GUIDs are associated with this class name.  num_guids will tell us how many there actually are.
+            let res = unsafe {
+                SetupDiClassGuidsFromNameA(
+                    class_name.as_ptr(),
+                    guid_buffer.as_mut_ptr(),
+                    guid_buffer.len() as DWORD,
+                    &mut num_guids,
+                )
+            };
+            if res == FALSE {
+                return Err(Error::new(
+                    ErrorKind::Unknown,
+                    "Unable to determine number of Ports GUIDs",
+                ));
+            }
+            let len_cmp = guid_buffer.len().cmp(&(num_guids as usize));
+            // under allocated
+            if len_cmp == std::cmp::Ordering::Less {
+                continue; // retry
+            }
+            // allocation > required len
+            else if len_cmp == std::cmp::Ordering::Greater {
+                guids.truncate(class_start_idx + num_guids as usize);
+            }
+            break; // next guid
         }
     }
     Ok(guids)
