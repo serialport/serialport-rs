@@ -63,7 +63,7 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
             else if len_cmp == std::cmp::Ordering::Greater {
                 guids.truncate(class_start_idx + num_guids as usize);
             }
-            break; // next guid
+            break; // next name
         }
     }
     Ok(guids)
