@@ -19,9 +19,12 @@ use std::io::Write;
 use std::str;
 use std::time::Duration;
 
+use assert_hex::assert_eq_hex;
 use clap::{Arg, Command};
 
 use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
+
+const TEST_MESSAGE: &[u8] = "Test Message".as_bytes();
 
 fn main() {
     let matches = Command::new("Serialport Example - Hardware Check")
@@ -265,6 +268,21 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
     }
 }
 
+fn check_test_message(sender: &mut dyn SerialPort, receiver: &mut dyn SerialPort) {
+    let send_buf = TEST_MESSAGE;
+    let mut recv_buf = [0u8; TEST_MESSAGE.len()];
+
+    sender.write_all(send_buf).unwrap();
+
+    match receiver.read_exact(&mut recv_buf) {
+        Ok(()) => {
+            assert_eq_hex!(recv_buf, send_buf, "Received message does not match sent",);
+            println!("success");
+        }
+        Err(e) => println!("FAILED: {:?}", e),
+    }
+}
+
 fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn serialport::SerialPort) {
     println!(
         "Testing paired ports '{}' and '{}':",
@@ -276,92 +294,45 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     set_defaults(port1);
     set_defaults(port2);
 
-    let msg = "Test Message";
-    let mut buf = [0u8; 12];
-
     // Test sending strings from port1 to port2
     println!(
         "  Transmitting from {} to {}...",
         port1.name().unwrap(),
         port2.name().unwrap()
     );
+
     let baud_rate = 2_000_000;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
-        port1
-            .write_all(msg.as_bytes())
-            .expect("Unable to write bytes.");
-        if port2.read_exact(&mut buf).is_err() {
-            println!("FAILED");
-        } else {
-            assert_eq!(
-                str::from_utf8(&buf).unwrap(),
-                msg,
-                "Received message does not match sent"
-            );
-            println!("success");
-        }
+        check_test_message(port1, port2);
     } else {
         println!("FAILED (does this platform & port support arbitrary baud rates?)");
     }
+
     let baud_rate = 115_200;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
-        port1
-            .write_all(msg.as_bytes())
-            .expect("Unable to write bytes.");
-        if port2.read_exact(&mut buf).is_err() {
-            println!("FAILED");
-        } else {
-            assert_eq!(
-                str::from_utf8(&buf).unwrap(),
-                msg,
-                "Received message does not match sent"
-            );
-            println!("success");
-        }
+        check_test_message(port1, port2);
     } else {
         println!("FAILED");
     }
+
     let baud_rate = 57_600;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
-        port1
-            .write_all(msg.as_bytes())
-            .expect("Unable to write bytes.");
-        if port2.read_exact(&mut buf).is_err() {
-            println!("FAILED");
-        } else {
-            assert_eq!(
-                str::from_utf8(&buf).unwrap(),
-                msg,
-                "Received message does not match sent"
-            );
-            println!("success");
-        }
+        check_test_message(port1, port2);
     } else {
         println!("FAILED");
     }
+
     let baud_rate = 10_000;
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
-        port1
-            .write_all(msg.as_bytes())
-            .expect("Unable to write bytes.");
-        if port2.read_exact(&mut buf).is_err() {
-            println!("FAILED");
-        } else {
-            assert_eq!(
-                str::from_utf8(&buf).unwrap(),
-                msg,
-                "Received message does not match sent"
-            );
-            println!("success");
-        }
+        check_test_message(port1, port2);
     } else {
         println!("FAILED (does this platform & port support arbitrary baud rates?)");
     }
@@ -369,19 +340,7 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     print!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
-        port1
-            .write_all(msg.as_bytes())
-            .expect("Unable to write bytes.");
-        if port2.read_exact(&mut buf).is_err() {
-            println!("FAILED");
-        } else {
-            assert_eq!(
-                str::from_utf8(&buf).unwrap(),
-                msg,
-                "Received message does not match sent"
-            );
-            println!("success");
-        }
+        check_test_message(port1, port2);
     } else {
         println!("FAILED");
     }
@@ -391,36 +350,13 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     port2.set_flow_control(FlowControl::Software).unwrap();
     print!("     At 9600,8,n,1,softflow...");
     std::io::stdout().flush().unwrap();
-    port2
-        .write_all(msg.as_bytes())
-        .expect("Unable to write bytes.");
-    if port1.read_exact(&mut buf).is_err() {
-        println!("FAILED");
-    } else {
-        assert_eq!(
-            str::from_utf8(&buf).unwrap(),
-            msg,
-            "Received message does not match sent"
-        );
-        println!("success");
-    }
+    check_test_message(port1, port2);
+
     port1.set_flow_control(FlowControl::Hardware).unwrap();
     port2.set_flow_control(FlowControl::Hardware).unwrap();
     print!("     At 9600,8,n,1,hardflow...");
     std::io::stdout().flush().unwrap();
-    port2
-        .write_all(msg.as_bytes())
-        .expect("Unable to write bytes.");
-    if port1.read_exact(&mut buf).is_err() {
-        println!("FAILED");
-    } else {
-        assert_eq!(
-            str::from_utf8(&buf).unwrap(),
-            msg,
-            "Received message does not match sent"
-        );
-        println!("success");
-    }
+    check_test_message(port1, port2);
 }
 
 fn set_defaults(port: &mut dyn serialport::SerialPort) {
