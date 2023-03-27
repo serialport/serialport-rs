@@ -6,6 +6,7 @@ use regex::Regex;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::winerror::*;
+use winapi::um::cfgmgr32::MAX_DEVICE_ID_LEN;
 use winapi::um::cguid::GUID_NULL;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::setupapi::*;
@@ -167,21 +168,25 @@ struct PortDevice {
 }
 
 impl PortDevice {
-    // Retrieves the device instance id string associated with this device. Some examples of
-    // instance id strings are:
-    //  MicroPython Board:  USB\VID_F055&PID_9802\385435603432
-    //  FTDI USB Adapter:   FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
-    //  Black Magic Probe (Composite device with 2 UARTS):
-    //      GDB Port:       USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
-    //      UART Port:      USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
+    /// Retrieves the device instance id string associated with this device. Some examples of
+    /// instance id strings are:
+    ///
+    /// * MicroPython Board:  USB\VID_F055&PID_9802\385435603432
+    /// * FTDI USB Adapter:   FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
+    /// * Black Magic Probe (Composite device with 2 UARTS):
+    ///   * GDB Port:       USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
+    ///   * UART Port:      USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
+    ///
+    /// Reference: https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids
     fn instance_id(&mut self) -> Option<String> {
-        let mut result_buf = [0i8; MAX_PATH];
+        let mut result_buf = [0u16; MAX_DEVICE_ID_LEN];
+        let working_buffer_len = result_buf.len() - 1; // always null terminated
         let res = unsafe {
-            SetupDiGetDeviceInstanceIdA(
+            SetupDiGetDeviceInstanceIdW(
                 self.hdi,
                 &mut self.devinfo_data,
                 result_buf.as_mut_ptr(),
-                (result_buf.len() - 1) as DWORD,
+                working_buffer_len as DWORD,
                 ptr::null_mut(),
             )
         };
@@ -189,13 +194,7 @@ impl PortDevice {
             // Try to retrieve hardware id property.
             self.property(SPDRP_HARDWAREID)
         } else {
-            let end_of_buffer = result_buf.len() - 1;
-            result_buf[end_of_buffer] = 0;
-            Some(unsafe {
-                CStr::from_ptr(result_buf.as_ptr())
-                    .to_string_lossy()
-                    .into_owned()
-            })
+            Some(String::from_utf16_lossy(&result_buf[..working_buffer_len]))
         }
     }
 
