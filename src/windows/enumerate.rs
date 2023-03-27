@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::{mem, ptr};
 
 use regex::Regex;
@@ -28,13 +28,10 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
     //
     // The list of system defined classes can be found here:
     // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/system-defined-device-setup-classes-available-to-vendors
-    let class_names = [
-        // Note; since names are valid UTF-8, unwrap can't fail
-        CString::new("Ports").unwrap(),
-        CString::new("Modem").unwrap(),
-    ];
+    let class_names = ["Ports", "Modem"];
     let mut guids: Vec<GUID> = Vec::new();
     for class_name in class_names {
+        let class_name_w = as_utf16(class_name);
         let mut num_guids: DWORD = 1; // Initially assume that there is only 1 guid per name.
         let class_start_idx = guids.len(); // start idx for this name (for potential resize with multiple guids)
 
@@ -44,8 +41,8 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
             let guid_buffer = &mut guids[class_start_idx..];
             // Find out how many GUIDs are associated with this class name.  num_guids will tell us how many there actually are.
             let res = unsafe {
-                SetupDiClassGuidsFromNameA(
-                    class_name.as_ptr(),
+                SetupDiClassGuidsFromNameW(
+                    class_name_w.as_ptr(),
                     guid_buffer.as_mut_ptr(),
                     guid_buffer.len() as DWORD,
                     &mut num_guids,
