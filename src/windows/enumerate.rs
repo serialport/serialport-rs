@@ -262,28 +262,34 @@ impl PortDevice {
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
     fn property(&mut self, property_id: DWORD) -> Option<String> {
-        let mut property_buf = [0u16; MAX_PATH];
+        let mut property_buf = vec![0u16; MAX_PATH];
+        let mut desired_len = 0;
 
-        let res = unsafe {
-            SetupDiGetDeviceRegistryPropertyW(
-                self.hdi,
-                &mut self.devinfo_data,
-                property_id,
-                ptr::null_mut(),
-                property_buf.as_mut_ptr() as PBYTE,
-                property_buf.len() as DWORD,
-                ptr::null_mut(),
-            )
-        };
+        for _ in 0..2 {
+            let res = unsafe {
+                SetupDiGetDeviceRegistryPropertyW(
+                    self.hdi,
+                    &mut self.devinfo_data,
+                    property_id,
+                    ptr::null_mut(),
+                    property_buf.as_mut_ptr() as PBYTE,
+                    property_buf.len() as DWORD,
+                    &mut desired_len,
+                )
+            };
 
-        if res == FALSE && unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
-            return None;
+            let retry = (res == FALSE && unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER)
+                || desired_len as usize > property_buf.len();
+            if !retry {
+                break;
+            }
         }
 
+        let actual_len = property_buf.len().min(desired_len as usize);
         // Using the unicode version of 'SetupDiGetDeviceRegistryProperty' seems to report the
-        // entire mfg registry string. This typically includes some driver information that we should discard.
+        // entire mfg registry string. This may include some driver information that we should discard.
         // Example string: 'FTDI5.inf,%ftdi%;FTDI'
-        from_utf16_lossy_trimmed(&property_buf)
+        from_utf16_lossy_trimmed(&property_buf[..actual_len])
             .split(';')
             .last()
             .map(str::to_string)
