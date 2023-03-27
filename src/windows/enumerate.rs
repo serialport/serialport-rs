@@ -14,6 +14,10 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
+fn as_utf16(utf8: &str) -> Vec<u16> {
+    utf8.encode_utf16().chain(Some(0)).collect()
+}
+
 /// According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
 /// and SetupDiGetDeviceInstanceId in order to enumerate devices.
 /// https://msdn.microsoft.com/en-us/windows/hardware/drivers/install/enumerating-installed-devices
