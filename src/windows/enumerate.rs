@@ -194,20 +194,22 @@ impl PortDevice {
     fn instance_id(&mut self) -> Option<String> {
         let mut result_buf = [0u16; MAX_DEVICE_ID_LEN];
         let working_buffer_len = result_buf.len() - 1; // always null terminated
+        let mut desired_result_len = 0; // possibly larger than the buffer
         let res = unsafe {
             SetupDiGetDeviceInstanceIdW(
                 self.hdi,
                 &mut self.devinfo_data,
                 result_buf.as_mut_ptr(),
                 working_buffer_len as DWORD,
-                ptr::null_mut(),
+                &mut desired_result_len,
             )
         };
         if res == FALSE {
             // Try to retrieve hardware id property.
             self.property(SPDRP_HARDWAREID)
         } else {
-            Some(String::from_utf16_lossy(&result_buf[..working_buffer_len]))
+            let actual_result_len = working_buffer_len.min(desired_result_len as usize);
+            Some(from_utf16_lossy_trimmed(&result_buf[..actual_result_len]))
         }
     }
 
@@ -242,9 +244,7 @@ impl PortDevice {
 
         let port_name = &port_name_buffer[0..port_name_len as usize];
 
-        String::from_utf16_lossy(port_name)
-            .trim_end_matches(0 as char)
-            .to_string()
+        from_utf16_lossy_trimmed(port_name)
     }
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
@@ -283,8 +283,7 @@ impl PortDevice {
         // Using the unicode version of 'SetupDiGetDeviceRegistryProperty' seems to report the
         // entire mfg registry string. This typically includes some driver information that we should discard.
         // Example string: 'FTDI5.inf,%ftdi%;FTDI'
-        String::from_utf16_lossy(&property_buf)
-            .trim_end_matches(0 as char)
+        from_utf16_lossy_trimmed(&property_buf)
             .split(';')
             .last()
             .map(str::to_string)
