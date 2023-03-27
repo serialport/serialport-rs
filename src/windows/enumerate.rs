@@ -117,7 +117,7 @@ impl PortDevices {
     // Ports class (given by `guid`).
     pub fn new(guid: &GUID) -> Self {
         PortDevices {
-            hdi: unsafe { SetupDiGetClassDevsA(guid, ptr::null(), ptr::null_mut(), DIGCF_PRESENT) },
+            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), ptr::null_mut(), DIGCF_PRESENT) },
             dev_idx: 0,
         }
     }
