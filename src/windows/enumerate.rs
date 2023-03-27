@@ -213,7 +213,7 @@ impl PortDevice {
 
         let mut port_name_buffer = [0u16; MAX_PATH];
         let mut port_name_len = port_name_buffer.len() as DWORD;
-        let value_name: Vec<u16> = "PortName".encode_utf16().chain(Some(0)).collect();
+        let value_name = as_utf16("PortName");
 
         unsafe {
             RegQueryValueExW(
