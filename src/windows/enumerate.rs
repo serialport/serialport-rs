@@ -15,8 +15,21 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
+/// takes normal Rust `str` and outputs a null terminated UTF-16 encoded string
 fn as_utf16(utf8: &str) -> Vec<u16> {
     utf8.encode_utf16().chain(Some(0)).collect()
+}
+
+/// takes a UTF-16 encoded slice (null termination not required)
+/// and converts to a UTF8 Rust string. Trailing null chars are removed
+fn from_utf16_lossy_trimmed(utf16: &[u16]) -> String {
+    let num_chars = utf16
+        .iter()
+        .rev()
+        .position(|&ch| ch != 0) // count the number of chars equal to `0`
+        .map(|num_nulls| utf16.len() - num_nulls) // subtract that from the slice len
+        .unwrap_or(0); // length is 0 if no non-`0` chars were found by position
+    String::from_utf16_lossy(&utf16[..num_chars])
 }
 
 /// According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
@@ -407,30 +420,49 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     Ok(ports)
 }
 
-#[test]
-fn test_parsing_usb_port_information() {
-    let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
-    let info = parse_usb_port_info(bm_uart_hwid).unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq!(info.vid, 0x1D50);
-    assert_eq!(info.pid, 0x6018);
-    // FIXME: The 'serial number' as reported by the HWID likely needs some review
-    assert_eq!(info.serial_number, Some("6".to_string()));
-    assert_eq!(info.interface, Some(2));
+    #[test]
+    fn test_parsing_usb_port_information() {
+        let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
+        let info = parse_usb_port_info(bm_uart_hwid).unwrap();
 
-    let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
-    let info = parse_usb_port_info(ftdi_serial_hwid).unwrap();
+        assert_eq!(info.vid, 0x1D50);
+        assert_eq!(info.pid, 0x6018);
+        // FIXME: The 'serial number' as reported by the HWID likely needs some review
+        assert_eq!(info.serial_number, Some("6".to_string()));
+        assert_eq!(info.interface, Some(2));
 
-    assert_eq!(info.vid, 0x0403);
-    assert_eq!(info.pid, 0x6001);
-    assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
-    assert_eq!(info.interface, None);
+        let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
+        let info = parse_usb_port_info(ftdi_serial_hwid).unwrap();
 
-    let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
-    let info = parse_usb_port_info(pyboard_hwid).unwrap();
+        assert_eq!(info.vid, 0x0403);
+        assert_eq!(info.pid, 0x6001);
+        assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
+        assert_eq!(info.interface, None);
 
-    assert_eq!(info.vid, 0xF055);
-    assert_eq!(info.pid, 0x9802);
-    assert_eq!(info.serial_number, Some("385435603432".to_string()));
-    assert_eq!(info.interface, None);
+        let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
+        let info = parse_usb_port_info(pyboard_hwid).unwrap();
+
+        assert_eq!(info.vid, 0xF055);
+        assert_eq!(info.pid, 0x9802);
+        assert_eq!(info.serial_number, Some("385435603432".to_string()));
+        assert_eq!(info.interface, None);
+    }
+
+    #[test]
+    fn encoding_trimming_utf16() {
+        let test_str = "Testing";
+        let wtest_str: Vec<u16> = as_utf16(test_str);
+        let wtest_str_trailing = wtest_str
+            .iter()
+            .copied()
+            .chain([0, 0, 0, 0]) // add some null chars
+            .collect::<Vec<_>>();
+        let and_back = from_utf16_lossy_trimmed(&wtest_str_trailing);
+
+        assert_eq!(test_str, and_back);
+    }
 }
