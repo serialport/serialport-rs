@@ -24,7 +24,7 @@ fn as_utf16(utf8: &str) -> Vec<u16> {
 fn from_utf16_lossy_trimmed(utf16: &[u16]) -> String {
     let num_chars = utf16
         .iter()
-        .rev()
+        .rev() // ignore embedded null chars
         .position(|&ch| ch != 0) // count the number of chars equal to `0`
         .map(|num_nulls| utf16.len() - num_nulls) // subtract that from the slice len
         .unwrap_or(0); // length is 0 if no non-`0` chars were found by position
@@ -343,8 +343,8 @@ fn get_registry_com_ports() -> HashSet<String> {
                 let mut value_type = 0;
                 // if 100 chars is not enough for COM<number> something is very wrong
                 let mut val_data = [0u16; 100];
-                let byte_len = 2 * val_data.len() as u32; // len doubled
-                let mut data_size = byte_len;
+                let mut byte_len = 2 * val_data.len() as u32; // len doubled
+
                 // SAFETY: ffi, all inputs are correct
                 let res = unsafe {
                     RegEnumValueW(
@@ -355,15 +355,16 @@ fn get_registry_com_ports() -> HashSet<String> {
                         std::ptr::null_mut(),
                         &mut value_type,
                         val_data.as_mut_ptr() as *mut u8,
-                        &mut data_size,
+                        &mut byte_len,
                     )
                 };
-                if FAILED(res) || val_data.len() < data_size as usize {
+                if FAILED(res) || val_data.len() < byte_len as usize {
                     break;
                 }
+                // key data is returned as u16
                 // SAFETY: data_size is checked and pointer is valid
                 let val_data = from_utf16_lossy_trimmed(unsafe {
-                    let utf16_len = data_size / 2;
+                    let utf16_len = byte_len / 2; // utf16 len
                     std::slice::from_raw_parts(val_data.as_ptr(), utf16_len as usize)
                 });
                 ports_list.insert(val_data);
