@@ -143,6 +143,17 @@ pub enum DataBits {
     Eight,
 }
 
+impl fmt::Display for DataBits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            DataBits::Five => write!(f, "Five"),
+            DataBits::Six => write!(f, "Six"),
+            DataBits::Seven => write!(f, "Seven"),
+            DataBits::Eight => write!(f, "Eight"),
+        }
+    }
+}
+
 /// Parity checking modes
 ///
 /// When parity checking is enabled (`Odd` or `Even`) an extra bit is transmitted with
@@ -165,6 +176,16 @@ pub enum Parity {
     Even,
 }
 
+impl fmt::Display for Parity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Parity::None => write!(f, "None"),
+            Parity::Odd => write!(f, "Odd"),
+            Parity::Even => write!(f, "Even"),
+        }
+    }
+}
+
 /// Number of stop bits
 ///
 /// Stop bits are transmitted after every character.
@@ -176,6 +197,15 @@ pub enum StopBits {
 
     /// Two stop bits.
     Two,
+}
+
+impl fmt::Display for StopBits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            StopBits::One => write!(f, "One"),
+            StopBits::Two => write!(f, "Two"),
+        }
+    }
 }
 
 /// Flow control modes
@@ -190,6 +220,16 @@ pub enum FlowControl {
 
     /// Flow control using RTS/CTS signals.
     Hardware,
+}
+
+impl fmt::Display for FlowControl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            FlowControl::None => write!(f, "None"),
+            FlowControl::Software => write!(f, "Software"),
+            FlowControl::Hardware => write!(f, "Hardware"),
+        }
+    }
 }
 
 /// Specifies which buffer or buffers to purge when calling [`clear`]
@@ -617,6 +657,38 @@ impl<T: SerialPort> SerialPort for &mut T {
 
     fn clear_break(&self) -> Result<()> {
         (**self).clear_break()
+    }
+}
+
+impl fmt::Debug for dyn SerialPort {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SerialPort ( ")?;
+        match self.name().as_ref() {
+            Some(n) => write!(f, "name: {n} ")?,
+            None => {}
+        };
+        match self.baud_rate().as_ref() {
+            Ok(b) => write!(f, "baud_rate: {b}")?,
+            Err(_) => {}
+        };
+        match self.data_bits().as_ref() {
+            Ok(b) => write!(f, "data_bits: {b} ")?,
+            Err(_) => {}
+        };
+        match self.flow_control().as_ref() {
+            Ok(c) => write!(f, "flow_control: {c} ")?,
+            Err(_) => {}
+        }
+        match self.parity().as_ref() {
+            Ok(p) => write!(f, "parity: {p} ")?,
+            Err(_) => {}
+        }
+        match self.stop_bits().as_ref() {
+            Ok(s) => write!(f, "stop_bits: {s} ")?,
+            Err(_) => {}
+        }
+
+        write!(f, ")")
     }
 }
 
