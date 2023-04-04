@@ -664,27 +664,27 @@ impl fmt::Debug for dyn SerialPort {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SerialPort ( ")?;
         match self.name().as_ref() {
-            Some(n) => write!(f, "name: {n} ")?,
+            Some(n) => write!(f, "name: {} ", n)?,
             None => {}
         };
         match self.baud_rate().as_ref() {
-            Ok(b) => write!(f, "baud_rate: {b}")?,
+            Ok(b) => write!(f, "baud_rate: {}", b)?,
             Err(_) => {}
         };
         match self.data_bits().as_ref() {
-            Ok(b) => write!(f, "data_bits: {b} ")?,
+            Ok(b) => write!(f, "data_bits: {} ", b)?,
             Err(_) => {}
         };
         match self.flow_control().as_ref() {
-            Ok(c) => write!(f, "flow_control: {c} ")?,
+            Ok(c) => write!(f, "flow_control: {} ", c)?,
             Err(_) => {}
         }
         match self.parity().as_ref() {
-            Ok(p) => write!(f, "parity: {p} ")?,
+            Ok(p) => write!(f, "parity: {} ", p)?,
             Err(_) => {}
         }
         match self.stop_bits().as_ref() {
-            Ok(s) => write!(f, "stop_bits: {s} ")?,
+            Ok(s) => write!(f, "stop_bits: {} ", s)?,
             Err(_) => {}
         }
 
