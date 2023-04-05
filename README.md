@@ -110,6 +110,7 @@ can help debug software or hardware errors.
 # Dependencies
 
 Rust versions 1.56.1 and higher are supported.
+Rust versions 1.60.0 and higher are supported.
 
 For GNU/Linux `pkg-config` headers are required:
 

@@ -18,12 +18,12 @@ fn main() {
                 .help("The baud rate to connect at")
                 .use_value_delimiter(false)
                 .required(true)
-                .validator(valid_baud),
+                .value_parser(valid_baud),
         )
         .get_matches();
 
-    let port_name = matches.value_of("port").unwrap();
-    let baud_rate = matches.value_of("baud").unwrap().parse::<u32>().unwrap();
+    let port_name = matches.get_one::<String>("port").unwrap();
+    let baud_rate = *matches.get_one::<u32>("baud").unwrap();
 
     let port = serialport::new(port_name, baud_rate)
         .timeout(Duration::from_millis(10))
