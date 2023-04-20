@@ -21,7 +21,7 @@ use winapi::um::winnt::{
 };
 
 use crate::sys::windows::dcb;
-use crate::sys::windows::event_cache::EventCache;
+use crate::sys::windows::event_cache::{EventCache, CacheType};
 use crate::windows::{CommTimeouts, SerialPortExt};
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
@@ -99,6 +99,7 @@ impl SerialPort {
         let mut com = SerialPort::open_from_raw_handle(handle as RawHandle);
         com.set_timeouts(builder.read_timeout, builder.write_timeout)?;
         com.port_name = Some(path.to_string_lossy().into_owned());
+        com.clear(ClearBuffer::All).unwrap();
         Ok(com)
     }
 
@@ -131,8 +132,8 @@ impl SerialPort {
         if cloned_handle != INVALID_HANDLE_VALUE {
             Ok(SerialPort {
                 handle: cloned_handle,
-                read_event: EventCache::new(),
-                write_event: EventCache::new(),
+                read_event: EventCache::new(CacheType::Read),
+                write_event: EventCache::new(CacheType::Write),
                 port_name: self.port_name.clone(),
                 read_timeout: self.read_timeout,
                 write_timeout: self.write_timeout,
@@ -161,8 +162,8 @@ impl SerialPort {
     fn open_from_raw_handle(handle: RawHandle) -> Self {
         SerialPort {
             handle: handle as HANDLE,
-            read_event: EventCache::new(),
-            write_event: EventCache::new(),
+            read_event: EventCache::new(CacheType::Read),
+            write_event: EventCache::new(CacheType::Write),
             // It's possible to retrieve the COMMTIMEOUTS struct from the handle,
             // but mapping that back to simple timeout durations would be difficult.
             // Instead we just set `None` and add a warning to `FromRawHandle`.

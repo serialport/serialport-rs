@@ -40,7 +40,7 @@ pub(crate) fn init(dcb: &mut DCB) {
     // dcb.set_fOutxCtsFlow()
     // serialport-rs doesn't support toggling DSR: so disable fOutxDsrFlow
     dcb.set_fOutxDsrFlow(FALSE as DWORD);
-    dcb.set_fDtrControl(DTR_CONTROL_DISABLE);
+    dcb.set_fDtrControl(TRUE as DWORD);
     // disable because fOutxDsrFlow is disabled as well
     dcb.set_fDsrSensitivity(FALSE as DWORD);
     // dcb.set_fTXContinueOnXoff()
@@ -50,7 +50,7 @@ pub(crate) fn init(dcb: &mut DCB) {
     // fNull: when set to TRUE null bytes are discarded when received.
     // null bytes won't be discarded by serialport-rs
     dcb.set_fNull(FALSE as DWORD);
-    // dcb.set_fRtsControl()
+    dcb.set_fRtsControl(TRUE as DWORD);
     // serialport-rs does not handle the fAbortOnError behaviour, so we must make sure it's not enabled
     dcb.set_fAbortOnError(FALSE as DWORD);
 }

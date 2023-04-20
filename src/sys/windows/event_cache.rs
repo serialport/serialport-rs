@@ -10,6 +10,12 @@ use winapi::um::handleapi::*;
 use winapi::um::synchapi::CreateEventW;
 use winapi::um::winnt::HANDLE;
 
+#[derive(Debug)]
+pub enum CacheType {
+    Read,
+    Write,
+}
+
 /// Cache for a HANDLE to an event.
 #[derive(Debug)]
 pub struct EventCache {
@@ -18,13 +24,15 @@ pub struct EventCache {
     /// because `CreateEventW` returns `NULL` rather than `INVALID_HANDLE_VALUE`
     /// on failure.
     handle: AtomicUsize,
+    cache_type: CacheType,
 }
 
 impl EventCache {
     /// Create a new, empty cache.
-    pub fn new() -> Self {
+    pub fn new(cache_type: CacheType) -> Self {
         EventCache {
             handle: AtomicUsize::new(NULL as usize),
+            cache_type,
         }
     }
 
@@ -42,7 +50,11 @@ impl EventCache {
 
         // We can use auto-reset for both read and write because we'll have a different event
         // handle for every thread that's trying to read or write.
-        match unsafe { CreateEventW(ptr::null_mut(), FALSE, FALSE, ptr::null_mut()) } {
+        let event_result = match self.cache_type {
+            CacheType::Read => unsafe { CreateEventW(ptr::null_mut(), TRUE, FALSE, ptr::null_mut()) },
+            CacheType::Write => unsafe { CreateEventW(ptr::null_mut(), FALSE, FALSE, ptr::null_mut()) },
+        };
+        match event_result {
             NULL => Err(io::Error::last_os_error()),
             new_handle => Ok(HandleGuard {
                 cache: self,
