@@ -133,10 +133,18 @@ fn get_int_property(
             prop_str.as_ptr(),
             kCFStringEncodingUTF8,
         );
+        let _key_guard = scopeguard::guard((), |_| {
+            CFRelease(key as *const c_void);
+        });
+
         let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
         if container.is_null() {
             return None;
         }
+        let _container_guard = scopeguard::guard((), |_| {
+            CFRelease(container);
+        });
+
         let num = match cf_number_type {
             kCFNumberSInt8Type => {
                 let mut num: u8 = 0;
@@ -158,7 +166,6 @@ fn get_int_property(
             }
             _ => None,
         };
-        CFRelease(container);
 
         num
     }
@@ -174,10 +181,17 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
             prop_str.as_ptr(),
             kCFStringEncodingUTF8,
         );
+        let _key_guard = scopeguard::guard((), |_| {
+            CFRelease(key as *const c_void);
+        });
+
         let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
         if container.is_null() {
             return None;
         }
+        let _container_guard = scopeguard::guard((), |_| {
+            CFRelease(container);
+        });
 
         let mut buf = Vec::with_capacity(256);
         let result = CFStringGetCString(
@@ -191,8 +205,6 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
         } else {
             None
         };
-
-        CFRelease(container);
 
         opt_str
     }
@@ -251,6 +263,9 @@ cfg_if! {
                         "IOServiceMatching returned a NULL dictionary.",
                     ));
                 }
+                let _classes_to_match_guard = scopeguard::guard((), |_| {
+                    CFRelease(classes_to_match as *const c_void);
+                });
 
                 // Populate the search dictionary with a single key/value pair indicating that we're
                 // searching for serial devices matching the RS232 device type.
@@ -265,6 +280,10 @@ cfg_if! {
                         "Failed to allocate key string.",
                     ));
                 }
+                let _key_guard = scopeguard::guard((), |_| {
+                    CFRelease(key as *const c_void);
+                });
+
                 let value = CFStringCreateWithCString(
                     kCFAllocatorDefault,
                     kIOSerialBSDAllTypes(),
@@ -276,6 +295,10 @@ cfg_if! {
                         "Failed to allocate value string.",
                     ));
                 }
+                let _value_guard = scopeguard::guard((), |_| {
+                    CFRelease(value as *const c_void);
+                });
+
                 CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
 
                 // Get an interface to IOKit
@@ -292,7 +315,7 @@ cfg_if! {
                 let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
-                    classes_to_match,
+                    CFRetain(classes_to_match as *const c_void) as *const __CFDictionary,
                     matching_services.as_mut_ptr(),
                 );
                 if kern_result != KERN_SUCCESS {
@@ -302,15 +325,20 @@ cfg_if! {
                     ));
                 }
                 let matching_services = matching_services.assume_init();
+                let _matching_services_guard = scopeguard::guard((), |_| {
+                    IOObjectRelease(matching_services);
+                });
 
                 loop {
                     // Grab the next result.
                     let modem_service = IOIteratorNext(matching_services);
-
                     // Break out if we've reached the end of the iterator
                     if modem_service == MACH_PORT_NULL {
                         break;
                     }
+                    let _modem_service_guard = scopeguard::guard((), |_| {
+                        IOObjectRelease(modem_service);
+                    });
 
                     // Fetch all properties of the current search result item.
                     let mut props = MaybeUninit::uninit();
@@ -320,6 +348,10 @@ cfg_if! {
                         kCFAllocatorDefault,
                         0,
                     );
+                    let _props_guard = scopeguard::guard((), |_| {
+                        CFRelease(props.assume_init() as *const c_void);
+                    });
+
                     if result == KERN_SUCCESS {
                         for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
                             let key = CString::new(*key).unwrap();
@@ -328,6 +360,10 @@ cfg_if! {
                                 key.as_ptr(),
                                 kCFStringEncodingUTF8,
                             );
+                            let _key_cfstring_guard = scopeguard::guard((), |_| {
+                                CFRelease(key_cfstring as *const c_void);
+                            });
+
                             let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
 
                             let type_id = CFGetTypeID(value);
@@ -355,9 +391,6 @@ cfg_if! {
                     } else {
                         return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
                     }
-
-                    // Clean up after we're done processing htis result
-                    IOObjectRelease(modem_service);
                 }
             }
             Ok(vec)
