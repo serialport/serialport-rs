@@ -26,7 +26,7 @@ fn main() {
                 .long("stop-bits")
                 .help("Number of stop bits to use")
                 .takes_value(true)
-                .possible_values(&["1", "2"])
+                .possible_values(["1", "2"])
                 .default_value("1"),
         )
         .arg(
@@ -34,7 +34,7 @@ fn main() {
                 .long("data-bits")
                 .help("Number of data bits to use")
                 .takes_value(true)
-                .possible_values(&["5", "6", "7", "8"])
+                .possible_values(["5", "6", "7", "8"])
                 .default_value("8"),
         )
         .arg(
