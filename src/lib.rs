@@ -663,29 +663,24 @@ impl<T: SerialPort> SerialPort for &mut T {
 impl fmt::Debug for dyn SerialPort {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SerialPort ( ")?;
-        match self.name().as_ref() {
-            Some(n) => write!(f, "name: {} ", n)?,
-            None => {}
+
+        if let Some(n) = self.name().as_ref() {
+            write!(f, "name: {} ", n)?;
         };
-        match self.baud_rate().as_ref() {
-            Ok(b) => write!(f, "baud_rate: {}", b)?,
-            Err(_) => {}
+        if let Ok(b) = self.baud_rate().as_ref() {
+            write!(f, "baud_rate: {}", b)?;
         };
-        match self.data_bits().as_ref() {
-            Ok(b) => write!(f, "data_bits: {} ", b)?,
-            Err(_) => {}
+        if let Ok(b) = self.data_bits().as_ref() {
+            write!(f, "data_bits: {} ", b)?;
         };
-        match self.flow_control().as_ref() {
-            Ok(c) => write!(f, "flow_control: {} ", c)?,
-            Err(_) => {}
+        if let Ok(c) = self.flow_control().as_ref() {
+            write!(f, "flow_control: {} ", c)?;
         }
-        match self.parity().as_ref() {
-            Ok(p) => write!(f, "parity: {} ", p)?,
-            Err(_) => {}
+        if let Ok(p) = self.parity().as_ref() {
+            write!(f, "parity: {} ", p)?;
         }
-        match self.stop_bits().as_ref() {
-            Ok(s) => write!(f, "stop_bits: {} ", s)?,
-            Err(_) => {}
+        if let Ok(s) = self.stop_bits().as_ref() {
+            write!(f, "stop_bits: {} ", s)?;
         }
 
         write!(f, ")")
