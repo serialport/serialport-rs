@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+* A number of memory leaks have been addressed when using serialport-rs on
+macOS. In particular, enumerating USB ports and not discovering any could
+quickly consume 1GiB of memory in a minute or so. More generally, if you are using serialport-rs
+on macOS then please upgrade to this version as soon as possible.
 ### Removed
 
 ## [4.2.0] - 2022-06-02
