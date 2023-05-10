@@ -137,7 +137,7 @@ fn get_int_property(
             CFRelease(container);
         });
 
-        let num = match cf_number_type {
+        match cf_number_type {
             kCFNumberSInt16Type => {
                 let mut num: u16 = 0;
                 let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
@@ -151,9 +151,7 @@ fn get_int_property(
                 Some(num)
             }
             _ => None,
-        };
-
-        num
+        }
     }
 }
 
