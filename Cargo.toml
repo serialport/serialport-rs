@@ -40,9 +40,17 @@ features = [
 [dependencies]
 scopeguard = "1.1"
 serde = { version = "1.0", features = ["derive"], optional = true }
+embedded-hal = { version = "=1.0.0-alpha.9", optional = true }
+embedded-hal-nb = { version = "=1.0.0-alpha.1", optional = true }
+nb = { version = "1", optional = true }
 
 [dev-dependencies]
 clap = { version = "3.1.6", features = ["derive"] }
 
 [features]
 default = ["libudev"]
+embedded = ["embedded-hal", "embedded-hal-nb", "nb"]
+
+[[example]]
+name = "embedded_hal"
+required-features = ["embedded"]
