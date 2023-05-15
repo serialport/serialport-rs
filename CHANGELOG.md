@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## UNRELEASED
+## [Unreleased]
+### Added
+### Changed
+### Fixed
+### Removed
+
+## [4.2.1] - 2023-05-15
 ### Added
 * Add example for loopback testing with real hardware.
   [#69](https://github.com/serialport/serialport-rs/pull/69)
@@ -337,6 +343,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/serialport/serialport-rs/compare/v4.2.1...v4.2.1
 [4.2.0]: https://github.com/serialport/serialport-rs/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/serialport/serialport-rs/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/serialport/serialport-rs/compare/v4.0.0...v4.0.1
