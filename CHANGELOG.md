@@ -7,12 +7,29 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## UNRELEASED
 ### Added
+* Add example for loopback testing with real hardware.
+  [#69](https://github.com/serialport/serialport-rs/pull/69)
+* Implement `fmt::Debug` and `fmt::Display` for `SerialPort` and related enums.
+  [#91](https://github.com/serialport/serialport-rs/pull/91)
 ### Changed
+* Migrated from unmaintainted dependency `mach` to `mach2`.
+* Update dependency `nix` from 0.24.1 to 0.26.0 and raise MSRV to 1.56.1.
+  [#67](https://github.com/serialport/serialport-rs/pull/67),
+  [#75](https://github.com/serialport/serialport-rs/pull/75),
+  [#78](https://github.com/serialport/serialport-rs/pull/78)
 ### Fixed
-* A number of memory leaks have been addressed when using serialport-rs on
-macOS. In particular, enumerating USB ports and not discovering any could
-quickly consume 1GiB of memory in a minute or so. More generally, if you are using serialport-rs
-on macOS then please upgrade to this version as soon as possible.
+* Skip attempts to set baud rate 0 on macOS.
+  [#58](https://github.com/serialport/serialport-rs/pull/58)
+* Fix getting actual result value from `tiocmget`.
+  [#61](https://github.com/serialport/serialport-rs/pull/61/files)
+* Fix serial number retrieval procedure on macOS.
+  [#65](https://github.com/serialport/serialport-rs/pull/65)
+* Fix port name retrieval procedure for Unicode names on Windows.
+  [#63](https://github.com/serialport/serialport-rs/pull/63)
+* Fix compilation for OpenBSD due to missing use declaration.
+  [#68](https://github.com/serialport/serialport-rs/pull/68)
+* A number of memory leaks have been addressed when using serialport-rs.
+  [#98](https://github.com/serialport/serialport-rs/pull/98)
 ### Removed
 
 ## [4.2.0] - 2022-06-02
