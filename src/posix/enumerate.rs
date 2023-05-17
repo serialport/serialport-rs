@@ -82,6 +82,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     .or_else(|| udev_property_as_string(d, "ID_VENDOR")),
                 product: udev_property_as_string(d, "ID_MODEL_FROM_DATABASE")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL")),
+                #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
                     .ok(),
             }))
@@ -233,6 +234,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
             //
             // https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_developer_driverkit_transport_usb
             // https://developer.apple.com/library/archive/documentation/DeviceDrivers/Conceptual/USBBook/USBOverview/USBOverview.html#//apple_ref/doc/uid/TP40002644-BBCEACAJ
+            #[cfg(feature = "usbportinfo-interface")]
             interface: get_int_property(usb_device, "bInterfaceNumber", kCFNumberSInt8Type)
                 .map(|x| x as u8),
         })

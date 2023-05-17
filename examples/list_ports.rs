@@ -26,6 +26,7 @@ fn main() {
                             "           Product: {}",
                             info.product.as_ref().map_or("", String::as_str)
                         );
+                        #[cfg(feature = "usbportinfo-interface")]
                         println!(
                             "         Interface: {}",
                             info.interface

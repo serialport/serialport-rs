@@ -22,6 +22,12 @@
     missing_copy_implementations,
     unused
 )]
+// Document feature-gated elements on docs.rs. See
+// https://doc.rust-lang.org/rustdoc/unstable-features.html?highlight=doc(cfg#doccfg-recording-what-platforms-or-features-are-required-for-code-to-be-present
+// and
+// https://doc.rust-lang.org/rustdoc/unstable-features.html#doc_auto_cfg-automatically-generate-doccfg
+// for details.
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
@@ -702,6 +708,7 @@ pub struct UsbPortInfo {
     /// Product name (arbitrary string)
     pub product: Option<String>,
     /// Interface (id number for multiplexed devices)
+    #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
 }
 

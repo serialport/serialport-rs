@@ -106,6 +106,7 @@ fn parse_usb_port_info(hardware_id: &str) -> Option<UsbPortInfo> {
         serial_number: caps.name("serial").map(|m| m.as_str().to_string()),
         manufacturer: None,
         product: None,
+        #[cfg(feature = "usbportinfo-interface")]
         interface: caps
             .name("iid")
             .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok()),
@@ -326,6 +327,7 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.pid, 0x6018);
     // FIXME: The 'serial number' as reported by the HWID likely needs some review
     assert_eq!(info.serial_number, Some("6".to_string()));
+    #[cfg(feature = "usbportinfo-interface")]
     assert_eq!(info.interface, Some(2));
 
     let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
@@ -334,6 +336,7 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.vid, 0x0403);
     assert_eq!(info.pid, 0x6001);
     assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
+    #[cfg(feature = "usbportinfo-interface")]
     assert_eq!(info.interface, None);
 
     let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
@@ -342,5 +345,6 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.vid, 0xF055);
     assert_eq!(info.pid, 0x9802);
     assert_eq!(info.serial_number, Some("385435603432".to_string()));
+    #[cfg(feature = "usbportinfo-interface")]
     assert_eq!(info.interface, None);
 }

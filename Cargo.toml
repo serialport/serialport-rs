@@ -46,3 +46,6 @@ clap = { version = "3.1.6", features = ["derive"] }
 
 [features]
 default = ["libudev"]
+# TODO: Make the feature unconditionally available with the next major release
+# (5.0) and remove this feature gate.
+usbportinfo-interface = []
