@@ -78,20 +78,38 @@ jobs:
       - name: Build | rust-cache
         uses: Swatinem/rust-cache@v1
 
-      - name: Build | build library
+      - name: Build | build library (default features)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --target=${{ inputs.target }}
 
-      - name: Build | build examples
+      - name: Build | build library (all features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-features --target=${{ inputs.target }}
+
+      - name: Build | build examples (default features)
         if: ${{ inputs.disable_extra_builds == false }}
         run: cargo build --examples --target=${{ inputs.target }}
 
-      - name: Build | build tests
+      - name: Build | build examples (all features)
+        if: ${{ inputs.disable_extra_builds == false }}
+        run: cargo build --examples --all-features --target=${{ inputs.target }}
+
+      - name: Build | build tests (default features)
         if: ${{ inputs.disable_extra_builds == false }}
         run: cargo build --tests --target=${{ inputs.target }}
 
-      - name: Build | run tests
+      - name: Build | run tests (default features)
         if: ${{ inputs.disable_tests == false }}
         run: cargo test --no-fail-fast --target=${{ inputs.target }}
+
+      - name: Build | build tests (all features)
+        if: ${{ inputs.disable_extra_builds == false }}
+        run: cargo build --tests --all-features --target=${{ inputs.target }}
+
+      - name: Build | run tests (all features)
+        if: ${{ inputs.disable_tests == false }}
+        run: cargo test --no-fail-fast --all-features --target=${{ inputs.target }}
