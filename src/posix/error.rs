@@ -2,7 +2,7 @@ use std::io;
 
 use crate::{Error, ErrorKind};
 
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+#[cfg(all(target_os = "linux", feature = "libudev"))]
 impl From<libudev::Error> for Error {
     fn from(e: libudev::Error) -> Error {
         use libudev::ErrorKind as K;

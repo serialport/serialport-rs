@@ -51,11 +51,7 @@ mod raw {
             target_os = "android",
             all(
                 target_os = "linux",
-                not(any(
-                    target_env = "musl",
-                    target_arch = "powerpc",
-                    target_arch = "powerpc64"
-                ))
+                not(any(target_arch = "powerpc", target_arch = "powerpc64"))
             )
         ))]
         tcgets2,
@@ -68,11 +64,7 @@ mod raw {
             target_os = "android",
             all(
                 target_os = "linux",
-                not(any(
-                    target_env = "musl",
-                    target_arch = "powerpc",
-                    target_arch = "powerpc64"
-                ))
+                not(any(target_arch = "powerpc", target_arch = "powerpc64"))
             )
         ))]
         tcsets2,
@@ -167,11 +159,7 @@ pub fn tiocmbis(fd: RawFd, status: SerialLines) -> Result<()> {
     target_os = "android",
     all(
         target_os = "linux",
-        not(any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        ))
+        not(any(target_arch = "powerpc", target_arch = "powerpc64"))
     )
 ))]
 pub fn tcgets2(fd: RawFd) -> Result<libc::termios2> {
@@ -186,11 +174,7 @@ pub fn tcgets2(fd: RawFd) -> Result<libc::termios2> {
     target_os = "android",
     all(
         target_os = "linux",
-        not(any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        ))
+        not(any(target_arch = "powerpc", target_arch = "powerpc64"))
     )
 ))]
 pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> Result<()> {

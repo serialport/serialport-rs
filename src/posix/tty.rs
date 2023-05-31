@@ -446,11 +446,7 @@ impl SerialPort for TTYPort {
         target_os = "android",
         all(
             target_os = "linux",
-            not(any(
-                target_env = "musl",
-                target_arch = "powerpc",
-                target_arch = "powerpc64"
-            ))
+            not(any(target_arch = "powerpc", target_arch = "powerpc64"))
         )
     ))]
     fn baud_rate(&self) -> Result<u32> {
@@ -497,11 +493,7 @@ impl SerialPort for TTYPort {
     /// desired baud rate.
     #[cfg(all(
         target_os = "linux",
-        any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        )
+        any(target_arch = "powerpc", target_arch = "powerpc64")
     ))]
     fn baud_rate(&self) -> Result<u32> {
         use self::libc::{

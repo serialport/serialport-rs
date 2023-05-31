@@ -17,7 +17,6 @@ cfg_if! {
         all(
             target_os = "linux",
             any(
-                target_env = "musl",
                 target_arch = "powerpc",
                 target_arch = "powerpc64"
             )
@@ -29,7 +28,6 @@ cfg_if! {
         all(
             target_os = "linux",
             not(any(
-                target_env = "musl",
                 target_arch = "powerpc",
                 target_arch = "powerpc64"
             ))
@@ -65,11 +63,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     target_os = "openbsd",
     all(
         target_os = "linux",
-        any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        )
+        any(target_arch = "powerpc", target_arch = "powerpc64")
     )
 ))]
 pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
@@ -85,11 +79,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     target_os = "android",
     all(
         target_os = "linux",
-        not(any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        ))
+        not(any(target_arch = "powerpc", target_arch = "powerpc64"))
     )
 ))]
 pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
@@ -117,11 +107,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) ->
     target_os = "openbsd",
     all(
         target_os = "linux",
-        any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        )
+        any(target_arch = "powerpc", target_arch = "powerpc64")
     )
 ))]
 pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios) -> Result<()> {
@@ -134,11 +120,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios) -> Result<()> {
     target_os = "android",
     all(
         target_os = "linux",
-        not(any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        ))
+        not(any(target_arch = "powerpc", target_arch = "powerpc64"))
     )
 ))]
 pub(crate) fn set_termios(fd: RawFd, termios: &Termios) -> Result<()> {
@@ -206,11 +188,7 @@ pub(crate) fn set_stop_bits(termios: &mut Termios, stop_bits: StopBits) {
     target_os = "android",
     all(
         target_os = "linux",
-        not(any(
-            target_env = "musl",
-            target_arch = "powerpc",
-            target_arch = "powerpc64"
-        ))
+        not(any(target_arch = "powerpc", target_arch = "powerpc64"))
     )
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
@@ -234,11 +212,7 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
 
 #[cfg(all(
     target_os = "linux",
-    any(
-        target_env = "musl",
-        target_arch = "powerpc",
-        target_arch = "powerpc64"
-    )
+    any(target_arch = "powerpc", target_arch = "powerpc64")
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     use self::libc::{
