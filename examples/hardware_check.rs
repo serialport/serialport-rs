@@ -370,5 +370,7 @@ fn set_defaults(port: &mut dyn serialport::SerialPort) {
     port.set_flow_control(FlowControl::Software).unwrap();
     port.set_parity(Parity::None).unwrap();
     port.set_stop_bits(StopBits::One).unwrap();
-    port.set_timeout(Duration::from_millis(0)).unwrap();
+    // TODO: Clean up timeouts and use a less-arbitrary value here. The previous timeout of 0 made
+    // test_dual_ports fail due to a timeout where having at least some some made them pass.
+    port.set_timeout(Duration::from_millis(1000)).unwrap();
 }
