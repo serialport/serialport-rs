@@ -269,10 +269,15 @@ fn test_single_port(port: &mut dyn serialport::SerialPort, loopback: bool) {
 }
 
 fn check_test_message(sender: &mut dyn SerialPort, receiver: &mut dyn SerialPort) {
+    // Ignore any "residue" from previous tests.
+    sender.clear(ClearBuffer::All).unwrap();
+    receiver.clear(ClearBuffer::All).unwrap();
+
     let send_buf = TEST_MESSAGE;
     let mut recv_buf = [0u8; TEST_MESSAGE.len()];
 
     sender.write_all(send_buf).unwrap();
+    sender.flush().unwrap();
 
     match receiver.read_exact(&mut recv_buf) {
         Ok(()) => {
