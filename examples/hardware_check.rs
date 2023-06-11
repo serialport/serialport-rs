@@ -282,7 +282,7 @@ fn check_test_message(sender: &mut dyn SerialPort, receiver: &mut dyn SerialPort
     match receiver.read_exact(&mut recv_buf) {
         Ok(()) => {
             assert_eq_hex!(recv_buf, send_buf, "Received message does not match sent",);
-            println!("success");
+            println!("        success");
         }
         Err(e) => println!("FAILED: {:?}", e),
     }
@@ -307,45 +307,50 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     );
 
     let baud_rate = 2_000_000;
-    print!("     At {},8,n,1,noflow...", baud_rate);
+    println!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
         check_test_message(port1, port2);
+        check_test_message(port2, port1);
     } else {
         println!("FAILED (does this platform & port support arbitrary baud rates?)");
     }
 
     let baud_rate = 115_200;
-    print!("     At {},8,n,1,noflow...", baud_rate);
+    println!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
         check_test_message(port1, port2);
+        check_test_message(port2, port1);
     } else {
         println!("FAILED");
     }
 
     let baud_rate = 57_600;
-    print!("     At {},8,n,1,noflow...", baud_rate);
+    println!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
         check_test_message(port1, port2);
+        check_test_message(port2, port1);
     } else {
         println!("FAILED");
     }
 
     let baud_rate = 10_000;
-    print!("     At {},8,n,1,noflow...", baud_rate);
+    println!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
         check_test_message(port1, port2);
+        check_test_message(port2, port1);
     } else {
         println!("FAILED (does this platform & port support arbitrary baud rates?)");
     }
     let baud_rate = 9600;
-    print!("     At {},8,n,1,noflow...", baud_rate);
+    println!("     At {},8,n,1,noflow...", baud_rate);
     std::io::stdout().flush().unwrap();
     if port1.set_baud_rate(baud_rate).is_ok() && port2.set_baud_rate(baud_rate).is_ok() {
         check_test_message(port1, port2);
+        check_test_message(port2, port1);
     } else {
         println!("FAILED");
     }
@@ -353,15 +358,17 @@ fn test_dual_ports(port1: &mut dyn serialport::SerialPort, port2: &mut dyn seria
     // Test flow control
     port1.set_flow_control(FlowControl::Software).unwrap();
     port2.set_flow_control(FlowControl::Software).unwrap();
-    print!("     At 9600,8,n,1,softflow...");
+    println!("     At 9600,8,n,1,softflow...");
     std::io::stdout().flush().unwrap();
     check_test_message(port1, port2);
+    check_test_message(port2, port1);
 
     port1.set_flow_control(FlowControl::Hardware).unwrap();
     port2.set_flow_control(FlowControl::Hardware).unwrap();
-    print!("     At 9600,8,n,1,hardflow...");
+    println!("     At 9600,8,n,1,hardflow...");
     std::io::stdout().flush().unwrap();
     check_test_message(port1, port2);
+    check_test_message(port2, port1);
 }
 
 fn set_defaults(port: &mut dyn serialport::SerialPort) {
