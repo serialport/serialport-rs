@@ -674,7 +674,7 @@ impl fmt::Debug for dyn SerialPort {
             write!(f, "name: {} ", n)?;
         };
         if let Ok(b) = self.baud_rate().as_ref() {
-            write!(f, "baud_rate: {}", b)?;
+            write!(f, "baud_rate: {} ", b)?;
         };
         if let Ok(b) = self.data_bits().as_ref() {
             write!(f, "data_bits: {} ", b)?;
