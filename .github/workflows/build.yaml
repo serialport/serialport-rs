@@ -91,6 +91,7 @@ jobs:
             --no-scripts \
             alpine-base ${{ inputs.extra_sysroot_packages }}
           echo "PKG_CONFIG_SYSROOT_DIR=$PWD/sysroot" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$PWD/sysroot/usr/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Build | add mingw32 to path
         if: inputs.runs_on == 'windows-2019'
