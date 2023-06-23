@@ -108,7 +108,7 @@ jobs:
     with:
       disable_tests: true
       extra_packages: cross-aarch64-linux-musl
-      image: ghcr.io/void-linux/void-linux:latest-thin-bb-x86_64-musl
+      image: ghcr.io/void-linux/void-linux:latest-thin-bb-x86_64
       target: aarch64-unknown-linux-musl
 
   arm-linux-androideabi:
@@ -149,7 +149,7 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       extra_packages: cross-i686-linux-musl
-      image: ghcr.io/void-linux/void-linux:latest-thin-bb-x86_64-musl
+      image: ghcr.io/void-linux/void-linux:latest-thin-bb-x86_64
       target: i686-unknown-linux-musl
 
   x86_64-apple-darwin:
@@ -186,8 +186,8 @@ jobs:
   x86_64-unknown-linux-musl:
     uses: ./.github/workflows/build.yaml
     with:
-      extra_packages: eudev-libudev-devel
-      image: ghcr.io/void-linux/void-linux:latest-thin-bb-x86_64-musl
+      extra_packages: cross-x86_64-linux-musl
+      image: ghcr.io/void-linux/void-linux:latest-thin-bb-x86_64
       target: x86_64-unknown-linux-musl
 
   x86_64-unknown-netbsd:
