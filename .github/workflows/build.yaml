@@ -65,7 +65,7 @@ jobs:
         if: contains(inputs.container, 'void-linux')
         run: |
           xbps-install -Syu || xbps-install -yu xbps
-          xbps-install -yu base-devel curl git ${{ inputs.extra_packages }}
+          xbps-install -yu base-devel bash curl git ${{ inputs.extra_packages }}
 
       - name: Build | add mingw32 to path
         if: inputs.runs_on == 'windows-2019'
