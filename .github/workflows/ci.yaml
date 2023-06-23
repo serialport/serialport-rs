@@ -108,6 +108,7 @@ jobs:
     with:
       disable_tests: true
       extra_packages: cross-aarch64-linux-musl
+      extra_sysroot_packages: eudev-dev
       image: ghcr.io/void-linux/void-linux:latest-full-x86_64
       target: aarch64-unknown-linux-musl
 
@@ -149,6 +150,7 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       extra_packages: cross-i686-linux-musl
+      extra_sysroot_packages: eudev-dev
       image: ghcr.io/void-linux/void-linux:latest-full-x86_64
       target: i686-unknown-linux-musl
 
@@ -187,6 +189,7 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       extra_packages: cross-x86_64-linux-musl
+      extra_sysroot_packages: eudev-dev
       image: ghcr.io/void-linux/void-linux:latest-full-x86_64
       target: x86_64-unknown-linux-musl
 

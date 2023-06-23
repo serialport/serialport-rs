@@ -9,6 +9,8 @@ on:
         type: boolean
       extra_packages:
         type: string
+      extra_sysroot_packages:
+        type: string
       image:
         type: string
       runs_on:
@@ -65,7 +67,30 @@ jobs:
         if: contains(inputs.image, 'void-linux')
         run: |
           xbps-install -Syu || xbps-install -yu xbps
-          xbps-install -yu base-devel bash curl git ${{ inputs.extra_packages }}
+          xbps-install -yu apk-tools base-devel bash curl git ${{ inputs.extra_packages }}
+
+      - name: Build | install alpine dependencies
+        id: sysroot-deps
+        if: contains(inputs.image, 'void-linux')
+        run: |
+          mkdir sysroot
+          case "${{inputs.target}}" in
+            aarch64-*) _arch=aarch64 ;;
+            i686-*) _arch=x86 ;;
+            x86_64-*) _arch=x86_64 ;;
+          esac
+          cat << REPOSITORIES > repositories
+          https://dl-cdn.alpinelinux.org/alpine/v3.18/main/
+          REPOSITORIES
+          apk add \
+            --root sysroot \
+            --arch $_arch \
+            --initdb \
+            --repositories-file repositories \
+            --allow-untrusted \
+            --no-scripts \
+            alpine-base ${{ inputs.extra_sysroot_packages }}
+          echo "args=--sysroot $PWD/sysroot" >> $GITHUB_OUTPUT
 
       - name: Build | add mingw32 to path
         if: inputs.runs_on == 'windows-2019'
@@ -91,34 +116,34 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --target=${{ inputs.target }}
+          args: --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | build library (all features)
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all-features --target=${{ inputs.target }}
+          args: --all-features --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | build examples (default features)
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --examples --target=${{ inputs.target }}
+        run: cargo build --examples --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | build examples (all features)
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --examples --all-features --target=${{ inputs.target }}
+        run: cargo build --examples --all-features --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | build tests (default features)
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --tests --target=${{ inputs.target }}
+        run: cargo build --tests --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | run tests (default features)
         if: ${{ inputs.disable_tests == false }}
-        run: cargo test --no-fail-fast --target=${{ inputs.target }}
+        run: cargo test --no-fail-fast --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | build tests (all features)
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --tests --all-features --target=${{ inputs.target }}
+        run: cargo build --tests --all-features --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
 
       - name: Build | run tests (all features)
         if: ${{ inputs.disable_tests == false }}
-        run: cargo test --no-fail-fast --all-features --target=${{ inputs.target }}
+        run: cargo test --no-fail-fast --all-features --target=${{ inputs.target }} ${{ steps.sysroot-deps.outputs.args }}
