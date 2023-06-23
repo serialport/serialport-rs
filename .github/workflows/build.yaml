@@ -9,6 +9,8 @@ on:
         type: boolean
       extra_packages:
         type: string
+      image:
+        type: string
       runs_on:
         default: ubuntu-latest
         type: string
@@ -24,20 +26,20 @@ env:
   # defining all environment variables for each job. This has the added benefit
   # of keeping them all together in one place.
   CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
   CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_GNUEABI_LINKER: arm-linux-gnueabi-gcc
-  CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-gnueabi-gcc
+  CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-musleabi-gcc
   CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
-  CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER: arm-linux-gnueabihf-gcc
+  CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER: arm-linux-musleabihf-gcc
   CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
   CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER: arm-linux-gnueabi-gcc
-  CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-gnueabi-gcc
+  CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-musleabi-gcc
   CARGO_TARGET_MIPS64EL_UNKNOWN_LINUX_GNUABI64_LINKER: mips64el-linux-gnuabi64-gcc
   CARGO_TARGET_MIPS64_UNKNOWN_LINUX_GNUABI64_LINKER: mips64-linux-gnuabi64-gcc
   CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_GNU_LINKER: mipsel-linux-gnu-gcc
-  CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_MUSL_LINKER: mipsel-linux-gnu-gcc
+  CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_MUSL_LINKER: mipsel-linux-musl-gcc
   CARGO_TARGET_MIPS_UNKNOWN_LINUX_GNU_LINKER: mips-linux-gnu-gcc
-  CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER: mips-linux-gnu-gcc
+  CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER: mips-linux-musl-gcc
   CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER: powerpc64le-linux-gnu-gcc
   CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_LINKER: powerpc64-linux-gnu-gcc
   CARGO_TARGET_POWERPC_UNKNOWN_LINUX_GNU_LINKER: powerpc-linux-gnu-gcc
@@ -50,13 +52,20 @@ env:
 jobs:
   build:
     runs-on: ${{ inputs.runs_on }}
+    container: ${{ inputs.image }}
     steps:
-      - name: Build | install dependencies
-        if: inputs.runs_on == 'ubuntu-latest'
+      - name: Build | install ubuntu dependencies
+        if: inputs.runs_on == 'ubuntu-latest' && !inputs.image
         run: |
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt-get -qq -y install build-essential curl git pkg-config ${{ inputs.extra_packages }}
+
+      - name: Build | install void dependencies
+        if: contains(inputs.container, 'void-linux')
+        run: |
+          xbps-install -Syu || xbps-install -yu xbps
+          xbps-install -yu base-devel curl git ${{ inputs.extra_packages }}
 
       - name: Build | add mingw32 to path
         if: inputs.runs_on == 'windows-2019'
