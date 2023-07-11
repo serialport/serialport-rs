@@ -50,10 +50,10 @@ impl COMPort {
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other I/O error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<COMPort> {
-        let mut name = Vec::<u16>::with_capacity(4 + builder.path.len() + 1);
+        let mut name = Vec::<u16>::with_capacity(4 + builder.port_name.len() + 1);
 
         name.extend(r"\\.\".encode_utf16());
-        name.extend(builder.path.encode_utf16());
+        name.extend(builder.port_name.encode_utf16());
         name.push(0);
 
         let handle = unsafe {
@@ -86,7 +86,7 @@ impl COMPort {
         dcb::set_dcb(handle, dcb)?;
 
         com.set_timeout(builder.timeout)?;
-        com.port_name = Some(builder.path.clone());
+        com.port_name = Some(builder.port_name.clone());
         Ok(com)
     }
 
