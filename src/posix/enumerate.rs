@@ -109,7 +109,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                         d,
                         "ID_USB_INTERFACE_NUM",
                         &u8::from_str_radix,
-                    )?
+                    )
                     .ok(),
                 }))
             } else {
