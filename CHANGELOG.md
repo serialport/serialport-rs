@@ -9,6 +9,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+* Fixes a bug on the Raspberry Pi 4, which results in USB-devices being detected as PCI-devices.
+  [#110]
+
 ### Removed
 
 ## [4.2.1] - 2023-05-21
