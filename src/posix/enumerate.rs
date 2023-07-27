@@ -71,12 +71,6 @@ fn udev_hex_property_as_int<T>(
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
-    let properties: Vec<String> = d
-        .properties()
-        .map(|p| format!("{:?} = {:?}, ", p.name(), p.value()))
-        .collect();
-    log::trace!("port_type: properties: {:#?}", properties);
-
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
