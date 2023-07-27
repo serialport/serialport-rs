@@ -71,6 +71,12 @@ fn udev_hex_property_as_int<T>(
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
+    let properties: Vec<String> = d
+        .properties()
+        .map(|p| format!("{:?} = {:?}, ", p.name(), p.value()))
+        .collect();
+    log::trace!("port_type: properties: {:#?}", properties);
+
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
@@ -87,7 +93,35 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     .ok(),
             }))
         }
-        Some("pci") => Ok(SerialPortType::PciPort),
+        Some("pci") => {
+            let usb_properties = vec![
+                d.property_value("ID_USB_VENDOR_ID"),
+                d.property_value("ID_USB_MODEL_ID"),
+                d.property_value("ID_USB_VENDOR"),
+                d.property_value("ID_USB_MODEL"),
+                d.property_value("ID_USB_SERIAL_SHORT"),
+            ]
+            .into_iter()
+            .collect::<Option<Vec<_>>>();
+            if usb_properties.is_some() {
+                Ok(SerialPortType::UsbPort(UsbPortInfo {
+                    vid: udev_hex_property_as_int(d, "ID_USB_VENDOR_ID", &u16::from_str_radix)?,
+                    pid: udev_hex_property_as_int(d, "ID_USB_MODEL_ID", &u16::from_str_radix)?,
+                    serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
+                    manufacturer: udev_property_as_string(d, "ID_USB_VENDOR"),
+                    product: udev_property_as_string(d, "ID_USB_MODEL"),
+                    #[cfg(feature = "usbportinfo-interface")]
+                    interface: udev_hex_property_as_int(
+                        d,
+                        "ID_USB_INTERFACE_NUM",
+                        &u8::from_str_radix,
+                    )?
+                    .ok(),
+                }))
+            } else {
+                Ok(SerialPortType::PciPort)
+            }
+        }
         _ => Ok(SerialPortType::Unknown),
     }
 }
