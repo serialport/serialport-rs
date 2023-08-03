@@ -354,7 +354,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.2.1...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.2.2...HEAD
+[4.2.2]: https://github.com/serialport/serialport-rs/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/serialport/serialport-rs/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/serialport/serialport-rs/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/serialport/serialport-rs/compare/v4.0.1...v4.1.0
