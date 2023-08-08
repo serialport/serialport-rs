@@ -462,11 +462,11 @@ cfg_if! {
         use std::io::Read;
         use std::path::Path;
 
-        /// Enumerating serial ports on non-Linux POSIX platforms is disabled by disabled the "libudev"
-        /// default feature.
+        /// Scans `/sys/class/tty` for serial devices (on Linux systems without libudev).
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             let sys_path = Path::new("/sys/class/tty/");
+            let device_path = Path::new("/dev");
             let mut s;
             for path in sys_path.read_dir().expect("/sys/class/tty/ doesn't exist on this system") {
                 let raw_path = path?.path().clone();
@@ -486,10 +486,22 @@ cfg_if! {
                     }
                 }
 
-                vec.push(SerialPortInfo {
-                    port_name: raw_path.to_string_lossy().to_string(),
-                    port_type: SerialPortType::Unknown,
-                });
+                // Generate the device file path `/dev/DEVICE` from the TTY class path
+                // `/sys/class/tty/DEVICE` and emit a serial device if this path exists. There are
+                // no further checks (yet) due to `Path::is_file` reports only regular files.
+                //
+                // See https://github.com/serialport/serialport-rs/issues/66 for details.
+                if let Some(file_name) = raw_path.file_name() {
+                    let device_file = device_path.join(file_name);
+                    if !device_file.exists() {
+                        continue;
+                    }
+
+                    vec.push(SerialPortInfo {
+                        port_name: device_file.to_string_lossy().to_string(),
+                        port_type: SerialPortType::Unknown,
+                    });
+                }
             }
             Ok(vec)
         }
