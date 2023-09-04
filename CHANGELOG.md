@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+
+* Fixes a bug on Linux without udev where `available_ports()` returned wrong
+  device file paths.
+  [#122](https://github.com/serialport/serialport-rs/pull/122)
+
 ### Removed
 
 ## [4.2.2] - 2023-08-03
