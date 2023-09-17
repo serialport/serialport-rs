@@ -7,11 +7,26 @@ use std::ffi::{CStr, CString};
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 use std::mem::MaybeUninit;
 
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+use apple_sys::CoreFoundation::{
+    kCFAllocatorDefault, CFGetTypeID, CFNumberGetValue, CFNumberRef, CFNumberType,
+    CFNumberType_kCFNumberSInt16Type as kCFNumberSInt16Type,
+    CFNumberType_kCFNumberSInt32Type as kCFNumberSInt32Type,
+    CFNumberType_kCFNumberSInt8Type as kCFNumberSInt8Type, CFRelease, CFRetain,
+    CFStringBuiltInEncodings_kCFStringEncodingUTF8 as kCFStringEncodingUTF8,
+    CFStringCreateWithCString, CFStringGetCString, CFStringGetTypeID, CFStringRef, CFTypeRef,
+};
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+use apple_sys::IOKit::{
+    io_object_t, io_registry_entry_t, kCFAllocatorDefault as kIOAllocatorDefault,
+    kIOMasterPortDefault, kIOSerialBSDAllTypes, kIOSerialBSDServiceValue, kIOSerialBSDTypeKey,
+    kIOServiceClass, kIOUSBDeviceClassName, CFDictionaryGetValue, CFDictionarySetValue,
+    CFStringCreateWithCString as IOStringCreateWithCString, IOIteratorNext, IOMasterPort,
+    IOObjectGetClass, IOObjectRelease, IORegistryEntryCreateCFProperties,
+    IORegistryEntryCreateCFProperty, IORegistryEntryGetParentEntry, IOServiceGetMatchingServices,
+    IOServiceMatching, __CFDictionary,
+};
 use cfg_if::cfg_if;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use CoreFoundation_sys::*;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use IOKit_sys::*;
 
 #[cfg(any(
     target_os = "freebsd",
@@ -138,8 +153,11 @@ fn get_parent_device_by_type(
         }
         let mut parent = MaybeUninit::uninit();
         if unsafe {
-            IORegistryEntryGetParentEntry(device, kIOServiceClass(), parent.as_mut_ptr())
-                != KERN_SUCCESS
+            IORegistryEntryGetParentEntry(
+                device,
+                kIOServiceClass.as_ptr() as *mut i8,
+                parent.as_mut_ptr(),
+            ) != KERN_SUCCESS
         } {
             return None;
         }
@@ -157,8 +175,8 @@ fn get_int_property(
 ) -> Option<u32> {
     unsafe {
         let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(
-            kCFAllocatorDefault,
+        let key = IOStringCreateWithCString(
+            kIOAllocatorDefault,
             prop_str.as_ptr(),
             kCFStringEncodingUTF8,
         );
@@ -166,7 +184,7 @@ fn get_int_property(
             CFRelease(key as *const c_void);
         });
 
-        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
+        let container = IORegistryEntryCreateCFProperty(device_type, key, kIOAllocatorDefault, 0);
         if container.is_null() {
             return None;
         }
@@ -203,8 +221,8 @@ fn get_int_property(
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
     unsafe {
         let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(
-            kCFAllocatorDefault,
+        let key = IOStringCreateWithCString(
+            kIOAllocatorDefault,
             prop_str.as_ptr(),
             kCFStringEncodingUTF8,
         );
@@ -212,7 +230,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
             CFRelease(key as *const c_void);
         });
 
-        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
+        let container = IORegistryEntryCreateCFProperty(device_type, key, kIOAllocatorDefault, 0);
         if container.is_null() {
             return None;
         }
@@ -243,7 +261,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
 fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
     let usb_device_class_name = b"IOUSBHostDevice\0".as_ptr() as *const c_char;
-    let legacy_usb_device_class_name = kIOUSBDeviceClassName();
+    let legacy_usb_device_class_name = kIOUSBDeviceClassName.as_ptr() as *const i8;
 
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
@@ -284,7 +302,7 @@ cfg_if! {
             let mut vec = Vec::new();
             unsafe {
                 // Create a dictionary for specifying the search terms against the IOService
-                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue());
+                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue.as_ptr() as *const i8);
                 if classes_to_match.is_null() {
                     return Err(Error::new(
                         ErrorKind::Unknown,
@@ -299,7 +317,7 @@ cfg_if! {
                 // searching for serial devices matching the RS232 device type.
                 let key = CFStringCreateWithCString(
                     kCFAllocatorDefault,
-                    kIOSerialBSDTypeKey(),
+                    kIOSerialBSDTypeKey.as_ptr() as *const i8,
                     kCFStringEncodingUTF8,
                 );
                 if key.is_null() {
@@ -314,7 +332,7 @@ cfg_if! {
 
                 let value = CFStringCreateWithCString(
                     kCFAllocatorDefault,
-                    kIOSerialBSDAllTypes(),
+                    kIOSerialBSDAllTypes.as_ptr() as *const i8,
                     kCFStringEncodingUTF8,
                 );
                 if value.is_null() {
@@ -373,7 +391,7 @@ cfg_if! {
                     let result = IORegistryEntryCreateCFProperties(
                         modem_service,
                         props.as_mut_ptr(),
-                        kCFAllocatorDefault,
+                        apple_sys::IOKit::kCFAllocatorDefault,
                         0,
                     );
                     let _props_guard = scopeguard::guard((), |_| {
