@@ -83,6 +83,8 @@ allow = [
     "Apache-2.0",
     "Unicode-DFS-2016",
     "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
 ]
 # List of explicitly disallowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
