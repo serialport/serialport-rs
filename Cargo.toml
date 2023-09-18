@@ -23,7 +23,7 @@ nix = { version = "0.26", default-features = false, features = ["fs", "ioctl", "
 libudev = { version = "0.3.0", optional = true }
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
-apple-sys = { version = "0.2.0", features = ["CoreFoundation", "IOKit"] }
+apple-sys = { git = "https://github.com/tommy-gilligan/apple-sys.git", features = ["CoreFoundation", "IOKit"] }
 mach2 = "0.4.1"
 
 [target."cfg(windows)".dependencies]
