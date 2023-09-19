@@ -1,16 +1,16 @@
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 use nix::libc::{c_char, c_void};
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 use std::ffi::OsStr;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 use std::ffi::{CStr, CString};
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 use std::mem::MaybeUninit;
 
 use cfg_if::cfg_if;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 use CoreFoundation_sys::*;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 use IOKit_sys::*;
 
 #[cfg(any(
@@ -21,16 +21,16 @@ use IOKit_sys::*;
 ))]
 use crate::SerialPortType;
 #[cfg(any(
-    target_os = "ios",
+    all(target_os = "ios", feature = "applesdk"),
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
-    target_os = "macos"
+    all(target_os = "macos", feature = "applesdk"),
 ))]
 use crate::UsbPortInfo;
 #[cfg(any(
     target_os = "android",
-    target_os = "ios",
+    all(target_os = "ios", feature = "applesdk"),
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
-    target_os = "macos",
+    all(target_os = "macos", feature = "applesdk"),
     target_os = "netbsd",
     target_os = "openbsd",
 ))]
@@ -120,7 +120,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 fn get_parent_device_by_type(
     device: io_object_t,
     parent_type: *const c_char,
@@ -147,7 +147,7 @@ fn get_parent_device_by_type(
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
 fn get_int_property(
@@ -198,7 +198,7 @@ fn get_int_property(
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 /// Returns a specific property of the given device as a string.
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
     unsafe {
@@ -237,7 +237,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> SerialPortType {
@@ -274,7 +274,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
 }
 
 cfg_if! {
-    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
+    if #[cfg(any(target_os = "ios", all(target_os = "macos", feature = "applesdk")))] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
@@ -505,7 +505,7 @@ cfg_if! {
             }
             Ok(vec)
         }
-    } else if #[cfg(target_os = "freebsd")] {
+    } else if #[cfg(any(target_os = "freebsd", all(target_os = "macos", not(feature = "applesdk"))))] {
         use std::path::Path;
 
         /// Scans the system for serial ports and returns a list of them.
