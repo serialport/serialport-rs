@@ -23,8 +23,8 @@ nix = { version = "0.26", default-features = false, features = ["fs", "ioctl", "
 libudev = { version = "0.3.0", optional = true }
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
-CoreFoundation-sys = "0.1.4"
-IOKit-sys = "0.1.5"
+core-foundation-sys = "0.8.4"
+io-kit-sys = "0.4.0"
 mach2 = "0.4.1"
 
 [target."cfg(windows)".dependencies]

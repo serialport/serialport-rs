@@ -1,17 +1,25 @@
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use nix::libc::{c_char, c_void};
+use cfg_if::cfg_if;
+
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 use std::ffi::OsStr;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use std::ffi::{CStr, CString};
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use std::mem::MaybeUninit;
 
-use cfg_if::cfg_if;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use CoreFoundation_sys::*;
-#[cfg(any(target_os = "ios", target_os = "macos"))]
-use IOKit_sys::*;
+cfg_if! {
+    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
+        use core_foundation_sys::base::*;
+        use core_foundation_sys::dictionary::*;
+        use core_foundation_sys::number::*;
+        use core_foundation_sys::string::*;
+        use io_kit_sys::*;
+        use io_kit_sys::keys::*;
+        use io_kit_sys::serial::keys::*;
+        use io_kit_sys::types::*;
+        use io_kit_sys::usb::lib::*;
+        use nix::libc::{c_char, c_void};
+        use std::convert::TryInto;
+        use std::ffi::{CStr, CString};
+        use std::mem::MaybeUninit;
+    }
+}
 
 #[cfg(any(
     target_os = "freebsd",
@@ -138,7 +146,7 @@ fn get_parent_device_by_type(
         }
         let mut parent = MaybeUninit::uninit();
         if unsafe {
-            IORegistryEntryGetParentEntry(device, kIOServiceClass(), parent.as_mut_ptr())
+            IORegistryEntryGetParentEntry(device, kIOServiceClass, parent.as_mut_ptr())
                 != KERN_SUCCESS
         } {
             return None;
@@ -224,7 +232,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
         let result = CFStringGetCString(
             container as CFStringRef,
             buf.as_mut_ptr(),
-            buf.capacity() as i64,
+            buf.capacity().try_into().unwrap(),
             kCFStringEncodingUTF8,
         );
         let opt_str = if result != 0 {
@@ -243,7 +251,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
 fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
     let usb_device_class_name = b"IOUSBHostDevice\0".as_ptr() as *const c_char;
-    let legacy_usb_device_class_name = kIOUSBDeviceClassName();
+    let legacy_usb_device_class_name = kIOUSBDeviceClassName;
 
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
@@ -284,7 +292,7 @@ cfg_if! {
             let mut vec = Vec::new();
             unsafe {
                 // Create a dictionary for specifying the search terms against the IOService
-                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue());
+                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue);
                 if classes_to_match.is_null() {
                     return Err(Error::new(
                         ErrorKind::Unknown,
@@ -299,7 +307,7 @@ cfg_if! {
                 // searching for serial devices matching the RS232 device type.
                 let key = CFStringCreateWithCString(
                     kCFAllocatorDefault,
-                    kIOSerialBSDTypeKey(),
+                    kIOSerialBSDTypeKey,
                     kCFStringEncodingUTF8,
                 );
                 if key.is_null() {
@@ -314,7 +322,7 @@ cfg_if! {
 
                 let value = CFStringCreateWithCString(
                     kCFAllocatorDefault,
-                    kIOSerialBSDAllTypes(),
+                    kIOSerialBSDAllTypes,
                     kCFStringEncodingUTF8,
                 );
                 if value.is_null() {
