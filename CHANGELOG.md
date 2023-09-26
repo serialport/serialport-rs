@@ -8,6 +8,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+
+* Update `bitflags` dependency to 2.4.0.
+  [#127](https://github.com/serialport/serialport-rs/pull/127)
+
 ### Fixed
 
 * Fixes a bug on Linux without udev where `available_ports()` returned wrong
