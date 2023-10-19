@@ -116,7 +116,7 @@ impl TTYPort {
         let path = Path::new(&builder.path);
         let fd = OwnedFd(nix::fcntl::open(
             path,
-            OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
+            OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK | OFlag::O_CLOEXEC,
             nix::sys::stat::Mode::empty(),
         )?);
 
@@ -344,7 +344,7 @@ impl TTYPort {
     ///
     /// This function returns an error if the serial port couldn't be cloned.
     pub fn try_clone_native(&self) -> Result<TTYPort> {
-        let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD(self.fd))?;
+        let fd_cloned: i32 = fcntl(self.fd, nix::fcntl::F_DUPFD_CLOEXEC(self.fd))?;
         Ok(TTYPort {
             fd: fd_cloned,
             exclusive: self.exclusive,
