@@ -11,9 +11,9 @@ pub(crate) fn get_dcb(handle: HANDLE) -> Result<DCB> {
     dcb.DCBlength = std::mem::size_of::<DCB>() as u32;
 
     if unsafe { GetCommState(handle, &mut dcb) } != 0 {
-        return Ok(dcb);
+        Ok(dcb)
     } else {
-        return Err(super::error::last_os_error());
+        Err(super::error::last_os_error())
     }
 }
 
@@ -57,9 +57,9 @@ pub(crate) fn init(dcb: &mut DCB) {
 
 pub(crate) fn set_dcb(handle: HANDLE, mut dcb: DCB) -> Result<()> {
     if unsafe { SetCommState(handle, &mut dcb as *mut _) != 0 } {
-        return Ok(());
+        Ok(())
     } else {
-        return Err(super::error::last_os_error());
+        Err(super::error::last_os_error())
     }
 }
 
@@ -78,9 +78,9 @@ pub(crate) fn set_data_bits(dcb: &mut DCB, data_bits: DataBits) {
 
 pub(crate) fn set_parity(dcb: &mut DCB, parity: Parity) {
     dcb.Parity = match parity {
-        Parity::None => NOPARITY as u8,
-        Parity::Odd => ODDPARITY as u8,
-        Parity::Even => EVENPARITY as u8,
+        Parity::None => NOPARITY,
+        Parity::Odd => ODDPARITY,
+        Parity::Even => EVENPARITY,
     };
 
     dcb.set_fParity(if parity == Parity::None { FALSE } else { TRUE } as DWORD);
@@ -88,8 +88,8 @@ pub(crate) fn set_parity(dcb: &mut DCB, parity: Parity) {
 
 pub(crate) fn set_stop_bits(dcb: &mut DCB, stop_bits: StopBits) {
     dcb.StopBits = match stop_bits {
-        StopBits::One => ONESTOPBIT as u8,
-        StopBits::Two => TWOSTOPBITS as u8,
+        StopBits::One => ONESTOPBIT,
+        StopBits::Two => TWOSTOPBITS,
     };
 }
 
