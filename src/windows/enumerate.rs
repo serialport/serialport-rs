@@ -94,7 +94,7 @@ fn parse_usb_port_info(hardware_id: &str) -> Option<UsbPortInfo> {
         r"VID_(?P<vid>[[:xdigit:]]{4})",
         r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
         r"(?:[&+]MI_(?P<iid>[[:xdigit:]]{2})){0,1}",
-        r"([\\+](?P<serial>\w+))?"
+        r"([\\+](?P<serial>[\w&]+))?"
     ))
     .unwrap();
 
@@ -103,7 +103,14 @@ fn parse_usb_port_info(hardware_id: &str) -> Option<UsbPortInfo> {
     Some(UsbPortInfo {
         vid: u16::from_str_radix(&caps[1], 16).ok()?,
         pid: u16::from_str_radix(&caps[2], 16).ok()?,
-        serial_number: caps.name("serial").map(|m| m.as_str().to_string()),
+        serial_number: caps.name("serial").map(|m| {
+            let m = m.as_str();
+            if m.contains('&') {
+                m.split('&').nth(1).unwrap().to_string()
+            } else {
+                m.to_string()
+            }
+        }),
         manufacturer: None,
         product: None,
         #[cfg(feature = "usbportinfo-interface")]
@@ -326,7 +333,7 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.vid, 0x1D50);
     assert_eq!(info.pid, 0x6018);
     // FIXME: The 'serial number' as reported by the HWID likely needs some review
-    assert_eq!(info.serial_number, Some("6".to_string()));
+    assert_eq!(info.serial_number, Some("A694CA9".to_string()));
     #[cfg(feature = "usbportinfo-interface")]
     assert_eq!(info.interface, Some(2));
 
