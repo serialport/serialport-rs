@@ -11,6 +11,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Update `bitflags` dependency to 2.4.0.
   [#127](https://github.com/serialport/serialport-rs/pull/127)
+- Open serial devices with `O_CLOEXEC` (Posix). This will close the device
+  handles when starting a child process. In particular this means that a serial
+  device can be reopened after making SW update of a Tauri application.
+  [#130](https://github.com/serialport/serialport-rs/pull/130)
 
 ### Fixed
 
