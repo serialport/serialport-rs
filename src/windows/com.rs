@@ -4,10 +4,16 @@ use std::time::Duration;
 use std::{io, ptr};
 
 use winapi::shared::minwindef::*;
+use winapi::shared::ntdef::NULL;
+use winapi::shared::winerror::{ERROR_IO_PENDING, ERROR_OPERATION_ABORTED};
 use winapi::um::commapi::*;
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
+use winapi::um::ioapiset::GetOverlappedResult;
+use winapi::um::minwinbase::OVERLAPPED;
 use winapi::um::processthreadsapi::GetCurrentProcess;
+use winapi::um::synchapi::CreateEventW;
 use winapi::um::winbase::*;
 use winapi::um::winnt::{
     DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE,
@@ -19,12 +25,56 @@ use crate::{
     SerialPortBuilder, StopBits,
 };
 
+const fn duration_to_win_timeout(time: Duration) -> DWORD {
+    time.as_secs()
+        .saturating_mul(1000)
+        .saturating_add((time.subsec_nanos() as u64).saturating_div(1_000_000)) as DWORD
+}
+
+struct OverlappedHandle(pub HANDLE);
+
+impl OverlappedHandle {
+    #[inline]
+    fn new() -> io::Result<Self> {
+        match unsafe { CreateEventW(ptr::null_mut(), TRUE, FALSE, ptr::null_mut()) } {
+            NULL => Err(io::Error::last_os_error()),
+            handle => Ok(Self(handle)),
+        }
+    }
+
+    #[inline]
+    fn close(self) {
+        //drop
+    }
+
+    #[inline]
+    fn create_overlapped(&self) -> OVERLAPPED {
+        OVERLAPPED {
+            Internal: 0,
+            InternalHigh: 0,
+            u: unsafe { MaybeUninit::zeroed().assume_init() },
+            hEvent: self.0,
+        }
+    }
+}
+
+impl Drop for OverlappedHandle {
+    #[inline(always)]
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.0);
+        }
+    }
+}
+
 /// A serial port implementation for Windows COM ports
 ///
 /// The port will be closed when the value is dropped. However, this struct
 /// should not be instantiated directly by using `COMPort::open()`, instead use
 /// the cross-platform `serialport::open()` or
 /// `serialport::open_with_settings()`.
+///
+/// Port is created using `CreateFileW` syscall with following set of flags: `FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED`
 #[derive(Debug)]
 pub struct COMPort {
     handle: HANDLE,
@@ -63,7 +113,7 @@ impl COMPort {
                 0,
                 ptr::null_mut(),
                 OPEN_EXISTING,
-                FILE_ATTRIBUTE_NORMAL,
+                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                 0 as HANDLE,
             )
         };
@@ -105,27 +155,28 @@ impl COMPort {
     ///
     /// This function returns an error if the serial port couldn't be cloned.
     pub fn try_clone_native(&self) -> Result<COMPort> {
-        let process_handle: HANDLE = unsafe { GetCurrentProcess() };
-        let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
-        unsafe {
+        // duplicate communications device handle
+        let mut duplicate_handle = INVALID_HANDLE_VALUE;
+        let process = unsafe { GetCurrentProcess() };
+        let res = unsafe {
             DuplicateHandle(
-                process_handle,
+                process,
                 self.handle,
-                process_handle,
-                &mut cloned_handle,
+                process,
+                &mut duplicate_handle,
                 0,
-                TRUE,
+                FALSE,
                 DUPLICATE_SAME_ACCESS,
-            );
-            if cloned_handle != INVALID_HANDLE_VALUE {
-                Ok(COMPort {
-                    handle: cloned_handle,
-                    port_name: self.port_name.clone(),
-                    timeout: self.timeout,
-                })
-            } else {
-                Err(super::error::last_os_error())
-            }
+            )
+        };
+
+        match res {
+            0 => Err(super::error::last_os_error()),
+            _ => Ok(COMPort {
+                handle: duplicate_handle,
+                port_name: self.port_name.clone(),
+                timeout: self.timeout,
+            }),
         }
     }
 
@@ -154,6 +205,33 @@ impl COMPort {
             port_name: None,
         }
     }
+
+    ///Sets COM port timeouts.
+    ///
+    ///Comparing to `SerialPort::set_timeout` which only sets `read` timeout, this function allows
+    ///to specify all available timeouts.
+    ///
+    ///- `data` - This timeout specifies how long to wait for next byte, since arrival of at least
+    ///one byte. Once timeout expires, read returns with available data.
+    ///`SerialPort::set_timeout` uses 0 which means no timeout.
+    ///- `read` - Specifies overall timeout for `read` as `SerialPort::set_timeout`
+    ///- `write` - Specifies overall timeout for `write` operations.
+    pub fn set_timeouts(&mut self, data: Duration, read: Duration, write: Duration) -> Result<()> {
+        let mut timeouts = COMMTIMEOUTS {
+            ReadIntervalTimeout: duration_to_win_timeout(data),
+            ReadTotalTimeoutMultiplier: 0,
+            ReadTotalTimeoutConstant: duration_to_win_timeout(read),
+            WriteTotalTimeoutMultiplier: 0,
+            WriteTotalTimeoutConstant: duration_to_win_timeout(write),
+        };
+
+        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
+            return Err(super::error::last_os_error());
+        }
+
+        self.timeout = read;
+        Ok(())
+    }
 }
 
 impl Drop for COMPort {
@@ -178,48 +256,88 @@ impl FromRawHandle for COMPort {
 
 impl io::Read for COMPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let mut len: DWORD = 0;
+        let mut read_size = buf.len();
 
-        match unsafe {
+        if self.timeout.as_secs() == 0 && self.timeout.subsec_nanos() == 0 {
+            //If zero timeout then make sure we can read, before proceeding
+            //Note that zero timeout will make read operation to wait until at least
+            //1 byte becomes available.
+            let bytes_to_read = self.bytes_to_read()? as usize;
+            if bytes_to_read < read_size {
+                read_size = bytes_to_read;
+            }
+            if read_size == 0 {
+                return Ok(0);
+            }
+        }
+
+        let evt_handle = OverlappedHandle::new()?;
+        let mut overlapped = evt_handle.create_overlapped();
+        let mut len: DWORD = 0;
+        let read_result = unsafe {
             ReadFile(
                 self.handle,
                 buf.as_mut_ptr() as LPVOID,
-                buf.len() as DWORD,
+                read_size as DWORD,
                 &mut len,
-                ptr::null_mut(),
+                &mut overlapped,
             )
-        } {
-            0 => Err(io::Error::last_os_error()),
-            _ => {
-                if len != 0 {
-                    Ok(len as usize)
-                } else {
-                    Err(io::Error::new(
-                        io::ErrorKind::TimedOut,
-                        "Operation timed out",
-                    ))
-                }
-            }
+        };
+        let last_error = unsafe { GetLastError() };
+        if read_result == 0
+            && last_error != ERROR_IO_PENDING
+            && last_error != ERROR_OPERATION_ABORTED
+        {
+            return Err(io::Error::last_os_error());
+        }
+        let overlapped_result =
+            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
+        evt_handle.close();
+        let last_error = unsafe { GetLastError() };
+        if overlapped_result == 0 && last_error != ERROR_OPERATION_ABORTED {
+            return Err(io::Error::last_os_error());
+        }
+        if len != 0 {
+            Ok(len as usize)
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Operation timed out",
+            ))
         }
     }
 }
 
 impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let evt_handle = OverlappedHandle::new()?;
+        let mut overlapped = evt_handle.create_overlapped();
         let mut len: DWORD = 0;
-
-        match unsafe {
+        let write_result = unsafe {
             WriteFile(
                 self.handle,
                 buf.as_ptr() as LPVOID,
                 buf.len() as DWORD,
                 &mut len,
-                ptr::null_mut(),
+                &mut overlapped,
             )
-        } {
-            0 => Err(io::Error::last_os_error()),
-            _ => Ok(len as usize),
+        };
+        let last_error = unsafe { GetLastError() };
+        if write_result == 0
+            && last_error != ERROR_IO_PENDING
+            && last_error != ERROR_OPERATION_ABORTED
+        {
+            return Err(io::Error::last_os_error());
         }
+        let overlapped_result =
+            unsafe { GetOverlappedResult(self.handle, &mut overlapped, &mut len, TRUE) };
+        evt_handle.close();
+
+        let last_error = unsafe { GetLastError() };
+        if overlapped_result == 0 && last_error != ERROR_OPERATION_ABORTED {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(len as usize)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -231,31 +349,19 @@ impl io::Write for COMPort {
 }
 
 impl SerialPort for COMPort {
+    #[inline]
     fn name(&self) -> Option<String> {
         self.port_name.clone()
     }
 
+    #[inline]
     fn timeout(&self) -> Duration {
         self.timeout
     }
 
+    #[inline]
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
-
-        let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: 0,
-            ReadTotalTimeoutMultiplier: 0,
-            ReadTotalTimeoutConstant: milliseconds as DWORD,
-            WriteTotalTimeoutMultiplier: 0,
-            WriteTotalTimeoutConstant: 0,
-        };
-
-        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
-            return Err(super::error::last_os_error());
-        }
-
-        self.timeout = timeout;
-        Ok(())
+        self.set_timeouts(Duration::from_secs(0), timeout, Duration::from_secs(0))
     }
 
     fn write_request_to_send(&mut self, level: bool) -> Result<()> {
