@@ -21,6 +21,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Fixes a bug on Linux without udev where `available_ports()` returned wrong
   device file paths.
   [#122](https://github.com/serialport/serialport-rs/pull/122)
+* Fixes a bug on Windows where some USB device serial numbers were truncated.
+  [#131](https://github.com/serialport/serialport-rs/pull/131)
 
 ### Removed
 
