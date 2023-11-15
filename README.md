@@ -107,7 +107,7 @@ can help debug software or hardware errors.
 Dependencies
 ============
 
-Rust versions 1.36.0 and higher are supported.
+Rust versions 1.46.0 and higher are supported.
 
 For GNU Linux `pkg-config` headers are required:
 
