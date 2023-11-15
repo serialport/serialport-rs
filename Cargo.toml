@@ -1,7 +1,10 @@
 [package]
 name = "serialport"
-version = "4.0.1"
-authors = ["Bryant Mairs <bryant@mai.rs>"]
+version = "4.1.0"
+authors = [
+    "Bryant Mairs <bryant@mai.rs>",
+    "Jesse Braham <jesse@beta7.io>",
+]
 edition = "2021"
 rust-version = "1.56"
 description = "A cross-platform low-level serial port library"
@@ -25,7 +28,7 @@ IOKit-sys = "0.1.5"
 mach = "0.3.2"
 
 [target."cfg(windows)".dependencies]
-regex = "1.5.4"
+regex = "1.5.5"
 
 [target."cfg(windows)".dependencies.winapi]
 version = "0.3.9"
@@ -35,7 +38,7 @@ features = [
 ]
 
 [dev-dependencies]
-clap = "3.0.14"
+clap = "3.1.6"
 
 [features]
 default = ["libudev"]
