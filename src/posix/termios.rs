@@ -110,7 +110,6 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) ->
     Ok(())
 }
 
-
 #[cfg(any(
     target_os = "macos",
     target_os = "dragonflybsd",
