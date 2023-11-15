@@ -6,15 +6,15 @@ use clap::{App, AppSettings, Arg};
 fn main() {
     let matches = App::new("Serialport Example - Receive Data")
         .about("Reads data from a serial port and echoes it to stdout")
-        .setting(AppSettings::DisableVersion)
+        .setting(AppSettings::DisableVersionFlag)
         .arg(
-            Arg::with_name("port")
+            Arg::new("port")
                 .help("The device path to a serial port")
                 .use_delimiter(false)
                 .required(true),
         )
         .arg(
-            Arg::with_name("baud")
+            Arg::new("baud")
                 .help("The baud rate to connect at")
                 .use_delimiter(false)
                 .required(true)
@@ -47,7 +47,7 @@ fn main() {
     }
 }
 
-fn valid_baud(val: String) -> Result<(), String> {
+fn valid_baud(val: &str) -> Result<(), String> {
     val.parse::<u32>()
         .map(|_| ())
         .map_err(|_| format!("Invalid baud rate '{}' specified", val))
