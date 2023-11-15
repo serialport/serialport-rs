@@ -22,6 +22,12 @@
     missing_copy_implementations,
     unused
 )]
+// Document feature-gated elements on docs.rs. See
+// https://doc.rust-lang.org/rustdoc/unstable-features.html?highlight=doc(cfg#doccfg-recording-what-platforms-or-features-are-required-for-code-to-be-present
+// and
+// https://doc.rust-lang.org/rustdoc/unstable-features.html#doc_auto_cfg-automatically-generate-doccfg
+// for details.
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
@@ -72,7 +78,7 @@ pub enum ErrorKind {
 }
 
 /// An error type for serial port operations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     /// The kind of error this is
     pub kind: ErrorKind,
@@ -128,6 +134,7 @@ impl From<Error> for io::Error {
 
 /// Number of bits per character
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DataBits {
     /// 5 bits per character
     Five,
@@ -142,6 +149,17 @@ pub enum DataBits {
     Eight,
 }
 
+impl fmt::Display for DataBits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            DataBits::Five => write!(f, "Five"),
+            DataBits::Six => write!(f, "Six"),
+            DataBits::Seven => write!(f, "Seven"),
+            DataBits::Eight => write!(f, "Eight"),
+        }
+    }
+}
+
 /// Parity checking modes
 ///
 /// When parity checking is enabled (`Odd` or `Even`) an extra bit is transmitted with
@@ -152,6 +170,7 @@ pub enum DataBits {
 /// Parity checking is disabled by setting `None`, in which case parity bits are not
 /// transmitted.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -163,10 +182,21 @@ pub enum Parity {
     Even,
 }
 
+impl fmt::Display for Parity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Parity::None => write!(f, "None"),
+            Parity::Odd => write!(f, "Odd"),
+            Parity::Even => write!(f, "Even"),
+        }
+    }
+}
+
 /// Number of stop bits
 ///
 /// Stop bits are transmitted after every character.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum StopBits {
     /// One stop bit.
     One,
@@ -175,8 +205,18 @@ pub enum StopBits {
     Two,
 }
 
+impl fmt::Display for StopBits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            StopBits::One => write!(f, "One"),
+            StopBits::Two => write!(f, "Two"),
+        }
+    }
+}
+
 /// Flow control modes
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FlowControl {
     /// No flow control.
     None,
@@ -188,10 +228,21 @@ pub enum FlowControl {
     Hardware,
 }
 
+impl fmt::Display for FlowControl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            FlowControl::None => write!(f, "None"),
+            FlowControl::Software => write!(f, "Software"),
+            FlowControl::Hardware => write!(f, "Hardware"),
+        }
+    }
+}
+
 /// Specifies which buffer or buffers to purge when calling [`clear`]
 ///
 /// [`clear`]: trait.SerialPort.html#tymethod.clear
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ClearBuffer {
     /// Specify to clear data received but not read
     Input,
@@ -615,8 +666,36 @@ impl<T: SerialPort> SerialPort for &mut T {
     }
 }
 
+impl fmt::Debug for dyn SerialPort {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SerialPort ( ")?;
+
+        if let Some(n) = self.name().as_ref() {
+            write!(f, "name: {} ", n)?;
+        };
+        if let Ok(b) = self.baud_rate().as_ref() {
+            write!(f, "baud_rate: {} ", b)?;
+        };
+        if let Ok(b) = self.data_bits().as_ref() {
+            write!(f, "data_bits: {} ", b)?;
+        };
+        if let Ok(c) = self.flow_control().as_ref() {
+            write!(f, "flow_control: {} ", c)?;
+        }
+        if let Ok(p) = self.parity().as_ref() {
+            write!(f, "parity: {} ", p)?;
+        }
+        if let Ok(s) = self.stop_bits().as_ref() {
+            write!(f, "stop_bits: {} ", s)?;
+        }
+
+        write!(f, ")")
+    }
+}
+
 /// Contains all possible USB information about a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UsbPortInfo {
     /// Vendor ID
     pub vid: u16,
@@ -628,10 +707,14 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
+    /// Interface (id number for multiplexed devices)
+    #[cfg(feature = "usbportinfo-interface")]
+    pub interface: Option<u8>,
 }
 
 /// The physical type of a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SerialPortType {
     /// The serial port is connected via USB
     UsbPort(UsbPortInfo),
@@ -645,6 +728,7 @@ pub enum SerialPortType {
 
 /// A device-independent implementation of serial port information
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,

@@ -31,7 +31,8 @@ use crate::UsbPortInfo;
     target_os = "ios",
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
     target_os = "macos",
-    target_os = "netbsd"
+    target_os = "netbsd",
+    target_os = "openbsd",
 ))]
 use crate::{Error, ErrorKind};
 use crate::{Result, SerialPortInfo};
@@ -49,10 +50,16 @@ fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
 /// string is comprised of hex digits and the integer value of this will be returned as  a u16.
 /// If the property value doesn't exist or doesn't contain valid hex digits, then an error
 /// will be returned.
+/// This function uses a built-in type's `from_str_radix` to implementation to perform the
+/// actual conversion.
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-fn udev_hex_property_as_u16(d: &libudev::Device, key: &str) -> Result<u16> {
+fn udev_hex_property_as_int<T>(
+    d: &libudev::Device,
+    key: &str,
+    from_str_radix: &dyn Fn(&str, u32) -> std::result::Result<T, std::num::ParseIntError>,
+) -> Result<T> {
     if let Some(hex_str) = d.property_value(key).and_then(OsStr::to_str) {
-        if let Ok(num) = u16::from_str_radix(hex_str, 16) {
+        if let Ok(num) = from_str_radix(hex_str, 16) {
             Ok(num)
         } else {
             Err(Error::new(ErrorKind::Unknown, "value not hex string"))
@@ -68,16 +75,47 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
             Ok(SerialPortType::UsbPort(UsbPortInfo {
-                vid: udev_hex_property_as_u16(d, "ID_VENDOR_ID")?,
-                pid: udev_hex_property_as_u16(d, "ID_MODEL_ID")?,
+                vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
+                pid: udev_hex_property_as_int(d, "ID_MODEL_ID", &u16::from_str_radix)?,
                 serial_number,
                 manufacturer: udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE")
                     .or_else(|| udev_property_as_string(d, "ID_VENDOR")),
                 product: udev_property_as_string(d, "ID_MODEL_FROM_DATABASE")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL")),
+                #[cfg(feature = "usbportinfo-interface")]
+                interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
+                    .ok(),
             }))
         }
-        Some("pci") => Ok(SerialPortType::PciPort),
+        Some("pci") => {
+            let usb_properties = vec![
+                d.property_value("ID_USB_VENDOR_ID"),
+                d.property_value("ID_USB_MODEL_ID"),
+                d.property_value("ID_USB_VENDOR"),
+                d.property_value("ID_USB_MODEL"),
+                d.property_value("ID_USB_SERIAL_SHORT"),
+            ]
+            .into_iter()
+            .collect::<Option<Vec<_>>>();
+            if usb_properties.is_some() {
+                Ok(SerialPortType::UsbPort(UsbPortInfo {
+                    vid: udev_hex_property_as_int(d, "ID_USB_VENDOR_ID", &u16::from_str_radix)?,
+                    pid: udev_hex_property_as_int(d, "ID_USB_MODEL_ID", &u16::from_str_radix)?,
+                    serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
+                    manufacturer: udev_property_as_string(d, "ID_USB_VENDOR"),
+                    product: udev_property_as_string(d, "ID_USB_MODEL"),
+                    #[cfg(feature = "usbportinfo-interface")]
+                    interface: udev_hex_property_as_int(
+                        d,
+                        "ID_USB_INTERFACE_NUM",
+                        &u8::from_str_radix,
+                    )
+                    .ok(),
+                }))
+            } else {
+                Ok(SerialPortType::PciPort)
+            }
+        }
         _ => Ok(SerialPortType::Unknown),
     }
 }
@@ -88,7 +126,7 @@ fn get_parent_device_by_type(
     parent_type: *const c_char,
 ) -> Option<io_registry_entry_t> {
     let parent_type = unsafe { CStr::from_ptr(parent_type) };
-    use mach::kern_return::KERN_SUCCESS;
+    use mach2::kern_return::KERN_SUCCESS;
     let mut device = device;
     loop {
         let mut class_name = MaybeUninit::<[c_char; 128]>::uninit();
@@ -124,11 +162,25 @@ fn get_int_property(
             prop_str.as_ptr(),
             kCFStringEncodingUTF8,
         );
+        let _key_guard = scopeguard::guard((), |_| {
+            CFRelease(key as *const c_void);
+        });
+
         let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
         if container.is_null() {
             return None;
         }
-        let num = match cf_number_type {
+        let _container_guard = scopeguard::guard((), |_| {
+            CFRelease(container);
+        });
+
+        match cf_number_type {
+            kCFNumberSInt8Type => {
+                let mut num: u8 = 0;
+                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
+                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
+                Some(num as u32)
+            }
             kCFNumberSInt16Type => {
                 let mut num: u16 = 0;
                 let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
@@ -142,10 +194,7 @@ fn get_int_property(
                 Some(num)
             }
             _ => None,
-        };
-        CFRelease(container);
-
-        num
+        }
     }
 }
 
@@ -159,19 +208,30 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
             prop_str.as_ptr(),
             kCFStringEncodingUTF8,
         );
+        let _key_guard = scopeguard::guard((), |_| {
+            CFRelease(key as *const c_void);
+        });
+
         let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
         if container.is_null() {
             return None;
         }
-
-        let str_ptr = CFStringGetCStringPtr(container as CFStringRef, kCFStringEncodingMacRoman);
-        if str_ptr.is_null() {
+        let _container_guard = scopeguard::guard((), |_| {
             CFRelease(container);
-            return None;
-        }
-        let opt_str = CStr::from_ptr(str_ptr).to_str().ok().map(String::from);
+        });
 
-        CFRelease(container);
+        let mut buf = Vec::with_capacity(256);
+        let result = CFStringGetCString(
+            container as CFStringRef,
+            buf.as_mut_ptr(),
+            buf.capacity() as i64,
+            kCFStringEncodingUTF8,
+        );
+        let opt_str = if result != 0 {
+            CStr::from_ptr(buf.as_ptr()).to_str().ok().map(String::from)
+        } else {
+            None
+        };
 
         opt_str
     }
@@ -196,6 +256,15 @@ fn port_type(service: io_object_t) -> SerialPortType {
             serial_number: get_string_property(usb_device, "USB Serial Number"),
             manufacturer: get_string_property(usb_device, "USB Vendor Name"),
             product: get_string_property(usb_device, "USB Product Name"),
+            // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
+            // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
+            // we will lookup the interface number using the same method. See:
+            //
+            // https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_developer_driverkit_transport_usb
+            // https://developer.apple.com/library/archive/documentation/DeviceDrivers/Conceptual/USBBook/USBOverview/USBOverview.html#//apple_ref/doc/uid/TP40002644-BBCEACAJ
+            #[cfg(feature = "usbportinfo-interface")]
+            interface: get_int_property(usb_device, "bInterfaceNumber", kCFNumberSInt8Type)
+                .map(|x| x as u8),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
         SerialPortType::BluetoothPort
@@ -209,8 +278,8 @@ cfg_if! {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-            use mach::kern_return::KERN_SUCCESS;
-            use mach::port::{mach_port_t, MACH_PORT_NULL};
+            use mach2::kern_return::KERN_SUCCESS;
+            use mach2::port::{mach_port_t, MACH_PORT_NULL};
 
             let mut vec = Vec::new();
             unsafe {
@@ -222,6 +291,9 @@ cfg_if! {
                         "IOServiceMatching returned a NULL dictionary.",
                     ));
                 }
+                let _classes_to_match_guard = scopeguard::guard((), |_| {
+                    CFRelease(classes_to_match as *const c_void);
+                });
 
                 // Populate the search dictionary with a single key/value pair indicating that we're
                 // searching for serial devices matching the RS232 device type.
@@ -236,6 +308,10 @@ cfg_if! {
                         "Failed to allocate key string.",
                     ));
                 }
+                let _key_guard = scopeguard::guard((), |_| {
+                    CFRelease(key as *const c_void);
+                });
+
                 let value = CFStringCreateWithCString(
                     kCFAllocatorDefault,
                     kIOSerialBSDAllTypes(),
@@ -247,6 +323,10 @@ cfg_if! {
                         "Failed to allocate value string.",
                     ));
                 }
+                let _value_guard = scopeguard::guard((), |_| {
+                    CFRelease(value as *const c_void);
+                });
+
                 CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
 
                 // Get an interface to IOKit
@@ -263,7 +343,7 @@ cfg_if! {
                 let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
-                    classes_to_match,
+                    CFRetain(classes_to_match as *const c_void) as *const __CFDictionary,
                     matching_services.as_mut_ptr(),
                 );
                 if kern_result != KERN_SUCCESS {
@@ -273,15 +353,20 @@ cfg_if! {
                     ));
                 }
                 let matching_services = matching_services.assume_init();
+                let _matching_services_guard = scopeguard::guard((), |_| {
+                    IOObjectRelease(matching_services);
+                });
 
                 loop {
                     // Grab the next result.
                     let modem_service = IOIteratorNext(matching_services);
-
                     // Break out if we've reached the end of the iterator
                     if modem_service == MACH_PORT_NULL {
                         break;
                     }
+                    let _modem_service_guard = scopeguard::guard((), |_| {
+                        IOObjectRelease(modem_service);
+                    });
 
                     // Fetch all properties of the current search result item.
                     let mut props = MaybeUninit::uninit();
@@ -291,43 +376,49 @@ cfg_if! {
                         kCFAllocatorDefault,
                         0,
                     );
+                    let _props_guard = scopeguard::guard((), |_| {
+                        CFRelease(props.assume_init() as *const c_void);
+                    });
+
                     if result == KERN_SUCCESS {
-                        // We only care about the IODialinDevice, which is the device path for this port.
-                        let key = CString::new("IODialinDevice").unwrap();
-                        let key_cfstring = CFStringCreateWithCString(
-                            kCFAllocatorDefault,
-                            key.as_ptr(),
-                            kCFStringEncodingUTF8,
-                        );
-                        let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
-
-                        let type_id = CFGetTypeID(value);
-                        if type_id == CFStringGetTypeID() {
-                            let mut buf = Vec::with_capacity(256);
-
-                            CFStringGetCString(
-                                value as CFStringRef,
-                                buf.as_mut_ptr(),
-                                256,
+                        for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
+                            let key = CString::new(*key).unwrap();
+                            let key_cfstring = CFStringCreateWithCString(
+                                kCFAllocatorDefault,
+                                key.as_ptr(),
                                 kCFStringEncodingUTF8,
                             );
-                            let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
-                            vec.push(SerialPortInfo {
-                                port_name: path.to_string(),
-                                port_type: port_type(modem_service),
+                            let _key_cfstring_guard = scopeguard::guard((), |_| {
+                                CFRelease(key_cfstring as *const c_void);
                             });
-                        } else {
-                            return Err(Error::new(
-                                ErrorKind::Unknown,
-                                "Found invalid type for TypeID",
-                            ));
+
+                            let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
+
+                            let type_id = CFGetTypeID(value);
+                            if type_id == CFStringGetTypeID() {
+                                let mut buf = Vec::with_capacity(256);
+
+                                CFStringGetCString(
+                                    value as CFStringRef,
+                                    buf.as_mut_ptr(),
+                                    256,
+                                    kCFStringEncodingUTF8,
+                                );
+                                let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
+                                vec.push(SerialPortInfo {
+                                    port_name: path.to_string(),
+                                    port_type: port_type(modem_service),
+                                });
+                            } else {
+                                return Err(Error::new(
+                                    ErrorKind::Unknown,
+                                    "Found invalid type for TypeID",
+                                ));
+                            }
                         }
                     } else {
                         return Err(Error::new(ErrorKind::Unknown, format!("ERROR: {}", result)));
                     }
-
-                    // Clean up after we're done processing htis result
-                    IOObjectRelease(modem_service);
                 }
             }
             Ok(vec)

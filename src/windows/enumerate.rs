@@ -4,7 +4,6 @@ use std::{mem, ptr};
 use regex::Regex;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
-use winapi::shared::ntdef::CHAR;
 use winapi::shared::winerror::*;
 use winapi::um::cguid::GUID_NULL;
 use winapi::um::errhandlingapi::GetLastError;
@@ -76,6 +75,42 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
         }
     }
     Ok(guids)
+}
+
+/// Windows usb port information can be determined by the port's HWID string.
+///
+/// This function parses the HWID string using regex, and returns the USB port
+/// information if the hardware ID can be parsed correctly. The manufacturer
+/// and product names cannot be determined from the HWID string, so those are
+/// set as None.
+///
+/// Some HWID examples are:
+///   - MicroPython pyboard:    USB\VID_F055&PID_9802\385435603432
+///   - BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
+///   - BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
+///   - FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
+fn parse_usb_port_info(hardware_id: &str) -> Option<UsbPortInfo> {
+    let re = Regex::new(concat!(
+        r"VID_(?P<vid>[[:xdigit:]]{4})",
+        r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
+        r"(?:[&+]MI_(?P<iid>[[:xdigit:]]{2})){0,1}",
+        r"([\\+](?P<serial>\w+))?"
+    ))
+    .unwrap();
+
+    let caps = re.captures(hardware_id)?;
+
+    Some(UsbPortInfo {
+        vid: u16::from_str_radix(&caps[1], 16).ok()?,
+        pid: u16::from_str_radix(&caps[2], 16).ok()?,
+        serial_number: caps.name("serial").map(|m| m.as_str().to_string()),
+        manufacturer: None,
+        product: None,
+        #[cfg(feature = "usbportinfo-interface")]
+        interface: caps
+            .name("iid")
+            .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok()),
+    })
 }
 
 struct PortDevices {
@@ -185,90 +220,73 @@ impl PortDevice {
                 KEY_READ,
             )
         };
-        let mut port_name_buffer = [0u8; MAX_PATH];
+
+        let mut port_name_buffer = [0u16; MAX_PATH];
         let mut port_name_len = port_name_buffer.len() as DWORD;
-        let value_name = CString::new("PortName").unwrap();
+        let value_name: Vec<u16> = "PortName".encode_utf16().chain(Some(0)).collect();
+
         unsafe {
-            RegQueryValueExA(
+            RegQueryValueExW(
                 hkey,
                 value_name.as_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
-                port_name_buffer.as_mut_ptr(),
+                port_name_buffer.as_mut_ptr() as *mut u8,
                 &mut port_name_len,
             )
         };
         unsafe { RegCloseKey(hkey) };
 
-        let mut port_name = &port_name_buffer[0..port_name_len as usize];
+        let port_name = &port_name_buffer[0..port_name_len as usize];
 
-        // Strip any nul bytes from the end of the buffer
-        while port_name.last().map_or(false, |c| *c == b'\0') {
-            port_name = &port_name[..port_name.len() - 1];
-        }
-
-        String::from_utf8_lossy(port_name).into_owned()
+        String::from_utf16_lossy(port_name)
+            .trim_end_matches(0 as char)
+            .to_string()
     }
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
     pub fn port_type(&mut self) -> SerialPortType {
-        if let Some(hardware_id) = self.instance_id() {
-            // Some examples of what the hardware_id looks like:
-            //  MicroPython pyboard:    USB\VID_F055&PID_9802\385435603432
-            //  BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
-            //  BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
-            //  FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
-
-            let re = Regex::new(concat!(
-                r"VID_(?P<vid>[[:xdigit:]]{4})",
-                r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
-                r"([\\+](?P<serial>\w+))?"
-            ))
-            .unwrap();
-            if let Some(caps) = re.captures(&hardware_id) {
-                if let Ok(vid) = u16::from_str_radix(&caps[1], 16) {
-                    if let Ok(pid) = u16::from_str_radix(&caps[2], 16) {
-                        return SerialPortType::UsbPort(UsbPortInfo {
-                            vid: vid,
-                            pid: pid,
-                            serial_number: caps.get(4).map(|m| m.as_str().to_string()),
-                            manufacturer: self.property(SPDRP_MFG),
-                            product: self.property(SPDRP_FRIENDLYNAME),
-                        });
-                    }
-                }
-            }
-        }
-        SerialPortType::Unknown
+        self.instance_id()
+            .and_then(|s| parse_usb_port_info(&s))
+            .map(|mut info| {
+                info.manufacturer = self.property(SPDRP_MFG);
+                info.product = self.property(SPDRP_FRIENDLYNAME);
+                SerialPortType::UsbPort(info)
+            })
+            .unwrap_or(SerialPortType::Unknown)
     }
 
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
     fn property(&mut self, property_id: DWORD) -> Option<String> {
-        let mut result_buf: [CHAR; MAX_PATH] = [0; MAX_PATH];
+        let mut property_buf = [0u16; MAX_PATH];
+
         let res = unsafe {
-            SetupDiGetDeviceRegistryPropertyA(
+            SetupDiGetDeviceRegistryPropertyW(
                 self.hdi,
                 &mut self.devinfo_data,
                 property_id,
                 ptr::null_mut(),
-                result_buf.as_mut_ptr() as PBYTE,
-                (result_buf.len() - 1) as DWORD,
+                property_buf.as_mut_ptr() as PBYTE,
+                property_buf.len() as DWORD,
                 ptr::null_mut(),
             )
         };
+
         if res == FALSE {
             if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
                 return None;
             }
         }
-        let end_of_buffer = result_buf.len() - 1;
-        result_buf[end_of_buffer] = 0;
-        Some(unsafe {
-            CStr::from_ptr(result_buf.as_ptr())
-                .to_string_lossy()
-                .into_owned()
-        })
+
+        // Using the unicode version of 'SetupDiGetDeviceRegistryProperty' seems to report the
+        // entire mfg registry string. This typically includes some driver information that we should discard.
+        // Example string: 'FTDI5.inf,%ftdi%;FTDI'
+        String::from_utf16_lossy(&property_buf)
+            .trim_end_matches(0 as char)
+            .split(';')
+            .last()
+            .map(str::to_string)
     }
 }
 
@@ -298,4 +316,35 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
         }
     }
     Ok(ports)
+}
+
+#[test]
+fn test_parsing_usb_port_information() {
+    let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
+    let info = parse_usb_port_info(bm_uart_hwid).unwrap();
+
+    assert_eq!(info.vid, 0x1D50);
+    assert_eq!(info.pid, 0x6018);
+    // FIXME: The 'serial number' as reported by the HWID likely needs some review
+    assert_eq!(info.serial_number, Some("6".to_string()));
+    #[cfg(feature = "usbportinfo-interface")]
+    assert_eq!(info.interface, Some(2));
+
+    let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
+    let info = parse_usb_port_info(ftdi_serial_hwid).unwrap();
+
+    assert_eq!(info.vid, 0x0403);
+    assert_eq!(info.pid, 0x6001);
+    assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
+    #[cfg(feature = "usbportinfo-interface")]
+    assert_eq!(info.interface, None);
+
+    let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
+    let info = parse_usb_port_info(pyboard_hwid).unwrap();
+
+    assert_eq!(info.vid, 0xF055);
+    assert_eq!(info.pid, 0x9802);
+    assert_eq!(info.serial_number, Some("385435603432".to_string()));
+    #[cfg(feature = "usbportinfo-interface")]
+    assert_eq!(info.interface, None);
 }

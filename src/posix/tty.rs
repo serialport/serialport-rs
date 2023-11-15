@@ -37,6 +37,21 @@ fn close(fd: RawFd) {
 /// should not be instantiated directly by using `TTYPort::open()`, instead use
 /// the cross-platform `serialport::open()` or
 /// `serialport::open_with_settings()`.
+///
+/// Note: on macOS, when connecting to a pseudo-terminal (`pty` opened via
+/// `posix_openpt`), the `baud_rate` should be set to 0; this will be used to
+/// explicitly _skip_ an attempt to set the baud rate of the file descriptor
+/// that would otherwise happen via an `ioctl` command.
+///
+/// ```
+/// use serialport::{TTYPort, SerialPort};
+///
+/// let (mut master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
+///
+/// // ... elsewhere
+///
+/// let mut port = TTYPort::open(&serialport::new(slave.name().unwrap(), 0)).expect("unable to open");
+/// ```
 #[derive(Debug)]
 pub struct TTYPort {
     fd: RawFd,
@@ -64,7 +79,7 @@ struct OwnedFd(RawFd);
 
 impl Drop for OwnedFd {
     fn drop(&mut self) {
-        let _ = close(self.0);
+        close(self.0);
     }
 }
 
@@ -100,6 +115,11 @@ impl TTYPort {
             OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
             nix::sys::stat::Mode::empty(),
         )?);
+
+        // Try to claim exclusive access to the port. This is performed even
+        // if the port will later be set as non-exclusive, in order to respect
+        // other applications that may have an exclusive port lock.
+        ioctl::tiocexcl(fd.0)?;
 
         let mut termios = MaybeUninit::uninit();
         nix::errno::Errno::result(unsafe { tcgetattr(fd.0, termios.as_mut_ptr()) })?;
@@ -154,7 +174,7 @@ impl TTYPort {
         Ok(TTYPort {
             fd: fd.into_raw(),
             timeout: builder.timeout,
-            exclusive: false,
+            exclusive: true,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: builder.baud_rate,
@@ -186,12 +206,9 @@ impl TTYPort {
             ioctl::tiocnxcl(self.fd)
         };
 
-        if let Err(err) = setting_result {
-            Err(err)
-        } else {
-            self.exclusive = exclusive;
-            Ok(())
-        }
+        setting_result?;
+        self.exclusive = exclusive;
+        Ok(())
     }
 
     fn set_pin(&mut self, pin: ioctl::SerialLines, level: bool) -> Result<()> {
@@ -439,7 +456,7 @@ impl SerialPort for TTYPort {
 
         assert!(termios2.c_ospeed == termios2.c_ispeed);
 
-        Ok(termios2.c_ospeed as u32)
+        Ok(termios2.c_ospeed)
     }
 
     /// Returns the port's baud rate

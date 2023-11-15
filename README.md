@@ -4,12 +4,21 @@ Fork of [serialport-rs](https://gitlab.com/susurrus/serialport-rs) with addition
 ----
 
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
-[![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/crate/serialport)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/serialport/serialport-rs/CI?label=CI&logo=github&style=flat-square)
+[![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/serialport)
+[![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/serialport/serialport-rs/ci.yaml?branch=main&logo=github)](https://github.com/serialport/serialport-rs/actions)
+[![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.56.1-blue?logo=rust)](https://blog.rust-lang.org/2021/11/01/Rust-1.56.1.html)
 
-> **Note:** This is a fork of the original [serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab. Please note there have been some changes to both the supported targets and which Tier some targets are in, and there may be further changes to this made. Additionally, all relevant issues have been migrated to this repository.
+> **Note:** This is a fork of the original
+[serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab. Please note there have
+been some changes to both the supported targets and which tier some targets are in, and there may be
+further changes to this made. Additionally, all relevant issues have been migrated to this
+repository.
 
-Join the discussion on Matrix! [#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
+Join the discussion on Matrix!
+[#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
+
+**This project is looking for maintainers! If you are interested please let us know on Matrix, or by
+[creating a discussion](https://github.com/serialport/serialport-rs/discussions/new).**
 
 # Introduction
 
@@ -22,7 +31,7 @@ For async I/O functionality, see the [mio-serial](https://github.com/berkowski/m
 # Overview
 
 The library exposes cross-platform serial port functionality through the `SerialPort` trait. This
-library is structured to make this the simplest API to use to encourate cross-platform development
+library is structured to make this the simplest API to use to encourage cross-platform development
 by default. Working with the resultant `Box<dyn SerialPort>` type is therefore recommended. To
 expose additional platform-specific functionality use the platform-specific structs directly:
 `TTYPort` for POSIX systems and `COMPort` for Windows.
@@ -36,6 +45,9 @@ can be removed by disabling the default `libudev` feature:
 ```shell
 $ cargo build --no-default-features
 ```
+
+It should also be noted that on macOS, both the Callout (`/dev/cu.*`) and Dial-in ports
+(`/dev/tty.*`) ports are enumerated, resulting in two available ports per connected serial device.
 
 # Usage
 
@@ -89,35 +101,40 @@ port is done when the `SerialPort` object is `Drop`ed either implicitly or expli
 There are several included examples, which help demonstrate the functionality of this library and
 can help debug software or hardware errors.
 
-- _clear_input_buffer_ - Demonstrates querying and clearing the driver input buffer
-- _clear_output_buffer_ - Demonstrates querying and clearing the driver output buffer
+- _clear_input_buffer_ - Demonstrates querying and clearing the driver input buffer.
+- _clear_output_buffer_ - Demonstrates querying and clearing the driver output buffer.
 - _duplex_ - Tests that a port can be successfully cloned.
 - _hardware_check_ - Checks port/driver functionality for a single port or a pair of ports connected
   to each other.
 - _list_ports_ - Lists available serial ports.
 - _pseudo_terminal_ - Unix only. Tests that a pseudo-terminal pair can be created.
 - _receive_data_ - Output data received on a port.
-- _transmit_ - Transmits data regularly on a port with various port configurations. Useful for debugging.
+- _transmit_ - Transmits data regularly on a port with various port configurations. Useful for
+  debugging.
 
 # Dependencies
 
-Rust versions 1.56.0 and higher are supported.
+Rust versions 1.56.1 and higher are supported.
 
-For GNU Linux `pkg-config` headers are required:
+For GNU/Linux `pkg-config` headers are required:
 
 - Ubuntu: `sudo apt install pkg-config`
 - Fedora: `sudo dnf install pkgconf-pkg-config`
 
 For other distros they may provide `pkg-config` through the `pkgconf` package instead.
 
-For GNU Linux `libudev` headers are required as well (unless you disable the default `libudev` feature):
+For GNU/Linux `libudev` headers are required as well (unless you disable the default `libudev`
+feature):
 
 - Ubuntu: `sudo apt install libudev-dev`
 - Fedora: `sudo dnf install systemd-devel`
 
 # Platform Support
 
-Builds and tests for all supported targets are run in CI. Failures of either block the inclusion of new code. This library should be compatible with additional targets not listed below, but no guarantees are made. Additional platforms may be added in the future if there is a need and/or demand.
+Builds and tests for all supported targets are run in CI. Failures of either block the inclusion of
+new code. This library should be compatible with additional targets not listed below, but no
+guarantees are made. Additional platforms may be added in the future if there is a need and/or
+demand.
 
 - Android
   - `arm-linux-androideabi` (no serial enumeration)
@@ -131,7 +148,7 @@ Builds and tests for all supported targets are run in CI. Failures of either blo
   - `i686-unknown-linux-musl`
   - `x86_64-unknown-linux-gnu`
   - `x86_64-unknown-linux-musl`
-- MacOS/iOS
+- macOS/iOS
   - `aarch64-apple-darwin`
   - `aarch64-apple-ios`
   - `x86_64-apple-darwin`
@@ -145,14 +162,12 @@ Builds and tests for all supported targets are run in CI. Failures of either blo
 
 # Hardware Support
 
-This library has been developed to support all serial port devices across all
-supported platforms. To determine how well your platform is supported, please
-run the `hardware_check` example provided with this library. It will test the
-driver to confirm that all possible settings are supported for a port.
-Additionally, it will test that data transmission is correct for those settings
-if you have two ports physically configured to communicate. If you experience
-problems with your devices, please file a bug and identify the hardware, OS,
-and driver in use.
+This library has been developed to support all serial port devices across all supported platforms.
+To determine how well your platform is supported, please run the `hardware_check` example provided
+with this library. It will test the driver to confirm that all possible settings are supported for a
+port. Additionally, it will test that data transmission is correct for those settings if you have
+two ports physically configured to communicate. If you experience problems with your devices, please
+file a bug and identify the hardware, OS, and driver in use.
 
 Known issues:
 
@@ -166,7 +181,7 @@ Licensed under the [Mozilla Public License, version 2.0](https://www.mozilla.org
 
 # Contributing
 
-Please open an issue or merge request on GitLab to contibute. Code contributions submitted for
+Please open an issue or pull request on GitHub to contribute. Code contributions submitted for
 inclusion in the work by you, as defined in the MPL2.0 license, shall be licensed as the above
 without any additional terms or conditions.
 
@@ -175,4 +190,5 @@ without any additional terms or conditions.
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from.
 
-Additional thanks to susurrus and all other contributors to the original [serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab.
+Additional thanks to susurrus and all other contributors to the original
+[serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab.
