@@ -97,7 +97,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
 }
 
 #[cfg(target_os = "ios")]
-pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, _baud_rate: u32) -> Result<()> {
+pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) -> Result<()> {
     let res = unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) };
     nix::errno::Errno::result(res)?;
 

@@ -172,7 +172,7 @@ impl TTYPort {
         #[cfg(not(target_os = "ios"))]
         termios::set_termios(fd.0, &termios)?;
         #[cfg(target_os = "ios")]
-        termios::set_termios(fd, &termios, builder.baud_rate)?;
+        termios::set_termios(fd.0, &termios, builder.baud_rate)?;
 
         // Return the final port object
         Ok(TTYPort {
