@@ -99,6 +99,10 @@ impl TTYPort {
     /// Ports are opened in exclusive mode by default. If this is undesireable
     /// behavior, use `TTYPort::set_exclusive(false)`.
     ///
+    /// If the port settings differ from the default settings, characters received
+    /// before the new settings become active may be garbled. To remove those
+    /// from the receive buffer, call `TTYPort::clear(ClearBuffer::Input)`.
+    ///
     /// ## Errors
     ///
     /// * `NoDevice` if the device could not be opened. This could indicate that

@@ -1,8 +1,3 @@
-Fork of [serialport-rs](https://gitlab.com/susurrus/serialport-rs) with additional patches.
-====
-
-----
-
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/serialport)
 [![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/serialport/serialport-rs/ci.yaml?branch=main&logo=github)](https://github.com/serialport/serialport-rs/actions)
