@@ -1,0 +1,172 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------------------------------
+  # LINT
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lint | install dependencies
+        run: |
+          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
+          sudo apt-get -qq update
+          sudo apt install -qq -y libudev-dev
+
+      - name: Lint | checkout
+        uses: actions/checkout@v2
+
+      - name: Lint | install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          default: true
+          components: clippy, rustfmt
+
+      - name: Lint | rust-cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Lint | check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
+      - name: Lint | clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --all-features
+
+  # --------------------------------------------------------------------------
+  # MSRV
+
+  msrv:
+    uses: ./.github/workflows/build.yaml
+    with:
+      extra_packages: libudev-dev
+      target: x86_64-unknown-linux-gnu
+      toolchain: "1.56.0"
+
+  # --------------------------------------------------------------------------
+  # BUILD
+
+  aarch64-apple-darwin:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_tests: true
+      runs_on: macos-latest
+      target: aarch64-apple-darwin
+
+  aarch64-apple-ios:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_tests: true
+      runs_on: macos-latest
+      target: aarch64-apple-ios
+
+  aarch64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      extra_packages: libudev-dev gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+      target: aarch64-unknown-linux-gnu
+
+  aarch64-unknown-linux-musl:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_tests: true
+      extra_packages: gcc-aarch64-linux-gnu
+      target: aarch64-unknown-linux-musl
+
+  arm-linux-androideabi:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      target: arm-linux-androideabi
+
+  armv7-linux-androideabi:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      target: armv7-linux-androideabi
+
+  i686-pc-windows-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-2019
+      target: i686-pc-windows-gnu
+
+  i686-pc-windows-msvc:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-2019
+      target: i686-pc-windows-msvc
+
+  i686-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      extra_packages: libudev-dev gcc-multilib
+      target: i686-unknown-linux-gnu
+
+  i686-unknown-linux-musl:
+    uses: ./.github/workflows/build.yaml
+    with:
+      extra_packages: libudev-dev gcc-multilib
+      target: i686-unknown-linux-musl
+
+  x86_64-apple-darwin:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: macos-latest
+      target: x86_64-apple-darwin
+
+  x86_64-pc-windows-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-2019
+      target: x86_64-pc-windows-gnu
+
+  x86_64-pc-windows-msvc:
+    uses: ./.github/workflows/build.yaml
+    with:
+      runs_on: windows-2019
+      target: x86_64-pc-windows-msvc
+
+  x86_64-unknown-freebsd:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      target: x86_64-unknown-freebsd
+
+  x86_64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      extra_packages: libudev-dev
+      target: x86_64-unknown-linux-gnu
+
+  x86_64-unknown-linux-musl:
+    uses: ./.github/workflows/build.yaml
+    with:
+      target: x86_64-unknown-linux-musl
+
+  x86_64-unknown-netbsd:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      target: x86_64-unknown-netbsd

@@ -1,0 +1,97 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      disable_extra_builds:
+        type: boolean
+      disable_tests:
+        type: boolean
+      extra_packages:
+        type: string
+      runs_on:
+        default: ubuntu-latest
+        type: string
+      target:
+        required: true
+        type: string
+      toolchain:
+        default: stable
+        type: string
+
+env:
+  # While we could define these on a per-job basis, there's no harm in simply
+  # defining all environment variables for each job. This has the added benefit
+  # of keeping them all together in one place.
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+  CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_GNUEABI_LINKER: arm-linux-gnueabi-gcc
+  CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-gnueabi-gcc
+  CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
+  CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER: arm-linux-gnueabihf-gcc
+  CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
+  CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER: arm-linux-gnueabi-gcc
+  CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER: arm-linux-gnueabi-gcc
+  CARGO_TARGET_MIPS64EL_UNKNOWN_LINUX_GNUABI64_LINKER: mips64el-linux-gnuabi64-gcc
+  CARGO_TARGET_MIPS64_UNKNOWN_LINUX_GNUABI64_LINKER: mips64-linux-gnuabi64-gcc
+  CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_GNU_LINKER: mipsel-linux-gnu-gcc
+  CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_MUSL_LINKER: mipsel-linux-gnu-gcc
+  CARGO_TARGET_MIPS_UNKNOWN_LINUX_GNU_LINKER: mips-linux-gnu-gcc
+  CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER: mips-linux-gnu-gcc
+  CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER: powerpc64le-linux-gnu-gcc
+  CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_LINKER: powerpc64-linux-gnu-gcc
+  CARGO_TARGET_POWERPC_UNKNOWN_LINUX_GNU_LINKER: powerpc-linux-gnu-gcc
+  CARGO_TARGET_S390X_UNKNOWN_LINUX_GNU_LINKER: s390x-linux-gnu-gcc
+  # Pretty cargo output!
+  CARGO_TERM_COLOR: always
+  # Enable cross compilation for `pkg_config`.
+  PKG_CONFIG_ALLOW_CROSS: 1
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runs_on }}
+    steps:
+      - name: Build | install dependencies
+        if: inputs.runs_on == 'ubuntu-latest'
+        run: |
+          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
+          sudo apt-get -qq update
+          sudo apt-get -qq -y install build-essential curl git pkg-config ${{ inputs.extra_packages }}
+
+      - name: Build | add mingw32 to path
+        if: inputs.runs_on == 'windows-2019'
+        shell: bash
+        run: |
+          echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
+
+      - name: Build | checkout
+        uses: actions/checkout@v2
+
+      - name: Build | install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: ${{ inputs.target }}
+          toolchain: ${{ inputs.toolchain }}
+          default: true
+
+      - name: Build | rust-cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Build | build library
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target=${{ inputs.target }}
+
+      - name: Build | build examples
+        if: ${{ inputs.disable_extra_builds == false }}
+        run: cargo build --examples --target=${{ inputs.target }}
+
+      - name: Build | build tests
+        if: ${{ inputs.disable_extra_builds == false }}
+        run: cargo build --tests --target=${{ inputs.target }}
+
+      - name: Build | run tests
+        if: ${{ inputs.disable_tests == false }}
+        run: cargo test --no-fail-fast --target=${{ inputs.target }}

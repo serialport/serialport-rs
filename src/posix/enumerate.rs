@@ -42,7 +42,7 @@ use crate::{Result, SerialPortInfo};
 fn udev_property_as_string(d: &libudev::Device, key: &str) -> Option<String> {
     d.property_value(key)
         .and_then(OsStr::to_str)
-        .map_or(None, |s| Some(s.to_string()))
+        .map(|s| s.to_string())
 }
 
 /// Retrieves the udev property value named by `key`. This function assumes that the retrieved
@@ -185,9 +185,8 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let usb_device_class_name = b"IOUSBHostDevice\0".as_ptr() as *const c_char;
     let legacy_usb_device_class_name = kIOUSBDeviceClassName();
 
-    let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name).or(
-        get_parent_device_by_type(service, legacy_usb_device_class_name),
-    );
+    let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
+        .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
         SerialPortType::UsbPort(UsbPortInfo {
             vid: get_int_property(usb_device, "idVendor", kCFNumberSInt16Type).unwrap_or_default()

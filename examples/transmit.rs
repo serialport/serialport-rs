@@ -1,14 +1,14 @@
 use std::io::{self, Write};
 use std::time::Duration;
 
-use clap::{App, AppSettings, Arg};
+use clap::{Arg, Command};
 
 use serialport::{DataBits, StopBits};
 
 fn main() {
-    let matches = App::new("Serialport Example - Heartbeat")
+    let matches = Command::new("Serialport Example - Heartbeat")
         .about("Write bytes to a serial port at 1Hz")
-        .setting(AppSettings::DisableVersionFlag)
+        .disable_version_flag(true)
         .arg(
             Arg::new("port")
                 .help("The device path to a serial port")
@@ -17,7 +17,7 @@ fn main() {
         .arg(
             Arg::new("baud")
                 .help("The baud rate to connect at")
-                .use_delimiter(false)
+                .use_value_delimiter(false)
                 .required(true)
                 .validator(valid_baud),
         )
@@ -52,6 +52,7 @@ fn main() {
                 .default_value("."),
         )
         .get_matches();
+
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap().parse::<u32>().unwrap();
     let stop_bits = match matches.value_of("stop-bits") {
@@ -81,7 +82,7 @@ fn main() {
         &string, &port_name, &baud_rate, &rate
     );
     loop {
-        match port.write(&string.as_bytes()) {
+        match port.write(string.as_bytes()) {
             Ok(_) => {
                 print!("{}", &string);
                 std::io::stdout().flush().unwrap();

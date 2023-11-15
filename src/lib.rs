@@ -8,13 +8,13 @@
 //!
 //! The library has been organized such that there is a high-level `SerialPort` trait that provides
 //! a cross-platform API for accessing serial ports. This is the preferred method of interacting
-//! with ports and as such is part of the `prelude`. The `open*()` and `available_ports()` functions
-//! in the root provide cross-platform functionality.
+//! with ports. The `SerialPort::new().open*()` and `available_ports()` functions in the root
+//! provide cross-platform functionality.
 //!
 //! For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
 //! corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait).
-//! Using the platform-specific `open*()` functions will return the platform-specific port object
-//! which allows access to platform-specific functionality.
+//! Using the platform-specific `SerialPort::new().open*()` functions will return the
+//! platform-specific port object which allows access to platform-specific functionality.
 
 #![deny(
     missing_docs,
@@ -222,42 +222,49 @@ pub struct SerialPortBuilder {
 
 impl SerialPortBuilder {
     /// Set the path to the serial port
+    #[must_use]
     pub fn path<'a>(mut self, path: impl Into<std::borrow::Cow<'a, str>>) -> Self {
         self.path = path.into().as_ref().to_owned();
         self
     }
 
     /// Set the baud rate in symbols-per-second
+    #[must_use]
     pub fn baud_rate(mut self, baud_rate: u32) -> Self {
         self.baud_rate = baud_rate;
         self
     }
 
     /// Set the number of bits used to represent a character sent on the line
+    #[must_use]
     pub fn data_bits(mut self, data_bits: DataBits) -> Self {
         self.data_bits = data_bits;
         self
     }
 
     /// Set the type of signalling to use for controlling data transfer
+    #[must_use]
     pub fn flow_control(mut self, flow_control: FlowControl) -> Self {
         self.flow_control = flow_control;
         self
     }
 
     /// Set the type of parity to use for error checking
+    #[must_use]
     pub fn parity(mut self, parity: Parity) -> Self {
         self.parity = parity;
         self
     }
 
     /// Set the number of bits to use to signal the end of a character
+    #[must_use]
     pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
         self.stop_bits = stop_bits;
         self
     }
 
     /// Set the amount of time to wait to receive data before timing out
+    #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
@@ -504,6 +511,108 @@ pub trait SerialPort: Send + io::Read + io::Write {
 
     /// Stop transmitting a break
     fn clear_break(&self) -> Result<()>;
+}
+
+impl<T: SerialPort> SerialPort for &mut T {
+    fn name(&self) -> Option<String> {
+        (**self).name()
+    }
+
+    fn baud_rate(&self) -> Result<u32> {
+        (**self).baud_rate()
+    }
+
+    fn data_bits(&self) -> Result<DataBits> {
+        (**self).data_bits()
+    }
+
+    fn flow_control(&self) -> Result<FlowControl> {
+        (**self).flow_control()
+    }
+
+    fn parity(&self) -> Result<Parity> {
+        (**self).parity()
+    }
+
+    fn stop_bits(&self) -> Result<StopBits> {
+        (**self).stop_bits()
+    }
+
+    fn timeout(&self) -> Duration {
+        (**self).timeout()
+    }
+
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
+        (**self).set_baud_rate(baud_rate)
+    }
+
+    fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
+        (**self).set_data_bits(data_bits)
+    }
+
+    fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
+        (**self).set_flow_control(flow_control)
+    }
+
+    fn set_parity(&mut self, parity: Parity) -> Result<()> {
+        (**self).set_parity(parity)
+    }
+
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
+        (**self).set_stop_bits(stop_bits)
+    }
+
+    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
+        (**self).set_timeout(timeout)
+    }
+
+    fn write_request_to_send(&mut self, level: bool) -> Result<()> {
+        (**self).write_request_to_send(level)
+    }
+
+    fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
+        (**self).write_data_terminal_ready(level)
+    }
+
+    fn read_clear_to_send(&mut self) -> Result<bool> {
+        (**self).read_clear_to_send()
+    }
+
+    fn read_data_set_ready(&mut self) -> Result<bool> {
+        (**self).read_data_set_ready()
+    }
+
+    fn read_ring_indicator(&mut self) -> Result<bool> {
+        (**self).read_ring_indicator()
+    }
+
+    fn read_carrier_detect(&mut self) -> Result<bool> {
+        (**self).read_carrier_detect()
+    }
+
+    fn bytes_to_read(&self) -> Result<u32> {
+        (**self).bytes_to_read()
+    }
+
+    fn bytes_to_write(&self) -> Result<u32> {
+        (**self).bytes_to_write()
+    }
+
+    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()> {
+        (**self).clear(buffer_to_clear)
+    }
+
+    fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
+        (**self).try_clone()
+    }
+
+    fn set_break(&self) -> Result<()> {
+        (**self).set_break()
+    }
+
+    fn clear_break(&self) -> Result<()> {
+        (**self).clear_break()
+    }
 }
 
 /// Contains all possible USB information about a `SerialPort`
