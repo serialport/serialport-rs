@@ -84,10 +84,6 @@ impl TTYPort {
     /// Ports are opened in exclusive mode by default. If this is undesireable
     /// behavior, use `TTYPort::set_exclusive(false)`.
     ///
-    /// If the port settings differ from the default settings, characters received
-    /// before the new settings become active may be garbled. To remove those
-    /// from the receive buffer, call `TTYPort::clear(ClearBuffer::Input)`.
-    ///
     /// ## Errors
     ///
     /// * `NoDevice` if the device could not be opened. This could indicate that
@@ -96,7 +92,7 @@ impl TTYPort {
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
         use nix::fcntl::FcntlArg::F_SETFL;
-        use nix::libc::{cfmakeraw, tcgetattr, tcsetattr};
+        use nix::libc::{cfmakeraw, tcflush, tcgetattr, tcsetattr};
 
         let path = Path::new(&builder.path);
         let fd = OwnedFd(nix::fcntl::open(
@@ -135,6 +131,8 @@ impl TTYPort {
                 "Settings did not apply correctly",
             ));
         };
+
+        unsafe { tcflush(fd.0, libc::TCIOFLUSH) };
 
         // clear O_NONBLOCK flag
         fcntl(fd.0, F_SETFL(nix::fcntl::OFlag::empty()))?;
