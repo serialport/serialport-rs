@@ -23,6 +23,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#122](https://github.com/serialport/serialport-rs/pull/122)
 * Fixes a bug on Windows where some USB device serial numbers were truncated.
   [#131](https://github.com/serialport/serialport-rs/pull/131)
+* Switches to maintained sys crates for CoreFoundation and IOKit on macOS.
+  [#112](https://github.com/serialport/serialport-rs/issues/112),
+  [#136](https://github.com/serialport/serialport-rs/pull/136)
 
 ### Removed
 
