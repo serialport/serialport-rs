@@ -390,38 +390,39 @@ cfg_if! {
 
                     if result == KERN_SUCCESS {
                         for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
-                            let key = CString::new(*key).unwrap();
+                            let key_cstring = CString::new(*key).unwrap();
                             let key_cfstring = CFStringCreateWithCString(
                                 kCFAllocatorDefault,
-                                key.as_ptr(),
+                                key_cstring.as_ptr(),
                                 kCFStringEncodingUTF8,
                             );
                             let _key_cfstring_guard = scopeguard::guard((), |_| {
                                 CFRelease(key_cfstring as *const c_void);
                             });
 
-                            let value = CFDictionaryGetValue(props.assume_init(), key_cfstring as *const c_void);
+                            let mut value = std::ptr::null();
+                            let found = CFDictionaryGetValueIfPresent(props.assume_init(), key_cfstring as *const c_void, &mut value);
+                            if found == true as Boolean {
+                                let type_id = CFGetTypeID(value);
+                                if type_id == CFStringGetTypeID() {
+                                    let mut buf = Vec::with_capacity(256);
 
-                            let type_id = CFGetTypeID(value);
-                            if type_id == CFStringGetTypeID() {
-                                let mut buf = Vec::with_capacity(256);
-
-                                CFStringGetCString(
-                                    value as CFStringRef,
-                                    buf.as_mut_ptr(),
-                                    256,
-                                    kCFStringEncodingUTF8,
-                                );
-                                let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
-                                vec.push(SerialPortInfo {
-                                    port_name: path.to_string(),
-                                    port_type: port_type(modem_service),
-                                });
+                                    CFStringGetCString(
+                                        value as CFStringRef,
+                                        buf.as_mut_ptr(),
+                                        buf.capacity() as isize,
+                                        kCFStringEncodingUTF8,
+                                    );
+                                    let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
+                                    vec.push(SerialPortInfo {
+                                        port_name: path.to_string(),
+                                        port_type: port_type(modem_service),
+                                    });
+                                } else {
+                                    return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
+                                }
                             } else {
-                                return Err(Error::new(
-                                    ErrorKind::Unknown,
-                                    "Found invalid type for TypeID",
-                                ));
+                                return Err(Error::new(ErrorKind::Unknown, format!("Key {} missing in dict", key)));
                             }
                         }
                     } else {
