@@ -77,19 +77,39 @@ fn udev_hex_property_as_int<T>(
     }
 }
 
+/// Converts the underscores from `udev_replace_whitespace` back to spaces quick and dirtily. We
+/// are ignoring the different types of whitespaces and the substitutions from `udev_replace_chars`
+/// deliberately for keeping a low profile.
+///
+/// See
+/// https://github.com/systemd/systemd/blob/38c258398427d1f497268e615906759025e51ea6/src/shared/udev-util.c#L281
+/// for more details.
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+fn udev_restore_spaces(source: String) -> String {
+    source.replace('_', " ")
+}
+
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
+            let manufacturer = udev_property_as_string(d, "ID_VENDOR_ENC")
+                .and_then(|s| unescape::unescape(&s))
+                .or_else(|| udev_property_as_string(d, "ID_VENDOR"))
+                .map(udev_restore_spaces)
+                .or_else(|| udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE"));
+            let product = udev_property_as_string(d, "ID_MODEL_ENC")
+                .and_then(|s| unescape::unescape(&s))
+                .or_else(|| udev_property_as_string(d, "ID_MODEL"))
+                .map(udev_restore_spaces)
+                .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
             Ok(SerialPortType::UsbPort(UsbPortInfo {
                 vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
                 pid: udev_hex_property_as_int(d, "ID_MODEL_ID", &u16::from_str_radix)?,
                 serial_number,
-                manufacturer: udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE")
-                    .or_else(|| udev_property_as_string(d, "ID_VENDOR")),
-                product: udev_property_as_string(d, "ID_MODEL_FROM_DATABASE")
-                    .or_else(|| udev_property_as_string(d, "ID_MODEL")),
+                manufacturer,
+                product,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
                     .ok(),
