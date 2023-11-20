@@ -11,7 +11,7 @@
 //! with ports. The `SerialPort::new().open*()` and `available_ports()` functions in the root
 //! provide cross-platform functionality.
 //!
-//! For platform-specific functionaly, this crate is split into a `posix` and `windows` API with
+//! For platform-specific functionality, this crate is split into a `posix` and `windows` API with
 //! corresponding `TTYPort` and `COMPort` structs (that both implement the `SerialPort` trait).
 //! Using the platform-specific `SerialPort::new().open*()` functions will return the
 //! platform-specific port object which allows access to platform-specific functionality.
@@ -548,7 +548,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
     /// [tokio-serial](https://crates.io/crates/tokio-serial).
     ///
-    /// Also, you must be very carefull when changing the settings of a cloned `SerialPort` : since
+    /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
     /// objects can cause some nasty behavior.
     ///

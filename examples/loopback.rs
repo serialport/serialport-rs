@@ -150,7 +150,7 @@ impl<'a> Stats<'a> {
         self.total() / (self.times.len() as f32)
     }
 
-    /// Provides the maximum transation time
+    /// Provides the maximum transaction time
     fn max(&self) -> f32 {
         self.times
             .iter()

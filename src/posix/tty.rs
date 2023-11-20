@@ -96,7 +96,7 @@ impl TTYPort {
     ///
     /// `path` should be the path to a TTY device, e.g., `/dev/ttyS0`.
     ///
-    /// Ports are opened in exclusive mode by default. If this is undesireable
+    /// Ports are opened in exclusive mode by default. If this is undesirable
     /// behavior, use `TTYPort::set_exclusive(false)`.
     ///
     /// If the port settings differ from the default settings, characters received
