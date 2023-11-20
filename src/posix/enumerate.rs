@@ -77,6 +77,25 @@ fn udev_hex_property_as_int<T>(
     }
 }
 
+/// Looks up a property which is provided in two "flavors": Where special charaters and whitespaces
+/// are encoded/escaped and where they are replaced (with underscores). This is for example done
+/// by udev for manufacturer and model information.
+///
+/// See
+/// https://github.com/systemd/systemd/blob/38c258398427d1f497268e615906759025e51ea6/src/udev/udev-builtin-usb_id.c#L432
+/// for details.
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+fn udev_property_encoded_or_replaced_as_string(
+    d: &libudev::Device,
+    encoded_key: &str,
+    replaced_key: &str,
+) -> Option<String> {
+    udev_property_as_string(d, encoded_key)
+        .and_then(|s| unescape::unescape(&s))
+        .or_else(|| udev_property_as_string(d, replaced_key))
+        .map(udev_restore_spaces)
+}
+
 /// Converts the underscores from `udev_replace_whitespace` back to spaces quick and dirtily. We
 /// are ignoring the different types of whitespaces and the substitutions from `udev_replace_chars`
 /// deliberately for keeping a low profile.
@@ -94,16 +113,15 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
             let serial_number = udev_property_as_string(d, "ID_SERIAL_SHORT");
-            let manufacturer = udev_property_as_string(d, "ID_VENDOR_ENC")
-                .and_then(|s| unescape::unescape(&s))
-                .or_else(|| udev_property_as_string(d, "ID_VENDOR"))
-                .map(udev_restore_spaces)
-                .or_else(|| udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE"));
-            let product = udev_property_as_string(d, "ID_MODEL_ENC")
-                .and_then(|s| unescape::unescape(&s))
-                .or_else(|| udev_property_as_string(d, "ID_MODEL"))
-                .map(udev_restore_spaces)
-                .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
+            // For devices on the USB, udev also provides manufacturer and product information from
+            // its hardware dataase. Use this as a fallback if this information is not provided
+            // from the device itself.
+            let manufacturer =
+                udev_property_encoded_or_replaced_as_string(d, "ID_VENDOR_ENC", "ID_VENDOR")
+                    .or_else(|| udev_property_as_string(d, "ID_VENDOR_FROM_DATABASE"));
+            let product =
+                udev_property_encoded_or_replaced_as_string(d, "ID_MODEL_ENC", "ID_MODEL")
+                    .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
             Ok(SerialPortType::UsbPort(UsbPortInfo {
                 vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
                 pid: udev_hex_property_as_int(d, "ID_MODEL_ID", &u16::from_str_radix)?,
@@ -126,12 +144,24 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
             .into_iter()
             .collect::<Option<Vec<_>>>();
             if usb_properties.is_some() {
+                // For USB devices reported at a PCI bus, there is apparently no fallback
+                // information from udevs hardware database provided.
+                let manufacturer = udev_property_encoded_or_replaced_as_string(
+                    d,
+                    "ID_USB_VENDOR_ENC",
+                    "ID_USB_VENDOR",
+                );
+                let product = udev_property_encoded_or_replaced_as_string(
+                    d,
+                    "ID_USB_MODEL_ENC",
+                    "ID_USB_MODEL",
+                );
                 Ok(SerialPortType::UsbPort(UsbPortInfo {
                     vid: udev_hex_property_as_int(d, "ID_USB_VENDOR_ID", &u16::from_str_radix)?,
                     pid: udev_hex_property_as_int(d, "ID_USB_MODEL_ID", &u16::from_str_radix)?,
                     serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
-                    manufacturer: udev_property_as_string(d, "ID_USB_VENDOR"),
-                    product: udev_property_as_string(d, "ID_USB_MODEL"),
+                    manufacturer,
+                    product,
                     #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
                         d,
