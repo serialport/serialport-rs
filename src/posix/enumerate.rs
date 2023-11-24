@@ -91,7 +91,7 @@ fn udev_property_encoded_or_replaced_as_string(
     replaced_key: &str,
 ) -> Option<String> {
     udev_property_as_string(d, encoded_key)
-        .and_then(|s| unescape::unescape(&s))
+        .and_then(|s| unescaper::unescape(&s).ok())
         .or_else(|| udev_property_as_string(d, replaced_key))
         .map(udev_restore_spaces)
 }
