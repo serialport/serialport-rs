@@ -50,7 +50,6 @@ notice = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    "RUSTSEC-2020-0168", # caused by unmaintained mach dependency of core-foundation-sys
     "RUSTSEC-2021-0145", # caused by unmaintained atty
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
