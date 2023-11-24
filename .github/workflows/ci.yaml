@@ -56,7 +56,7 @@ jobs:
       disable_tests: true
       extra_packages: libudev-dev
       target: x86_64-unknown-linux-gnu
-      toolchain: "1.56.1"
+      toolchain: "1.59.0"
 
   # --------------------------------------------------------------------------
   # cargo-deny
