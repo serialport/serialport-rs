@@ -156,6 +156,11 @@ impl TTYPort {
             ));
         };
 
+        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        if builder.baud_rate > 0 {
+            unsafe { libc::tcflush(fd.0, libc::TCIOFLUSH) };
+        }
+
         // clear O_NONBLOCK flag
         fcntl(fd.0, F_SETFL(nix::fcntl::OFlag::empty()))?;
 
