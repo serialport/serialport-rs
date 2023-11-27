@@ -5,6 +5,7 @@ use regex::Regex;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::winerror::*;
+use winapi::um::cfgmgr32::*;
 use winapi::um::cguid::GUID_NULL;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::setupapi::*;
@@ -84,21 +85,34 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
 /// and product names cannot be determined from the HWID string, so those are
 /// set as None.
 ///
+/// For composite USB devices, the HWID string will be for the interface. In
+/// this case, the parent HWID string must be provided so that the correct
+/// serial number can be determined.
+///
 /// Some HWID examples are:
 ///   - MicroPython pyboard:    USB\VID_F055&PID_9802\385435603432
 ///   - BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
 ///   - BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
 ///   - FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
-fn parse_usb_port_info(hardware_id: &str) -> Option<UsbPortInfo> {
+fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> Option<UsbPortInfo> {
     let re = Regex::new(concat!(
         r"VID_(?P<vid>[[:xdigit:]]{4})",
         r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
         r"(?:[&+]MI_(?P<iid>[[:xdigit:]]{2})){0,1}",
-        r"([\\+](?P<serial>[\w&]+))?"
+        r"([\\+](?P<serial>\w+))?"
     ))
     .unwrap();
 
-    let caps = re.captures(hardware_id)?;
+    let mut caps = re.captures(hardware_id)?;
+
+    let interface = caps
+        .name("iid")
+        .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok());
+
+    if let Some(_) = interface {
+        // If this is a composite device, we need to parse the parent's HWID to get the correct information.
+        caps = re.captures(parent_hardware_id?)?;
+    }
 
     Some(UsbPortInfo {
         vid: u16::from_str_radix(&caps[1], 16).ok()?,
@@ -114,9 +128,7 @@ fn parse_usb_port_info(hardware_id: &str) -> Option<UsbPortInfo> {
         manufacturer: None,
         product: None,
         #[cfg(feature = "usbportinfo-interface")]
-        interface: caps
-            .name("iid")
-            .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok()),
+        interface: interface,
     })
 }
 
@@ -183,6 +195,40 @@ struct PortDevice {
 }
 
 impl PortDevice {
+    // Retrieves the device instance id string associated with this device's parent.
+    // This is useful for determining the serial number of a composite USB device.
+    fn parent_instance_id(&mut self) -> Option<String> {
+        let mut result_buf = [0i8; MAX_PATH];
+        let mut parent_device_instance_id = 0;
+
+        let res =
+            unsafe { CM_Get_Parent(&mut parent_device_instance_id, self.devinfo_data.DevInst, 0) };
+        if res == CR_SUCCESS {
+            let res = unsafe {
+                CM_Get_Device_IDA(
+                    parent_device_instance_id,
+                    result_buf.as_mut_ptr(),
+                    (result_buf.len() - 1) as ULONG,
+                    0,
+                )
+            };
+
+            if res == CR_SUCCESS {
+                let end_of_buffer = result_buf.len() - 1;
+                result_buf[end_of_buffer] = 0;
+                Some(unsafe {
+                    CStr::from_ptr(result_buf.as_ptr())
+                        .to_string_lossy()
+                        .into_owned()
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
     // Retrieves the device instance id string associated with this device. Some examples of
     // instance id strings are:
     //  MicroPython Board:  USB\VID_F055&PID_9802\385435603432
@@ -254,8 +300,9 @@ impl PortDevice {
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
     pub fn port_type(&mut self) -> SerialPortType {
         self.instance_id()
-            .and_then(|s| parse_usb_port_info(&s))
-            .map(|mut info| {
+            .map(|s| (s, self.parent_instance_id())) // Get parent instance id if it exists.
+            .and_then(|(d, p)| parse_usb_port_info(&d, p.as_deref()))
+            .map(|mut info: UsbPortInfo| {
                 info.manufacturer = self.property(SPDRP_MFG);
                 info.product = self.property(SPDRP_FRIENDLYNAME);
                 SerialPortType::UsbPort(info)
@@ -326,17 +373,17 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
 #[test]
 fn test_parsing_usb_port_information() {
     let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
-    let info = parse_usb_port_info(bm_uart_hwid).unwrap();
+    let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
+    let info = parse_usb_port_info(bm_uart_hwid, Some(bm_parent_hwid)).unwrap();
 
     assert_eq!(info.vid, 0x1D50);
     assert_eq!(info.pid, 0x6018);
-    // FIXME: The 'serial number' as reported by the HWID likely needs some review
-    assert_eq!(info.serial_number, Some("A694CA9".to_string()));
+    assert_eq!(info.serial_number, Some("85A12F01".to_string()));
     #[cfg(feature = "usbportinfo-interface")]
     assert_eq!(info.interface, Some(2));
 
     let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
-    let info = parse_usb_port_info(ftdi_serial_hwid).unwrap();
+    let info = parse_usb_port_info(ftdi_serial_hwid, None).unwrap();
 
     assert_eq!(info.vid, 0x0403);
     assert_eq!(info.pid, 0x6001);
@@ -345,7 +392,7 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.interface, None);
 
     let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
-    let info = parse_usb_port_info(pyboard_hwid).unwrap();
+    let info = parse_usb_port_info(pyboard_hwid, None).unwrap();
 
     assert_eq!(info.vid, 0xF055);
     assert_eq!(info.pid, 0x9802);

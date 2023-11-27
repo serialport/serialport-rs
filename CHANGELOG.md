@@ -17,7 +17,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#130](https://github.com/serialport/serialport-rs/pull/130)
 
 ### Fixed
-
+* Fixes a bug on Windows where composite devices would show a incorrect serial
+  number.
+  [#141](https://github.com/serialport/serialport-rs/pull/141)
 * Fixes a bug on Linux without udev where `available_ports()` returned wrong
   device file paths.
   [#122](https://github.com/serialport/serialport-rs/pull/122)
