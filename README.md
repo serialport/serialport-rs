@@ -109,7 +109,8 @@ can help debug software or hardware errors.
 
 # Dependencies
 
-Rust versions 1.59.0 and higher are supported.
+Rust versions 1.59.0 and higher are supported by the library itself. There are
+examples requiring newer versions of Rust.
 
 For GNU/Linux `pkg-config` headers are required:
 
