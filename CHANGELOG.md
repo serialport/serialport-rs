@@ -34,8 +34,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#112](https://github.com/serialport/serialport-rs/issues/112),
   [#136](https://github.com/serialport/serialport-rs/pull/136)
 
-### Removed
-
 ## [4.2.2] - 2023-08-03
 ### Fixed
 * Fixes a bug on the Raspberry Pi 4, which results in USB-devices being detected as PCI-devices.
@@ -72,7 +70,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#68](https://github.com/serialport/serialport-rs/pull/68)
 * A number of memory leaks have been addressed when using serialport-rs.
   [#98](https://github.com/serialport/serialport-rs/pull/98)
-### Removed
 
 ## [4.2.0] - 2022-06-02
 ### Added
@@ -91,7 +88,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 * Set port timeout to a non-zero value before performing loopback test.
   [#45](https://github.com/serialport/serialport-rs/pull/45)
-### Removed
 
 ## [4.1.0] - 2022-04-04
 ### Added
@@ -110,17 +106,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Make sure fd is properly closed if initialization fails.
   [#39](https://github.com/serialport/serialport-rs/pull/39)
   [#41](https://github.com/serialport/serialport-rs/pull/41)
-### Removed
 
 ## [4.0.1] - 2021-04-17
-### Added
 ### Changed
 * Update maintenance status to looking for a new maintainer.
 ### Fixed
 * Properly initialize DCB structure on Windows. This fixes some non-functional
   devices.
   [!97](https://gitlab.com/susurrus/serialport-rs/-/merge_requests/97)
-### Removed
 
 ## [4.0.0] - 2020-12-17
 ### Added
@@ -179,8 +172,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 * Upgraded `sparc64-unknown-linux-gnu` to Tier 2 support.
-
-### Removed
 
 ## [3.2.0] - 2019-01-01
 ### Added
