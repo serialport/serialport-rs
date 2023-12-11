@@ -10,9 +10,9 @@ Serial ports are some of the oldest external interfaces exposed by system kernel
 
 ## References
 
- * https://github.com/pyserial/pyserial/blob/master/serial/serialposix.py#L354
- * https://github.com/Fazecast/jSerialComm/blob/master/src/main/c/OSX/SerialPort_OSX.c#L241
- * https://github.com/node-serialport/node-serialport/blob/master/src/serialport_unix.cpp#L137
- * https://github.com/jacobsa/go-serial/blob/master/serial/open_darwin.go#L239
- * https://github.com/nyholku/purejavacomm/blob/master/src/jtermios/macosx/JTermiosImpl.java#L434
- * https://github.com/npat-efault/picocom/blob/master/termios2.txt
+ * <https://github.com/pyserial/pyserial/blob/master/serial/serialposix.py#L354>
+ * <https://github.com/Fazecast/jSerialComm/blob/v2.0.2/src/main/c/OSX/SerialPort_OSX.c#L241>
+ * <https://github.com/node-serialport/node-serialport/blob/a31078f054f23c47e9de7cc8b1c7e79d6e4e6c0c/src/serialport_unix.cpp#L137>
+ * <https://github.com/jacobsa/go-serial/blob/master/serial/open_darwin.go#L239>
+ * <https://github.com/nyholku/purejavacomm/blob/master/src/jtermios/macosx/JTermiosImpl.java#L434>
+ * <https://github.com/npat-efault/picocom/blob/master/termios2.txt>
