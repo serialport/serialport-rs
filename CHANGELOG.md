@@ -9,16 +9,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 
+* Raise MSRV from 1.56.1 to 1.59.0 and Rust edition from 2018 to 2021.
+  [#137](https://github.com/serialport/serialport-rs/pull/137)
 * Update `bitflags` dependency to 2.4.0.
   [#127](https://github.com/serialport/serialport-rs/pull/127)
-- Open serial devices with `O_CLOEXEC` (Posix). This will close the device
+* Open serial devices with `O_CLOEXEC` (Posix). This will close the device
   handles when starting a child process. In particular this means that a serial
   device can be reopened after making SW update of a Tauri application.
   [#130](https://github.com/serialport/serialport-rs/pull/130)
 * Prefer USB device manufacturer and model information from the actual USB
   device over the information from udev's database.
-  [#137](https://github.com/serialport/serialport-rs/pull/137)
-* Raise MSRV from 1.56.1 to 1.59.0.
   [#137](https://github.com/serialport/serialport-rs/pull/137)
 
 ### Fixed
