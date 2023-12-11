@@ -8,6 +8,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+### Fixed
+### Removed
+
+## [4.3.0] - 2023-12-11
+
+### Changed
 
 * Raise MSRV from 1.56.1 to 1.59.0 and Rust edition from 2018 to 2021.
   [#137](https://github.com/serialport/serialport-rs/pull/137)
@@ -370,7 +376,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.2.2...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.3.0...HEAD
+[4.3.0]: https://github.com/serialport/serialport-rs/compare/v4.2.2...v4.3.0
 [4.2.2]: https://github.com/serialport/serialport-rs/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/serialport/serialport-rs/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/serialport/serialport-rs/compare/v4.1.0...v4.2.0
