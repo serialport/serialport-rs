@@ -3,18 +3,6 @@
 [![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/serialport/serialport-rs/ci.yaml?branch=main&logo=github)](https://github.com/serialport/serialport-rs/actions)
 [![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.59.0-blue?logo=rust)](https://blog.rust-lang.org/2022/02/24/Rust-1.59.0.html)
 
-> **Note:** This is a fork of the original
-[serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab. Please note there have
-been some changes to both the supported targets and which tier some targets are in, and there may be
-further changes to this made. Additionally, all relevant issues have been migrated to this
-repository.
-
-Join the discussion on Matrix!
-[#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
-
-**This project is looking for maintainers! If you are interested please let us know on Matrix, or by
-[creating a discussion](https://github.com/serialport/serialport-rs/discussions/new).**
-
 # Introduction
 
 `serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
@@ -22,6 +10,13 @@ blocking I/O interface and port enumeration on POSIX and Windows systems.
 
 For async I/O functionality, see the [mio-serial](https://github.com/berkowski/mio-serial) and
 [tokio-serial](https://github.com/berkowski/tokio-serial) crates.
+
+Join the discussion on Matrix!
+[#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
+
+**This project is looking for maintainers! Especially for Windows. If you are interested please let
+us know on Matrix, or by [creating a
+discussion](https://github.com/serialport/serialport-rs/discussions/new).**
 
 # Overview
 
@@ -183,8 +178,8 @@ without any additional terms or conditions.
 
 # Acknowledgments
 
+This is the continuation of the development at <https://gitlab.com/susurrus/serialport-rs>. Thanks
+to susurrus and all other contributors to the original project on GitLab.
+
 Special thanks to dcuddeback, willem66745, and apoloval who wrote the original serial-rs library
 which this library heavily borrows from.
-
-Additional thanks to susurrus and all other contributors to the original
-[serialport-rs](https://gitlab.com/susurrus/serialport-rs) project on GitLab.
