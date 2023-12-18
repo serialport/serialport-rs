@@ -9,6 +9,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+* Fixes a bug where `available_ports()` returned disabled devices on Windows.
+  [#144](https://github.com/serialport/serialport-rs/pull/144)
+
 ### Removed
 
 ## [4.3.0] - 2023-12-11
