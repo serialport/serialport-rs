@@ -261,6 +261,26 @@ impl PortDevice {
         }
     }
 
+    /// Retrieves the problem status of this device. For example, `CM_PROB_DISABLED` indicates
+    /// the device has been disabled in Device Manager.
+    fn problem(&mut self) -> Option<ULONG> {
+        let mut status = 0;
+        let mut problem_number = 0;
+        let res = unsafe {
+            CM_Get_DevNode_Status(
+                &mut status,
+                &mut problem_number,
+                self.devinfo_data.DevInst,
+                0,
+            )
+        };
+        if res == CR_SUCCESS {
+            Some(problem_number)
+        } else {
+            None
+        }
+    }
+
     // Retrieves the port name (i.e. COM6) associated with this device.
     pub fn name(&mut self) -> String {
         let hkey = unsafe {
@@ -348,6 +368,11 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     for guid in get_ports_guids()? {
         let port_devices = PortDevices::new(&guid);
         for mut port_device in port_devices {
+            // Ignore nonfunctional devices
+            if port_device.problem() != Some(0) {
+                continue;
+            }
+
             let port_name = port_device.name();
 
             debug_assert!(
