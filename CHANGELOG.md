@@ -7,6 +7,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
+* Added conversions between `DataBits`, `StopBits` types and their numeric representations
 ### Changed
 ### Fixed
 * Fixes a bug where `available_ports()` returned disabled devices on Windows.
