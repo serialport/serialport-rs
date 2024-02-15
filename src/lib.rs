@@ -160,6 +160,31 @@ impl fmt::Display for DataBits {
     }
 }
 
+impl From<DataBits> for u8 {
+    fn from(value: DataBits) -> Self {
+        match value {
+            DataBits::Five => 5,
+            DataBits::Six => 6,
+            DataBits::Seven => 7,
+            DataBits::Eight => 8,
+        }
+    }
+}
+
+impl TryFrom<u8> for DataBits {
+    type Error = ();
+
+    fn try_from(value: u8) -> core::result::Result<Self, Self::Error> {
+        match value {
+            5 => Ok(Self::Five),
+            6 => Ok(Self::Six),
+            7 => Ok(Self::Seven),
+            8 => Ok(Self::Eight),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Parity checking modes
 ///
 /// When parity checking is enabled (`Odd` or `Even`) an extra bit is transmitted with
@@ -210,6 +235,27 @@ impl fmt::Display for StopBits {
         match *self {
             StopBits::One => write!(f, "One"),
             StopBits::Two => write!(f, "Two"),
+        }
+    }
+}
+
+impl From<StopBits> for u8 {
+    fn from(value: StopBits) -> Self {
+        match value {
+            StopBits::One => 1,
+            StopBits::Two => 2,
+        }
+    }
+}
+
+impl TryFrom<u8> for StopBits {
+    type Error = ();
+
+    fn try_from(value: u8) -> core::result::Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::One),
+            2 => Ok(Self::Two),
+            _ => Err(()),
         }
     }
 }
