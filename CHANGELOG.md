@@ -12,6 +12,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 * Fixes a bug where `available_ports()` returned disabled devices on Windows.
   [#144](https://github.com/serialport/serialport-rs/pull/144)
+* Fixes a bug on Windows where the `WriteTotalTimeoutConstant` field hasn't been
+  configured properly when the `set_timeout` method is called.
+  [#124](https://github.com/serialport/serialport-rs/issues/124)
 
 ### Removed
 

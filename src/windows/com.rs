@@ -240,14 +240,14 @@ impl SerialPort for COMPort {
     }
 
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        let milliseconds = timeout.as_secs() * 1000 + timeout.subsec_nanos() as u64 / 1_000_000;
+        let milliseconds = timeout.as_millis();
 
         let mut timeouts = COMMTIMEOUTS {
             ReadIntervalTimeout: 0,
             ReadTotalTimeoutMultiplier: 0,
             ReadTotalTimeoutConstant: milliseconds as DWORD,
             WriteTotalTimeoutMultiplier: 0,
-            WriteTotalTimeoutConstant: 0,
+            WriteTotalTimeoutConstant: milliseconds as DWORD,
         };
 
         if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
