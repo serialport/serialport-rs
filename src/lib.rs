@@ -36,6 +36,7 @@ use std::convert::From;
 use std::error::Error as StdError;
 use std::fmt;
 use std::io;
+use std::str::FromStr;
 use std::time::Duration;
 
 #[cfg(unix)]
@@ -280,6 +281,19 @@ impl fmt::Display for FlowControl {
             FlowControl::None => write!(f, "None"),
             FlowControl::Software => write!(f, "Software"),
             FlowControl::Hardware => write!(f, "Hardware"),
+        }
+    }
+}
+
+impl FromStr for FlowControl {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "None" | "none" | "n" => Ok(FlowControl::None),
+            "Software" | "software" | "SW" | "sw" | "s" => Ok(FlowControl::Software),
+            "Hardware" | "hardware" | "HW" | "hw" | "h" => Ok(FlowControl::Hardware),
+            _ => Err(()),
         }
     }
 }
