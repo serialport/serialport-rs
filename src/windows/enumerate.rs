@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::{mem, ptr};
 
@@ -14,65 +15,55 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
-// According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
-// and SetupDiGetDeviceInstanceId in order to enumerate devices.
-// https://msdn.microsoft.com/en-us/windows/hardware/drivers/install/enumerating-installed-devices
-//
-// SetupDiGetClassDevs returns the devices associated with a particular class of devices.
-// We want the list of devices which shows up in the Device Manager as "Ports (COM & LPT)"
-// which is otherwise known as the "Ports" class.
-//
-// get_pots_guids returns all of the classes (guids) associated with the name "Ports".
+/// According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
+/// and SetupDiGetDeviceInstanceId in order to enumerate devices.
+/// https://msdn.microsoft.com/en-us/windows/hardware/drivers/install/enumerating-installed-devices
 fn get_ports_guids() -> Result<Vec<GUID>> {
-    // Note; unwrap can't fail, since "Ports" is valid UTF-8.
-    let ports_class_name = CString::new("Ports").unwrap();
-
-    // Size vector to hold 1 result (which is the most common result).
-    let mut num_guids: DWORD = 0;
+    // SetupDiGetClassDevs returns the devices associated with a particular class of devices.
+    // We want the list of devices which are listed as COM ports (generally those that show up in the
+    // Device Manager as "Ports (COM & LPT)" which is otherwise known as the "Ports" class).
+    //
+    // The list of system defined classes can be found here:
+    // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/system-defined-device-setup-classes-available-to-vendors
+    let class_names = [
+        // Note; since names are valid UTF-8, unwrap can't fail
+        CString::new("Ports").unwrap(),
+        CString::new("Modem").unwrap(),
+    ];
     let mut guids: Vec<GUID> = Vec::new();
-    guids.push(GUID_NULL); // Placeholder for first result
+    for class_name in class_names {
+        let mut num_guids: DWORD = 1; // Initially assume that there is only 1 guid per name.
+        let class_start_idx = guids.len(); // start idx for this name (for potential resize with multiple guids)
 
-    // Find out how many GUIDs are associated with "Ports". Initially we assume
-    // that there is only 1. num_guids will tell us how many there actually are.
-    let res = unsafe {
-        SetupDiClassGuidsFromNameA(
-            ports_class_name.as_ptr(),
-            guids.as_mut_ptr(),
-            guids.len() as DWORD,
-            &mut num_guids,
-        )
-    };
-    if res == FALSE {
-        return Err(Error::new(
-            ErrorKind::Unknown,
-            "Unable to determine number of Ports GUIDs",
-        ));
-    }
-    if num_guids == 0 {
-        // We got a successful result of no GUIDs, so pop the placeholder that
-        // we created before.
-        guids.pop();
-    }
-
-    if num_guids as usize > guids.len() {
-        // It turns out we needed more that one slot. num_guids will contain the number of slots
-        // that we actually need, so go ahead and expand the vector to the correct size.
-        while guids.len() < num_guids as usize {
-            guids.push(GUID_NULL);
-        }
-        let res = unsafe {
-            SetupDiClassGuidsFromNameA(
-                ports_class_name.as_ptr(),
-                guids.as_mut_ptr(),
-                guids.len() as DWORD,
-                &mut num_guids,
-            )
-        };
-        if res == FALSE {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "Unable to retrieve Ports GUIDs",
-            ));
+        // first attempt with size == 1, second with the size returned from the first try
+        for _ in 0..2 {
+            guids.resize(class_start_idx + num_guids as usize, GUID_NULL);
+            let guid_buffer = &mut guids[class_start_idx..];
+            // Find out how many GUIDs are associated with this class name.  num_guids will tell us how many there actually are.
+            let res = unsafe {
+                SetupDiClassGuidsFromNameA(
+                    class_name.as_ptr(),
+                    guid_buffer.as_mut_ptr(),
+                    guid_buffer.len() as DWORD,
+                    &mut num_guids,
+                )
+            };
+            if res == FALSE {
+                return Err(Error::new(
+                    ErrorKind::Unknown,
+                    "Unable to determine number of Ports GUIDs",
+                ));
+            }
+            let len_cmp = guid_buffer.len().cmp(&(num_guids as usize));
+            // under allocated
+            if len_cmp == std::cmp::Ordering::Less {
+                continue; // retry
+            }
+            // allocation > required len
+            else if len_cmp == std::cmp::Ordering::Greater {
+                guids.truncate(class_start_idx + num_guids as usize);
+            }
+            break; // next name
         }
     }
     Ok(guids)
@@ -362,6 +353,92 @@ impl PortDevice {
     }
 }
 
+/// Not all COM ports are listed under the "Ports" device class
+/// The full list of COM ports is available from the registry at
+/// HKEY_LOCAL_MACHINE\HARDWARE\DEVICEMAP\SERIALCOMM
+///
+/// port of https://learn.microsoft.com/en-us/windows/win32/sysinfo/enumerating-registry-subkeys
+fn get_registry_com_ports() -> HashSet<String> {
+    let mut ports_list = HashSet::new();
+
+    let reg_key = b"HARDWARE\\DEVICEMAP\\SERIALCOMM\0";
+    let key_ptr = reg_key.as_ptr() as *const i8;
+    let mut ports_key = std::ptr::null_mut();
+
+    // SAFETY: ffi, all inputs are correct
+    let open_res =
+        unsafe { RegOpenKeyExA(HKEY_LOCAL_MACHINE, key_ptr, 0, KEY_READ, &mut ports_key) };
+    if SUCCEEDED(open_res) {
+        let mut class_name_buff = [0i8; MAX_PATH];
+        let mut class_name_size = MAX_PATH as u32;
+        let mut sub_key_count = 0;
+        let mut largest_sub_key = 0;
+        let mut largest_class_string = 0;
+        let mut num_key_values = 0;
+        let mut longest_value_name = 0;
+        let mut longest_value_data = 0;
+        let mut size_security_desc = 0;
+        let mut last_write_time = FILETIME {
+            dwLowDateTime: 0,
+            dwHighDateTime: 0,
+        };
+        // SAFETY: ffi, all inputs are correct
+        let query_res = unsafe {
+            RegQueryInfoKeyA(
+                ports_key,
+                class_name_buff.as_mut_ptr(),
+                &mut class_name_size,
+                std::ptr::null_mut(),
+                &mut sub_key_count,
+                &mut largest_sub_key,
+                &mut largest_class_string,
+                &mut num_key_values,
+                &mut longest_value_name,
+                &mut longest_value_data,
+                &mut size_security_desc,
+                &mut last_write_time,
+            )
+        };
+        if SUCCEEDED(query_res) {
+            for idx in 0..num_key_values {
+                let mut val_name_buff = [0i8; MAX_PATH];
+                let mut val_name_size = MAX_PATH as u32;
+                let mut value_type = 0;
+                // if 100 chars is not enough for COM<number> something is very wrong
+                let mut val_data = [0; 100];
+                let mut data_size = val_data.len() as u32;
+                // SAFETY: ffi, all inputs are correct
+                let res = unsafe {
+                    RegEnumValueA(
+                        ports_key,
+                        idx,
+                        val_name_buff.as_mut_ptr(),
+                        &mut val_name_size,
+                        std::ptr::null_mut(),
+                        &mut value_type,
+                        val_data.as_mut_ptr(),
+                        &mut data_size,
+                    )
+                };
+                if FAILED(res) || val_data.len() < data_size as usize {
+                    break;
+                }
+                // SAFETY: data_size is checked and pointer is valid
+                let val_data = CStr::from_bytes_with_nul(unsafe {
+                    std::slice::from_raw_parts(val_data.as_ptr(), data_size as usize)
+                });
+
+                if let Ok(port) = val_data {
+                    ports_list.insert(port.to_string_lossy().into_owned());
+                }
+            }
+        }
+        // SAFETY: ffi, all inputs are correct
+        unsafe { RegCloseKey(ports_key) };
+    }
+    ports_list
+}
+
 /// List available serial ports on the system.
 pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     let mut ports = Vec::new();
@@ -382,7 +459,7 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             );
 
             // This technique also returns parallel ports, so we filter these out.
-            if port_name.starts_with("LPT") {
+            if !port_name.starts_with("COM") {
                 continue;
             }
 
@@ -390,6 +467,21 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
                 port_name,
                 port_type: port_device.port_type(),
             });
+        }
+    }
+    // ports identified through the registry have no additional information
+    let mut raw_ports_set = get_registry_com_ports();
+    if raw_ports_set.len() > ports.len() {
+        // remove any duplicates. HashSet makes this relatively cheap
+        for port in ports.iter() {
+            raw_ports_set.remove(&port.port_name);
+        }
+        // add remaining ports as "unknown" type
+        for raw_port in raw_ports_set {
+            ports.push(SerialPortInfo {
+                port_name: raw_port,
+                port_type: SerialPortType::Unknown,
+            })
         }
     }
     Ok(ports)
