@@ -14,6 +14,12 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
+#[cfg(feature = "iocontrol")]
+mod iocontrol;
+
+#[cfg(feature = "iocontrol")]
+use iocontrol::{IoControl, IoDescriptor};
+
 // According to the MSDN docs, we should use SetupDiGetClassDevs, SetupDiEnumDeviceInfo
 // and SetupDiGetDeviceInstanceId in order to enumerate devices.
 // https://msdn.microsoft.com/en-us/windows/hardware/drivers/install/enumerating-installed-devices
@@ -94,7 +100,11 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
 ///   - BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
 ///   - BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
 ///   - FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
-fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> Option<UsbPortInfo> {
+fn parse_usb_port_info(
+    hardware_id: &str,
+    parent_hardware_id: Option<&str>,
+    #[cfg(feature = "iocontrol")] device_location_info: Option<&str>,
+) -> Option<UsbPortInfo> {
     let re = Regex::new(concat!(
         r"VID_(?P<vid>[[:xdigit:]]{4})",
         r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
@@ -109,12 +119,13 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         .name("iid")
         .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok());
 
-    if let Some(_) = interface {
+    if interface.is_some() {
         // If this is a composite device, we need to parse the parent's HWID to get the correct information.
         caps = re.captures(parent_hardware_id?)?;
     }
 
-    Some(UsbPortInfo {
+    #[cfg(not(feature = "iocontrol"))]
+    let usb_port_info = UsbPortInfo {
         vid: u16::from_str_radix(&caps[1], 16).ok()?,
         pid: u16::from_str_radix(&caps[2], 16).ok()?,
         serial_number: caps.name("serial").map(|m| {
@@ -128,8 +139,53 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         manufacturer: None,
         product: None,
         #[cfg(feature = "usbportinfo-interface")]
-        interface: interface,
-    })
+        interface,
+    };
+
+    #[cfg(feature = "iocontrol")]
+    let mut usb_port_info = UsbPortInfo {
+        vid: u16::from_str_radix(&caps[1], 16).ok()?,
+        pid: u16::from_str_radix(&caps[2], 16).ok()?,
+        serial_number: caps.name("serial").map(|m| {
+            let m = m.as_str();
+            if m.contains('&') {
+                m.split('&').nth(1).unwrap().to_string()
+            } else {
+                m.to_string()
+            }
+        }),
+        manufacturer: None,
+        product: None,
+        #[cfg(feature = "usbportinfo-interface")]
+        interface,
+    };
+
+    #[cfg(feature = "iocontrol")]
+    if parent_hardware_id.is_some() && device_location_info.is_some() {
+        let re = Regex::new(concat!(r"Port_#(?P<hub_device_location>[[:xdigit:]]{4})",)).unwrap();
+
+        caps = re.captures(device_location_info?)?;
+        let port_number = u8::from_str_radix(&caps[1], 8).ok()?;
+
+        let hub_name = format!(
+            "{}#{{f18a0e88-c30c-11d0-8815-00a0c906bed8}}",
+            parent_hardware_id?.replace('\\', "#"),
+        );
+
+        let hdevice = IoControl::get_handle(&mut hub_name.clone()).ok()?;
+
+        let imanufacturer =
+            IoControl::get_string_descriptor(&hdevice, port_number, &IoDescriptor::Manufacturer)
+                .ok()?;
+
+        let iproduct =
+            IoControl::get_string_descriptor(&hdevice, port_number, &IoDescriptor::Product).ok()?;
+
+        usb_port_info.manufacturer = Some(imanufacturer);
+        usb_port_info.product = Some(iproduct);
+    }
+
+    Some(usb_port_info)
 }
 
 struct PortDevices {
@@ -320,11 +376,32 @@ impl PortDevice {
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
     pub fn port_type(&mut self) -> SerialPortType {
         self.instance_id()
-            .map(|s| (s, self.parent_instance_id())) // Get parent instance id if it exists.
-            .and_then(|(d, p)| parse_usb_port_info(&d, p.as_deref()))
+            .map(|s| {
+                (
+                    s,
+                    self.parent_instance_id(),
+                    #[cfg(feature = "iocontrol")]
+                    self.property(SPDRP_LOCATION_INFORMATION),
+                )
+            }) // Get parent instance id if it exists.
+            .and_then(
+                |#[cfg(not(feature = "iocontrol"))] (d, p),
+                 #[cfg(feature = "iocontrol")] (d, p, l)| {
+                    parse_usb_port_info(
+                        &d,
+                        p.as_deref(),
+                        #[cfg(feature = "iocontrol")]
+                        l.as_deref(),
+                    )
+                },
+            )
             .map(|mut info: UsbPortInfo| {
-                info.manufacturer = self.property(SPDRP_MFG);
-                info.product = self.property(SPDRP_FRIENDLYNAME);
+                if info.manufacturer.is_none() {
+                    info.manufacturer = self.property(SPDRP_MFG)
+                };
+                if info.product.is_none() {
+                    info.product = self.property(SPDRP_FRIENDLYNAME)
+                };
                 SerialPortType::UsbPort(info)
             })
             .unwrap_or(SerialPortType::Unknown)
@@ -399,7 +476,13 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
 fn test_parsing_usb_port_information() {
     let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
     let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
-    let info = parse_usb_port_info(bm_uart_hwid, Some(bm_parent_hwid)).unwrap();
+    let info = parse_usb_port_info(
+        bm_uart_hwid,
+        Some(bm_parent_hwid),
+        #[cfg(feature = "iocontrol")]
+        None,
+    )
+    .unwrap();
 
     assert_eq!(info.vid, 0x1D50);
     assert_eq!(info.pid, 0x6018);
@@ -408,7 +491,13 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.interface, Some(2));
 
     let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
-    let info = parse_usb_port_info(ftdi_serial_hwid, None).unwrap();
+    let info = parse_usb_port_info(
+        ftdi_serial_hwid,
+        None,
+        #[cfg(feature = "iocontrol")]
+        None,
+    )
+    .unwrap();
 
     assert_eq!(info.vid, 0x0403);
     assert_eq!(info.pid, 0x6001);
@@ -417,7 +506,13 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.interface, None);
 
     let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
-    let info = parse_usb_port_info(pyboard_hwid, None).unwrap();
+    let info = parse_usb_port_info(
+        pyboard_hwid,
+        None,
+        #[cfg(feature = "iocontrol")]
+        None,
+    )
+    .unwrap();
 
     assert_eq!(info.vid, 0xF055);
     assert_eq!(info.pid, 0x9802);
