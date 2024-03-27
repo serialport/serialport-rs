@@ -32,7 +32,6 @@
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
 
-use std::convert::From;
 use std::error::Error as StdError;
 use std::fmt;
 use std::io;
