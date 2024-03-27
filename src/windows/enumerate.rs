@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 use std::{mem, ptr};
 
-use regex::Regex;
+use regex_lite::Regex;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::winerror::*;
