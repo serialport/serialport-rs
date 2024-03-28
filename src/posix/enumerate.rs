@@ -174,6 +174,24 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 Ok(SerialPortType::PciPort)
             }
         }
+        None => {
+            let p = d.parent().unwrap();
+            let parent_driver = p.driver().unwrap().to_str().unwrap();
+            let parent_subsystem = p.subsystem().unwrap().to_str().unwrap();
+
+            if parent_driver == "cdc_acm" && parent_subsystem == "usb" {
+                let product_code = p.property_value("PRODUCT").and_then(OsStr::to_str).unwrap();
+                Ok(SerialPortType::UsbPort(UsbPortInfo {
+                    vid: u16::from_str_radix(&product_code[0..4], 16).unwrap(),
+                    pid: u16::from_str_radix(&product_code[5..9], 16).unwrap(),
+                    serial_number: None,
+                    manufacturer: None,
+                    product: None,
+                }))
+            } else {
+                Ok(SerialPortType::Unknown)
+            }
+        }
         _ => Ok(SerialPortType::Unknown),
     }
 }
