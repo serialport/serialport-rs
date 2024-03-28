@@ -85,7 +85,7 @@ fn run(port_name: &str, baud_rate: &str, block_size: usize) -> Result<(), Box<dy
     // This loop writes the block repeatedly, as fast as possible, to try to saturate the
     // output buffer. If you don't see much data queued to send, try changing the block size.
     loop {
-        match port.write(&block) {
+        match port.write_all(&block) {
             Ok(_) => (),
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
             Err(e) => panic!("Error while writing data to the port: {}", e),
@@ -125,7 +125,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     drop(tx); // EOF, drop the channel and stop the thread
                     break;
                 }
-                Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
+                Ok(_bytes_read) => tx.send(()).unwrap(), // Signal main to clear the buffer
                 Err(e) => panic_any(e),
             }
         }
