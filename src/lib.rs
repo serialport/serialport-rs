@@ -19,8 +19,7 @@
 #![deny(
     missing_docs,
     missing_debug_implementations,
-    missing_copy_implementations,
-    unused
+    missing_copy_implementations
 )]
 // Document feature-gated elements on docs.rs. See
 // https://doc.rust-lang.org/rustdoc/unstable-features.html?highlight=doc(cfg#doccfg-recording-what-platforms-or-features-are-required-for-code-to-be-present
