@@ -125,7 +125,7 @@ fn input_service() -> mpsc::Receiver<()> {
                     drop(tx); // EOF, drop the channel and stop the thread
                     break;
                 }
-                Ok(_) => tx.send(()).unwrap(), // Signal main to clear the buffer
+                Ok(_bytes_read) => tx.send(()).unwrap(), // Signal main to clear the buffer
                 Err(e) => panic_any(e),
             }
         }

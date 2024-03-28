@@ -98,7 +98,7 @@ fn test_osx_pty_pair() {
     let (output_sink, output_stream) = std::sync::mpsc::sync_channel(1);
     let name = slave.name().unwrap();
 
-    master.write("12".as_bytes()).expect("");
+    master.write_all("12".as_bytes()).expect("");
 
     let reader_thread = std::thread::spawn(move || {
         let mut port = TTYPort::open(&serialport::new(&name, 0)).expect("unable to open");
