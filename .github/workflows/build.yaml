@@ -18,6 +18,9 @@ on:
       toolchain:
         default: stable
         type: string
+      continue-on-error:
+        default: false
+        type: boolean
 
 env:
   # While we could define these on a per-job basis, there's no harm in simply
@@ -52,6 +55,7 @@ env:
 jobs:
   build:
     runs-on: ${{ inputs.runs_on }}
+    continue-on-error: ${{ inputs.continue-on-error }}
     steps:
       - name: Build | install dependencies
         if: inputs.runs_on == 'ubuntu-latest'

@@ -245,9 +245,22 @@ jobs:
       disable_tests: true
       target: x86_64-unknown-netbsd
 
+  # --------------------------------------------------------------------------
+  # NIGHTLY BUILD
+
+  aarch64-apple-darwin-nightly:
+    uses: ./.github/workflows/build.yaml
+    with:
+      continue-on-error: true
+      disable_tests: true
+      runs_on: macos-latest
+      target: aarch64-apple-darwin
+      toolchain: nightly
+
   x86_64-pc-windows-msvc-nightly:
     uses: ./.github/workflows/build.yaml
     with:
+      continue-on-error: true
       runs_on: windows-2019
       target: x86_64-pc-windows-msvc
       toolchain: nightly
@@ -255,14 +268,7 @@ jobs:
   x86_64-unknown-linux-gnu-nightly:
     uses: ./.github/workflows/build.yaml
     with:
+      continue-on-error: true
       extra_packages: libudev-dev
       target: x86_64-unknown-linux-gnu
-      toolchain: nightly
-
-  aarch64-apple-darwin-nightly:
-    uses: ./.github/workflows/build.yaml
-    with:
-      disable_tests: true
-      runs_on: macos-latest
-      target: aarch64-apple-darwin
       toolchain: nightly
