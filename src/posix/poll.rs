@@ -5,11 +5,15 @@ use std::os::fd::AsFd;
 use std::slice;
 use std::time::Duration;
 
+#[cfg(not(target_os = "linux"))]
+use nix::poll::PollTimeout;
 use nix::poll::{PollFd, PollFlags};
 #[cfg(target_os = "linux")]
 use nix::sys::signal::SigSet;
 #[cfg(target_os = "linux")]
-use nix::sys::time::{TimeSpec, TimeValLike};
+use nix::sys::time::TimeSpec;
+#[cfg(not(target_os = "linux"))]
+use std::io::ErrorKind;
 
 pub fn wait_read_fd<F: AsFd>(fd: F, timeout: Duration) -> io::Result<()> {
     wait_fd(fd, PollFlags::POLLIN, timeout)
@@ -24,11 +28,9 @@ fn wait_fd<F: AsFd>(fd: F, events: PollFlags, timeout: Duration) -> io::Result<(
 
     let mut fd = PollFd::new(fd.as_fd(), events);
 
-    let milliseconds =
-        timeout.as_secs() as i64 * 1000 + i64::from(timeout.subsec_nanos()) / 1_000_000;
     #[cfg(target_os = "linux")]
     let wait_res = {
-        let timespec = TimeSpec::milliseconds(milliseconds);
+        let timespec = TimeSpec::from_duration(timeout);
         nix::poll::ppoll(
             slice::from_mut(&mut fd),
             Some(timespec),
@@ -36,7 +38,11 @@ fn wait_fd<F: AsFd>(fd: F, events: PollFlags, timeout: Duration) -> io::Result<(
         )
     };
     #[cfg(not(target_os = "linux"))]
-    let wait_res = nix::poll::poll(slice::from_mut(&mut fd), milliseconds as nix::libc::c_int);
+    let wait_res = nix::poll::poll(
+        slice::from_mut(&mut fd),
+        PollTimeout::try_from(timeout.as_millis())
+            .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))?,
+    );
 
     let wait = match wait_res {
         Ok(r) => r,
