@@ -4,7 +4,7 @@ extern crate serialport;
 #[test]
 fn test_set_large_buffer() {
     const STRIDE: usize = 2;
-    const WORDS : usize = 65536;
+    const WORDS: usize = 65536;
     const BYTES: usize = WORDS * STRIDE;
 
     let mut tx_port = serialport::new("COM12", 9600).open().unwrap();
