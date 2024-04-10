@@ -5,7 +5,7 @@ use std::time::Duration;
 use std::{io, mem};
 
 use nix::fcntl::{fcntl, OFlag};
-use nix::{self, libc, unistd};
+use nix::{libc, unistd};
 
 use crate::posix::ioctl::{self, SerialLines};
 use crate::posix::termios;
