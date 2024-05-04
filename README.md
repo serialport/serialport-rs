@@ -122,10 +122,11 @@ feature):
 
 # Platform Support
 
-Builds and tests for all supported targets are run in CI. Failures of either block the inclusion of
-new code. This library should be compatible with additional targets not listed below, but no
-guarantees are made. Additional platforms may be added in the future if there is a need and/or
-demand.
+Builds and some tests (not requiring actual hardware) for all supported targets
+are run in CI. Failures of either block the inclusion of new code. This library
+should be compatible with additional targets not listed below, but no
+guarantees are made. Additional platforms may be added in the future if there
+is a need and/or demand.
 
 - Android
   - `arm-linux-androideabi` (no serial enumeration)
