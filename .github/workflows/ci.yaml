@@ -7,6 +7,11 @@ on:
   push:
   workflow_dispatch:
 
+env:
+  # Dummy ports for hardware tests. Keep in sync with workflows in build.yaml.
+  SERIALPORT_RS_TEST_PORT_1: DUMMY_PORT_1
+  SERIALPORT_RS_TEST_PORT_2: DUMMY_PORT_2
+
 jobs:
   # --------------------------------------------------------------------------
   # LINT

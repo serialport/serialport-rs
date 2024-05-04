@@ -51,6 +51,10 @@ env:
   PKG_CONFIG_ALLOW_CROSS: 1
   # Deny warnings.
   RUSTFLAGS: -D warnings
+  # Dummy ports for hardware tests. Keep in sync with other workflows (in
+  # ci.yaml).
+  SERIALPORT_RS_TEST_PORT_1: DUMMY_PORT_1
+  SERIALPORT_RS_TEST_PORT_2: DUMMY_PORT_2
 
 jobs:
   build:
@@ -110,7 +114,7 @@ jobs:
 
       - name: Build | run tests (default features)
         if: ${{ inputs.disable_tests == false }}
-        run: cargo test --no-fail-fast --target=${{ inputs.target }}
+        run: cargo test --no-fail-fast --features ignore-hardware-tests --target=${{ inputs.target }}
 
       - name: Build | build tests (all features)
         if: ${{ inputs.disable_extra_builds == false }}
@@ -118,4 +122,5 @@ jobs:
 
       - name: Build | run tests (all features)
         if: ${{ inputs.disable_tests == false }}
+        # Enabling all features includes ignoring hardware tests.
         run: cargo test --no-fail-fast --all-features --target=${{ inputs.target }}
