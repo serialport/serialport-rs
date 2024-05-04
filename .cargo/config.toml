@@ -1,0 +1,5 @@
+[env]
+# Some of our tests make use of actual serial ports. Run all tests sequentially
+# by default to avoid race conditions (see
+# https://github.com/rust-lang/cargo/issues/8430).
+RUST_TEST_THREADS = "1"
