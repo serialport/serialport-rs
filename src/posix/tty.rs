@@ -46,11 +46,16 @@ fn close(fd: RawFd) {
 /// ```
 /// use serialport::{TTYPort, SerialPort};
 ///
-/// let (mut master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
+/// let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+///
+/// # let _ = &mut master;
+/// # let _ = &mut slave;
 ///
 /// // ... elsewhere
 ///
 /// let mut port = TTYPort::open(&serialport::new(slave.name().unwrap(), 0)).expect("unable to open");
+///
+/// # let _ = &mut port;
 /// ```
 #[derive(Debug)]
 pub struct TTYPort {
@@ -247,7 +252,10 @@ impl TTYPort {
     /// ```
     /// use serialport::TTYPort;
     ///
-    /// let (master, slave) = TTYPort::pair().unwrap();
+    /// let (mut master, mut slave) = TTYPort::pair().unwrap();
+    ///
+    /// # let _ = &mut master;
+    /// # let _ = &mut slave;
     /// ```
     pub fn pair() -> Result<(Self, Self)> {
         // Open the next free pty.
