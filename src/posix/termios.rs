@@ -8,7 +8,7 @@ use std::os::unix::prelude::*;
 
 cfg_if! {
     if #[cfg(any(
-        target_os = "dragonflybsd",
+        target_os = "dragonfly",
         target_os = "freebsd",
         target_os = "ios",
         target_os = "macos",
@@ -59,7 +59,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
 }
 
 #[cfg(any(
-    target_os = "dragonflybsd",
+    target_os = "dragonfly",
     target_os = "freebsd",
     target_os = "netbsd",
     target_os = "openbsd",
@@ -111,7 +111,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) ->
 }
 
 #[cfg(any(
-    target_os = "dragonflybsd",
+    target_os = "dragonfly",
     target_os = "freebsd",
     target_os = "netbsd",
     target_os = "openbsd",
@@ -222,7 +222,7 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
 
 // BSDs use the baud rate as the constant value so there's no translation necessary
 #[cfg(any(
-    target_os = "dragonflybsd",
+    target_os = "dragonfly",
     target_os = "freebsd",
     target_os = "netbsd",
     target_os = "openbsd"
