@@ -479,7 +479,7 @@ impl SerialPort for TTYPort {
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
     #[cfg(any(
-        target_os = "dragonflybsd",
+        target_os = "dragonfly",
         target_os = "freebsd",
         target_os = "netbsd",
         target_os = "openbsd"
@@ -622,7 +622,7 @@ impl SerialPort for TTYPort {
 
     #[cfg(any(
         target_os = "android",
-        target_os = "dragonflybsd",
+        target_os = "dragonfly",
         target_os = "freebsd",
         target_os = "netbsd",
         target_os = "openbsd",
