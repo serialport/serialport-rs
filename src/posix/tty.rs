@@ -37,8 +37,9 @@ fn close(fd: RawFd) {
 /// should not be instantiated directly by using `TTYPort::open()`.
 /// Instead, use the cross-platform `serialport::new()`. Example:
 ///
-/// ```
+/// ```no_run
 /// let mut port = serialport::new("/dev/ttyS0", 115200).open().expect("Unable to open");
+/// # let _ = &mut port;
 /// ```
 ///
 /// Note: on macOS, when connecting to a pseudo-terminal (`pty` opened via
