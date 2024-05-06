@@ -1,6 +1,4 @@
 //! Tests for the `SerialPort` trait.
-#![cfg(unix)]
-
 mod config;
 
 use config::{hw_config, HardwareConfig};
