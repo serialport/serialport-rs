@@ -51,14 +51,10 @@ fn close(fd: RawFd) {
 /// use serialport::{TTYPort, SerialPort};
 ///
 /// let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
-///
 /// # let _ = &mut master;
 /// # let _ = &mut slave;
-///
 /// // ... elsewhere
-///
 /// let mut port = TTYPort::open(&serialport::new(slave.name().unwrap(), 0)).expect("Unable to open");
-///
 /// # let _ = &mut port;
 /// ```
 #[derive(Debug)]
