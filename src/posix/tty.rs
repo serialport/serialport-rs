@@ -33,10 +33,13 @@ fn close(fd: RawFd) {
 
 /// A serial port implementation for POSIX TTY ports
 ///
-/// The port will be closed when the value is dropped. However, this struct
-/// should not be instantiated directly by using `TTYPort::open()`, instead use
-/// the cross-platform `serialport::open()` or
-/// `serialport::open_with_settings()`.
+/// The port will be closed when the value is dropped. This struct
+/// should not be instantiated directly by using `TTYPort::open()`.
+/// Instead, use the cross-platform `serialport::new()`. Example:
+///
+/// ```
+/// let mut port = serialport::new("/dev/ttyS0", 115200).open().expect("Unable to open");
+/// ```
 ///
 /// Note: on macOS, when connecting to a pseudo-terminal (`pty` opened via
 /// `posix_openpt`), the `baud_rate` should be set to 0; this will be used to
@@ -53,7 +56,7 @@ fn close(fd: RawFd) {
 ///
 /// // ... elsewhere
 ///
-/// let mut port = TTYPort::open(&serialport::new(slave.name().unwrap(), 0)).expect("unable to open");
+/// let mut port = TTYPort::open(&serialport::new(slave.name().unwrap(), 0)).expect("Unable to open");
 ///
 /// # let _ = &mut port;
 /// ```
