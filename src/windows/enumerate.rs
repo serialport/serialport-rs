@@ -100,7 +100,7 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         .name("iid")
         .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok());
 
-    if let Some(_) = interface {
+    if interface.is_some() {
         // If this is a composite device, we need to parse the parent's HWID to get the correct information.
         caps = re.captures(parent_hardware_id?)?;
     }
