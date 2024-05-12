@@ -35,7 +35,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Lint | rust-cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
 
       - name: Lint | check formatting
         run: cargo fmt -- --check
