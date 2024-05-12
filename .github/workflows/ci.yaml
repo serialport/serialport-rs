@@ -29,27 +29,19 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Lint | install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: stable
-          default: true
           components: clippy, rustfmt
 
       - name: Lint | rust-cache
         uses: Swatinem/rust-cache@v1
 
       - name: Lint | check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
 
       - name: Lint | clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features
+        run: cargo clippy --all-targets --all-features
 
   # --------------------------------------------------------------------------
   # MSRV
