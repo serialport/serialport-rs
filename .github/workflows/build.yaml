@@ -78,27 +78,19 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build | install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           target: ${{ inputs.target }}
           toolchain: ${{ inputs.toolchain }}
-          default: true
 
       - name: Build | rust-cache
         uses: Swatinem/rust-cache@v1
 
       - name: Build | build library (default features)
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target=${{ inputs.target }}
+        run: cargo build --target=${{ inputs.target }}
 
       - name: Build | build library (all features)
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-features --target=${{ inputs.target }}
+        run: cargo build --all-features --target=${{ inputs.target }}
 
       - name: Build | build examples (default features)
         if: ${{ inputs.disable_extra_builds == false }}
