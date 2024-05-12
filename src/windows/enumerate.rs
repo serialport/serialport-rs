@@ -459,7 +459,7 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             );
 
             // This technique also returns parallel ports, so we filter these out.
-            if !port_name.starts_with("COM") {
+            if port_name.starts_with("LPT") {
                 continue;
             }
 
