@@ -1,7 +1,11 @@
 use cfg_if::cfg_if;
 
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-use std::ffi::OsStr;
+cfg_if! {
+    if #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]{
+        use std::ffi::OsStr;
+        use regex::Regex;
+    }
+}
 
 cfg_if! {
     if #[cfg(any(target_os = "ios", target_os = "macos"))] {
@@ -173,6 +177,83 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
             } else {
                 Ok(SerialPortType::PciPort)
             }
+        }
+        None => {
+            fn find_usb_interface_from_parents(
+                parent: Option<libudev::Device>,
+            ) -> Option<libudev::Device> {
+                let mut p = parent?;
+
+                // limit the query depth
+                for _ in 1..4 {
+                    match p.devtype() {
+                        None => match p.parent() {
+                            None => break,
+                            Some(x) => p = x,
+                        },
+                        Some(s) => {
+                            if s.to_str()? == "usb_interface" {
+                                break;
+                            } else {
+                                match p.parent() {
+                                    None => break,
+                                    Some(x) => p = x,
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Some(p)
+            }
+
+            fn get_modalias_from_device(d: libudev::Device) -> Option<String> {
+                Some(
+                    d.property_value("MODALIAS")
+                        .and_then(OsStr::to_str)?
+                        .to_owned(),
+                )
+            }
+
+            //  MODALIAS = usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in00
+            //  v    303A  (device vendor)
+            //  p    1001  (device product)
+            //  d    0101  (bcddevice)
+            //  dc     EF  (device class)
+            //  dsc    02  (device subclass)
+            //  dp     01  (device protocol)
+            //  ic     02  (interface class)
+            //  isc    02  (interface subclass)
+            //  ip     00  (interface protocol)
+            //  in     00  (interface number)
+            fn parse_modalias(moda: String) -> Option<UsbPortInfo> {
+                let re = Regex::new(concat!(
+                    r"usb:v(?P<vid>[[:xdigit:]]{4})",
+                    r"p(?P<pid>[[:xdigit:]]{4})",
+                    r".*",
+                    r"in(?P<in>[[:xdigit:]]{2})"
+                ))
+                .unwrap();
+
+                let caps = re.captures(moda.as_str())?;
+
+                Some(UsbPortInfo {
+                    vid: u16::from_str_radix(&caps["vid"], 16).ok()?,
+                    pid: u16::from_str_radix(&caps["pid"], 16).ok()?,
+                    serial_number: None,
+                    manufacturer: None,
+                    product: None,
+                    #[cfg(feature = "usbportinfo-interface")]
+                    interface: u8::from_str_radix(&caps["in"], 16).ok(),
+                })
+            }
+
+            find_usb_interface_from_parents(d.parent())
+                .and_then(get_modalias_from_device)
+                .and_then(parse_modalias)
+                .map_or(Ok(SerialPortType::Unknown), |port_info| {
+                    Ok(SerialPortType::UsbPort(port_info))
+                })
         }
         _ => Ok(SerialPortType::Unknown),
     }
