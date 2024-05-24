@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 * Added conversions between `DataBits`, `StopBits` types and their numeric representations
 * Added `FromStr` implementation for `FlowControl`
+* Added `Mark` and `Space` variants to `Parity` enum
 ### Changed
 ### Fixed
 * Fixes a bug where `available_ports()` returned disabled devices on Windows.
