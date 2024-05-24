@@ -35,7 +35,10 @@ fn main() {
             println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
             loop {
                 match port.read(serial_buf.as_mut_slice()) {
-                    Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
+                    Ok(t) => {
+                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        io::stdout().flush().unwrap();
+                    }
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                     Err(e) => eprintln!("{:?}", e),
                 }
