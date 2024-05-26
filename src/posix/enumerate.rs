@@ -300,7 +300,10 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Opti
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> SerialPortType {
     let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
+    #[cfg(not(feature = "usbportinfo-interface"))]
     let usb_device_class_name = b"IOUSBHostDevice\0".as_ptr() as *const c_char;
+    #[cfg(feature = "usbportinfo-interface")]
+    let usb_device_class_name = b"IOUSBHostInterface\0".as_ptr() as *const c_char;
     let legacy_usb_device_class_name = kIOUSBDeviceClassName;
 
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
