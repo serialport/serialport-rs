@@ -178,7 +178,7 @@ impl TTYPort {
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         termios::set_baud_rate(&mut termios, builder.baud_rate);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        termios::set_termios(fd.0, &termios, builder.baud_rate)?;
+        termios::set_termios(fd.0, &mut termios, builder.baud_rate)?;
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         termios::set_termios(fd.0, &termios)?;
 
@@ -646,7 +646,7 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_flow_control(&mut termios, flow_control);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        return termios::set_termios(self.fd, &mut termios, self.baud_rate);
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -655,7 +655,7 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_parity(&mut termios, parity);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        return termios::set_termios(self.fd, &mut termios, self.baud_rate);
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -664,7 +664,7 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_data_bits(&mut termios, data_bits);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        return termios::set_termios(self.fd, &mut termios, self.baud_rate);
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -673,7 +673,7 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_stop_bits(&mut termios, stop_bits);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        return termios::set_termios(self.fd, &mut termios, self.baud_rate);
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
