@@ -225,6 +225,9 @@ pub enum StopBits {
     /// One stop bit.
     One,
 
+    /// One and a half stop bits.
+    OnePointFive,
+
     /// Two stop bits.
     Two,
 }
@@ -233,6 +236,7 @@ impl fmt::Display for StopBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             StopBits::One => write!(f, "One"),
+            StopBits::OnePointFive => write!(f, "OnePointFive"),
             StopBits::Two => write!(f, "Two"),
         }
     }
@@ -242,6 +246,7 @@ impl From<StopBits> for u8 {
     fn from(value: StopBits) -> Self {
         match value {
             StopBits::One => 1,
+            StopBits::OnePointFive => 1,
             StopBits::Two => 2,
         }
     }
