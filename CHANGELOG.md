@@ -7,15 +7,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
-* Added conversions between `DataBits`, `StopBits` types and their numeric representations
-* Added `FromStr` implementation for `FlowControl`
+* Add conversions between `DataBits`, `StopBits` types and their numeric
+  representations.
+* Add `FromStr` implementation for `FlowControl`.
+  [#163](https://github.com/serialport/serialport-rs/pull/163)
 ### Changed
+* Several changes for CI hygiene.
 ### Fixed
-* Fixes a bug where `available_ports()` returned disabled devices on Windows.
+* Fix a bug where `available_ports()` returned disabled devices on Windows.
   [#144](https://github.com/serialport/serialport-rs/pull/144)
-* Fixes a bug on Windows where the `WriteTotalTimeoutConstant` field hasn't been
+* Fix a bug on Windows where the `WriteTotalTimeoutConstant` field hasn't been
   configured properly when the `set_timeout` method is called.
   [#124](https://github.com/serialport/serialport-rs/issues/124)
+* Fix a longstanding bug on Windows where timeouts of length zero
+  (`Duration::ZERO`) actually resulted in waiting indefinitely.
+  [#79](https://github.com/serialport/serialport-rs/pull/79)
+* Fix missing modem ports from `available_ports()` on Windows.
+  [#81](https://github.com/serialport/serialport-rs/issues/81)
+  [#84](https://github.com/serialport/serialport-rs/pull/84)
+* Fix MSRV incompatibility with sub-dependency of clap.
+  [#186](https://github.com/serialport/serialport-rs/pull/186)
+
 
 ### Removed
 
