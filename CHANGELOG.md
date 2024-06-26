@@ -7,12 +7,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+### Removed
+
+
+## [4.4.0] - 2024-06-26
+
+### Added
 * Add conversions between `DataBits`, `StopBits` types and their numeric
   representations.
 * Add `FromStr` implementation for `FlowControl`.
   [#163](https://github.com/serialport/serialport-rs/pull/163)
+
 ### Changed
 * Several changes for CI hygiene.
+
 ### Fixed
 * Fix a bug where `available_ports()` returned disabled devices on Windows.
   [#144](https://github.com/serialport/serialport-rs/pull/144)
@@ -28,8 +38,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Fix MSRV incompatibility with sub-dependency of clap.
   [#186](https://github.com/serialport/serialport-rs/pull/186)
 
-
-### Removed
 
 ## [4.3.0] - 2023-12-11
 
@@ -396,7 +404,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.3.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/serialport/serialport-rs/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/serialport/serialport-rs/compare/v4.2.2...v4.3.0
 [4.2.2]: https://github.com/serialport/serialport-rs/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/serialport/serialport-rs/compare/v4.2.0...v4.2.1
