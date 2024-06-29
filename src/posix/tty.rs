@@ -60,7 +60,7 @@ fn close(fd: RawFd) {
 #[derive(Debug)]
 pub struct TTYPort {
     fd: RawFd,
-    timeout: Duration,
+    timeout: Option<Duration>,
     exclusive: bool,
     port_name: Option<String>,
     #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -311,7 +311,7 @@ impl TTYPort {
 
         let slave_tty = TTYPort {
             fd,
-            timeout: Duration::from_millis(100),
+            timeout: Some(Duration::from_millis(100)),
             exclusive: true,
             port_name: Some(ptty_name),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -323,7 +323,7 @@ impl TTYPort {
         // BSDs when used on the master port.
         let master_tty = TTYPort {
             fd: next_pty_fd.into_raw_fd(),
-            timeout: Duration::from_millis(100),
+            timeout: Some(Duration::from_millis(100)),
             exclusive: true,
             port_name: None,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -407,7 +407,7 @@ impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         TTYPort {
             fd,
-            timeout: Duration::from_millis(100),
+            timeout: Some(Duration::from_millis(100)),
             exclusive: ioctl::tiocexcl(fd).is_ok(),
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
@@ -616,7 +616,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn timeout(&self) -> Duration {
+    fn timeout(&self) -> Option<Duration> {
         self.timeout
     }
 
@@ -678,7 +678,7 @@ impl SerialPort for TTYPort {
         return termios::set_termios(self.fd, &termios);
     }
 
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
+    fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
         self.timeout = timeout;
         Ok(())
     }
