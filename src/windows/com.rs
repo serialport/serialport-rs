@@ -176,6 +176,14 @@ impl FromRawHandle for COMPort {
     }
 }
 
+impl IntoRawHandle for COMPort {
+    fn into_raw_handle(self) -> RawHandle {
+        let Self { handle, .. } = self;
+
+        handle as RawHandle
+    }
+}
+
 impl io::Read for COMPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut len: DWORD = 0;
