@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::ffi::CStr;
 use std::{mem, ptr};
 
 use winapi::shared::guiddef::*;
@@ -246,32 +245,27 @@ struct PortDevice {
 }
 
 impl PortDevice {
-    // Retrieves the device instance id string associated with this device's parent.
-    // This is useful for determining the serial number of a composite USB device.
+    /// Retrieves the device instance id string associated with this device's parent.
+    /// This is useful for determining the serial number of a composite USB device.
     fn parent_instance_id(&mut self) -> Option<String> {
-        let mut result_buf = [0i8; MAX_PATH];
+        let mut result_buf = [0u16; MAX_PATH];
         let mut parent_device_instance_id = 0;
 
         let res =
             unsafe { CM_Get_Parent(&mut parent_device_instance_id, self.devinfo_data.DevInst, 0) };
         if res == CR_SUCCESS {
+            let buffer_len = result_buf.len() - 1;
             let res = unsafe {
-                CM_Get_Device_IDA(
+                CM_Get_Device_IDW(
                     parent_device_instance_id,
                     result_buf.as_mut_ptr(),
-                    (result_buf.len() - 1) as ULONG,
+                    buffer_len as ULONG,
                     0,
                 )
             };
 
             if res == CR_SUCCESS {
-                let end_of_buffer = result_buf.len() - 1;
-                result_buf[end_of_buffer] = 0;
-                Some(unsafe {
-                    CStr::from_ptr(result_buf.as_ptr())
-                        .to_string_lossy()
-                        .into_owned()
-                })
+                Some(from_utf16_lossy_trimmed(&result_buf))
             } else {
                 None
             }
