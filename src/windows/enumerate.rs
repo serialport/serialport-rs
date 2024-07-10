@@ -543,6 +543,10 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
 
 #[test]
 fn test_parsing_usb_port_information() {
+    let madeup_hwid = r"USB\VID_1D50&PID_6018+6&A694CA9&0&0000";
+    let info = parse_usb_port_info(madeup_hwid, None).unwrap();
+    assert_eq!(info.serial_number, Some("A694CA9".to_string()));
+
     let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
     let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
     let info = parse_usb_port_info(bm_uart_hwid, Some(bm_parent_hwid)).unwrap();
