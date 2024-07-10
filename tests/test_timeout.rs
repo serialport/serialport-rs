@@ -4,7 +4,89 @@ use config::{hw_config, HardwareConfig};
 use rstest::rstest;
 use serialport::*;
 use std::io::Read;
+use std::thread;
 use std::time::{Duration, Instant};
+
+#[rstest]
+#[case(1, Vec::from(b"abcdef"))]
+#[case(
+    20,
+    Vec::from(b"0123456789:;<=>?@abcdefghijklmnopqrstuvwxyz[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")
+)]
+#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+fn test_read_returns_available_data_before_timeout(
+    hw_config: HardwareConfig,
+    #[case] chunk_size: usize,
+    #[case] message: Vec<u8>,
+) {
+    let send_period = Duration::from_millis(500);
+    let receive_timeout = Duration::from_millis(3000);
+    let marign = Duration::from_millis(100);
+
+    let mut sender = serialport::new(hw_config.port_1, 115200).open().unwrap();
+    let mut receiver = serialport::new(hw_config.port_2, 115200)
+        .timeout(receive_timeout)
+        .open()
+        .unwrap();
+
+    sender.clear(ClearBuffer::All).unwrap();
+    receiver.clear(ClearBuffer::All).unwrap();
+
+    let expected_message = message.clone();
+    let receiver_thread = thread::spawn(move || {
+        let chunk_timeout = send_period + marign;
+        assert!(receiver.timeout() > 3 * chunk_timeout);
+
+        let mut received_message = Vec::with_capacity(expected_message.len());
+
+        loop {
+            let chunk_start = Instant::now();
+            let expected_chunk_until = chunk_start + chunk_timeout;
+
+            let mut buffer = [0u8; 1024];
+            assert!(buffer.len() > expected_message.len());
+
+            // Try to read more data than we are expecting and expect some data to be available
+            // after the send period (plus some margin).
+            match receiver.read(&mut buffer) {
+                Ok(read) => {
+                    assert!(expected_chunk_until > Instant::now());
+                    assert!(read > 0);
+                    println!(
+                        "receive: {} bytes after waiting {} ms",
+                        read,
+                        (Instant::now() - chunk_start).as_millis()
+                    );
+                    received_message.extend_from_slice(&buffer[..read]);
+                }
+                _ => assert!(false),
+            }
+
+            if received_message.len() >= expected_message.len() {
+                break;
+            }
+        }
+
+        assert_eq!(expected_message, received_message);
+    });
+
+    let sender_thread = thread::spawn(move || {
+        let mut next = Instant::now();
+
+        for chunk in message.chunks(chunk_size) {
+            sender.write_all(chunk).unwrap();
+            sender.flush().unwrap();
+
+            println!("send: {} bytes", chunk.len());
+
+            next = next + send_period;
+            thread::sleep(next - Instant::now());
+        }
+    });
+
+    sender_thread.join().unwrap();
+    receiver_thread.join().unwrap();
+}
 
 #[rstest]
 #[case(b"a")]
