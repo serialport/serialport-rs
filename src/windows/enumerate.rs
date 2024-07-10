@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::{mem, ptr};
 
-use regex::Regex;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::winerror::*;
@@ -69,6 +68,77 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
     Ok(guids)
 }
 
+#[derive(Debug)]
+struct HwidMatches<'hwid> {
+    vid: &'hwid str,
+    pid: &'hwid str,
+    serial: Option<&'hwid str>,
+    interface: Option<&'hwid str>,
+}
+
+impl<'hwid> HwidMatches<'hwid> {
+    fn new(hwid: &'hwid str) -> Option<Self> {
+        // When we match something, update this so that we are always looking forward
+        let mut hwid_tail = hwid;
+
+        // VID_(?P<vid>[[:xdigit:]]{4})
+        let vid_start = hwid.find("VID_")?;
+
+        // We won't match for hex characters here. That can be done when parsed.
+        let vid = hwid_tail.get(vid_start + 4..vid_start + 8)?;
+        hwid_tail = hwid_tail.get(vid_start + 8..)?;
+
+        // [&+]PID_(?P<pid>[[:xdigit:]]{4})
+        let pid = if hwid_tail.starts_with("&PID_") || hwid_tail.starts_with("+PID_") {
+            // We will let the hex parser fail if there are not hex digits.
+            hwid_tail.get(5..9)?
+        } else {
+            return None;
+        };
+        hwid_tail = hwid_tail.get(9..)?;
+
+        // (?:[&+]MI_(?P<iid>[[:xdigit:]]{2})){0,1}
+        let iid = if hwid_tail.starts_with("&MI_") || hwid_tail.starts_with("+MI_") {
+            // We will let the hex parser fail if there are not hex digits.
+            let iid = hwid_tail.get(4..6);
+            hwid_tail = hwid_tail.get(6..).unwrap_or(hwid_tail);
+
+            iid
+        } else {
+            None
+        };
+
+        // ([\\+](?P<serial>.+))? (modified)
+        let serial = if hwid_tail.starts_with('\\') || hwid_tail.starts_with('+') {
+            hwid_tail.get(1..).and_then(|tail| {
+                // this is dervied from pySerial's matching but slightly modified so that we can
+                // get the correct serial (see below).
+                // https://github.com/pyserial/pyserial/blob/7aeea35429d15f3eefed10bbb659674638903e3a/serial/tools/list_ports_windows.py#L338-L343
+                let index = tail
+                    .chars()
+                    .take_while(|&character| character.is_ascii_alphanumeric() || character == '&')
+                    .count();
+                // Then we get the match, the then if it contains an '&' character, we split the
+                // str at it and select the second one if it exists. if not the first one is
+                // returned. This is because there are HWID's that look something like:
+                // "+6&4532&XXX..."
+                // Where the correct serial is the "4532"
+                tail.get(..index)
+                    .and_then(|serial| serial.split('&').take(2).last())
+            })
+        } else {
+            None
+        };
+
+        Some(Self {
+            vid,
+            pid,
+            serial,
+            interface: iid,
+        })
+    }
+}
+
 /// Windows usb port information can be determined by the port's HWID string.
 ///
 /// This function parses the HWID string using regex, and returns the USB port
@@ -86,40 +156,24 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
 ///   - BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
 ///   - FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
 fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> Option<UsbPortInfo> {
-    let re = Regex::new(concat!(
-        r"VID_(?P<vid>[[:xdigit:]]{4})",
-        r"[&+]PID_(?P<pid>[[:xdigit:]]{4})",
-        r"(?:[&+]MI_(?P<iid>[[:xdigit:]]{2})){0,1}",
-        r"([\\+](?P<serial>\w+))?"
-    ))
-    .unwrap();
+    let mut caps = HwidMatches::new(hardware_id)?;
 
-    let mut caps = re.captures(hardware_id)?;
-
-    let interface = caps
-        .name("iid")
-        .and_then(|m| u8::from_str_radix(m.as_str(), 16).ok());
+    let interface = caps.interface.and_then(|m| u8::from_str_radix(m, 16).ok());
 
     if interface.is_some() {
         // If this is a composite device, we need to parse the parent's HWID to get the correct information.
-        caps = re.captures(parent_hardware_id?)?;
+        caps = HwidMatches::new(parent_hardware_id?)?;
     }
 
     Some(UsbPortInfo {
-        vid: u16::from_str_radix(&caps[1], 16).ok()?,
-        pid: u16::from_str_radix(&caps[2], 16).ok()?,
-        serial_number: caps.name("serial").map(|m| {
-            let m = m.as_str();
-            if m.contains('&') {
-                m.split('&').nth(1).unwrap().to_string()
-            } else {
-                m.to_string()
-            }
-        }),
+        vid: u16::from_str_radix(caps.vid, 16).ok()?,
+        pid: u16::from_str_radix(caps.pid, 16).ok()?,
+        serial_number: caps.serial.map(str::to_string),
         manufacturer: None,
         product: None,
+
         #[cfg(feature = "usbportinfo-interface")]
-        interface: interface,
+        interface,
     })
 }
 
