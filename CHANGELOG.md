@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
+
+* Add `IntoRawHandle` implementation for `COMPort`
+  [#199](https://github.com/serialport/serialport-rs/pull/199)
+
 ### Changed
 ### Fixed
 ### Removed
