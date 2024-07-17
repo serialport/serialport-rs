@@ -328,7 +328,6 @@ fn port_type(service: io_object_t) -> SerialPortType {
             .and_then(|interface| {
                 get_int_property(interface, "bInterfaceNumber", kCFNumberSInt8Type)
             })
-            .or_else(|| get_int_property(usb_device, "bInterfaceNumber", kCFNumberSInt8Type))
             .map(|x| x as u8),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
