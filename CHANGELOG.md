@@ -13,6 +13,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 ### Fixed
+* Fix looking up `UsbPortInfo::interface` on macOS.
+  [#193](https://github.com/serialport/serialport-rs/pull/193)
 ### Removed
 
 
