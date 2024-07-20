@@ -3,7 +3,6 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]{
         use std::ffi::OsStr;
-        use regex::Regex;
     }
 }
 
@@ -215,41 +214,9 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 )
             }
 
-            //  MODALIAS = usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in00
-            //  v    303A  (device vendor)
-            //  p    1001  (device product)
-            //  d    0101  (bcddevice)
-            //  dc     EF  (device class)
-            //  dsc    02  (device subclass)
-            //  dp     01  (device protocol)
-            //  ic     02  (interface class)
-            //  isc    02  (interface subclass)
-            //  ip     00  (interface protocol)
-            //  in     00  (interface number)
-            fn parse_modalias(moda: String) -> Option<UsbPortInfo> {
-                let re = Regex::new(concat!(
-                    r"usb:v(?P<vid>[[:xdigit:]]{4})",
-                    r"p(?P<pid>[[:xdigit:]]{4})",
-                    r".*",
-                    r"in(?P<in>[[:xdigit:]]{2})"
-                ))
-                .unwrap();
-
-                let caps = re.captures(moda.as_str())?;
-
-                Some(UsbPortInfo {
-                    vid: u16::from_str_radix(&caps["vid"], 16).ok()?,
-                    pid: u16::from_str_radix(&caps["pid"], 16).ok()?,
-                    serial_number: None,
-                    manufacturer: None,
-                    product: None,
-                    #[cfg(feature = "usbportinfo-interface")]
-                    interface: u8::from_str_radix(&caps["in"], 16).ok(),
-                })
-            }
-
             find_usb_interface_from_parents(d.parent())
                 .and_then(get_modalias_from_device)
+                .as_deref()
                 .and_then(parse_modalias)
                 .map_or(Ok(SerialPortType::Unknown), |port_info| {
                     Ok(SerialPortType::UsbPort(port_info))
@@ -257,6 +224,51 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
         }
         _ => Ok(SerialPortType::Unknown),
     }
+}
+
+//  MODALIAS = usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in00
+//  v    303A  (device vendor)
+//  p    1001  (device product)
+//  d    0101  (bcddevice)
+//  dc     EF  (device class)
+//  dsc    02  (device subclass)
+//  dp     01  (device protocol)
+//  ic     02  (interface class)
+//  isc    02  (interface subclass)
+//  ip     00  (interface protocol)
+//  in     00  (interface number)
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
+    // Find the start of the string, will start with "usb:"
+    let mod_start = moda.find("usb:v")?;
+
+    // Tail to update while searching.
+    let mut mod_tail = moda.get(mod_start + 5..)?;
+
+    // The next four characters should be hex values of the vendor.
+    let vid = mod_tail.get(..4)?;
+    mod_tail = mod_tail.get(4..)?;
+
+    // The next portion we care about is the device product ID.
+    let pid_start = mod_tail.find('p')?;
+    let pid = mod_tail.get(pid_start + 1..pid_start + 5)?;
+
+    Some(UsbPortInfo {
+        vid: u16::from_str_radix(vid, 16).ok()?,
+        pid: u16::from_str_radix(pid, 16).ok()?,
+        serial_number: None,
+        manufacturer: None,
+        product: None,
+        // Only attempt to find the interface if the feature is enabled.
+        #[cfg(feature = "usbportinfo-interface")]
+        interface: mod_tail.get(pid_start + 4..).and_then(|mod_tail| {
+            mod_tail.find("in").and_then(|i_start| {
+                mod_tail
+                    .get(i_start + 2..i_start + 4)
+                    .and_then(|interface| u8::from_str_radix(interface, 16).ok())
+            })
+        }),
+    })
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -678,4 +690,18 @@ cfg_if! {
             ))
         }
     }
+}
+
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+#[test]
+fn parser_modalias() {
+    const MODALIAS: &str = "usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in0C";
+
+    let port_info = parse_modalias(MODALIAS).expect("parse failed");
+
+    assert_eq!(port_info.vid, 0x303A, "vendor parse invalid");
+    assert_eq!(port_info.pid, 0x1001, "product parse invalid");
+
+    #[cfg(feature = "usbportinfo-interface")]
+    assert_eq!(port_info.interface, Some(0x0C), "interface parse invalid");
 }
