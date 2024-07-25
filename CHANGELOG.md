@@ -10,6 +10,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Add `IntoRawHandle` implementation for `COMPort`
   [#199](https://github.com/serialport/serialport-rs/pull/199)
+* Add MODALIAS as additional source of information for USB devices on Linux
+  [#170](https://github.com/serialport/serialport-rs/pull/170)
 
 ### Changed
 ### Fixed
