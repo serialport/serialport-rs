@@ -108,23 +108,18 @@ impl<'hwid> HwidMatches<'hwid> {
             None
         };
 
-        // ([\\+](?P<serial>.+))? (modified)
+        // ([\\+](?P<serial>\w+))? with slightly modified check for alphanumeric characters instead
+        // of regex word character
+        //
+        // TODO: Fix returning no serial number at all for devices without one. The previous regex
+        // and the code below return the first thing from the intance ID. See issue #203.
         let serial = if hwid_tail.starts_with('\\') || hwid_tail.starts_with('+') {
             hwid_tail.get(1..).and_then(|tail| {
-                // this is dervied from pySerial's matching but slightly modified so that we can
-                // get the correct serial (see below).
-                // https://github.com/pyserial/pyserial/blob/7aeea35429d15f3eefed10bbb659674638903e3a/serial/tools/list_ports_windows.py#L338-L343
                 let index = tail
                     .chars()
-                    .take_while(|&character| character.is_ascii_alphanumeric() || character == '&')
+                    .take_while(|&character| character.is_alphanumeric())
                     .count();
-                // Then we get the match, the then if it contains an '&' character, we split the
-                // str at it and select the second one if it exists. if not the first one is
-                // returned. This is because there are HWID's that look something like:
-                // "+6&4532&XXX..."
-                // Where the correct serial is the "4532"
                 tail.get(..index)
-                    .and_then(|serial| serial.split('&').take(2).last())
             })
         } else {
             None
@@ -545,7 +540,8 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
 fn test_parsing_usb_port_information() {
     let madeup_hwid = r"USB\VID_1D50&PID_6018+6&A694CA9&0&0000";
     let info = parse_usb_port_info(madeup_hwid, None).unwrap();
-    assert_eq!(info.serial_number, Some("A694CA9".to_string()));
+    // TODO: Fix returning no serial at all for devices without one. See issue #203.
+    assert_eq!(info.serial_number, Some("6".to_string()));
 
     let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
     let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
