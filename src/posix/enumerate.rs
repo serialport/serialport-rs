@@ -177,53 +177,51 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 Ok(SerialPortType::PciPort)
             }
         }
-        None => {
-            fn find_usb_interface_from_parents(
-                parent: Option<libudev::Device>,
-            ) -> Option<libudev::Device> {
-                let mut p = parent?;
-
-                // limit the query depth
-                for _ in 1..4 {
-                    match p.devtype() {
-                        None => match p.parent() {
-                            None => break,
-                            Some(x) => p = x,
-                        },
-                        Some(s) => {
-                            if s.to_str()? == "usb_interface" {
-                                break;
-                            } else {
-                                match p.parent() {
-                                    None => break,
-                                    Some(x) => p = x,
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Some(p)
-            }
-
-            fn get_modalias_from_device(d: libudev::Device) -> Option<String> {
-                Some(
-                    d.property_value("MODALIAS")
-                        .and_then(OsStr::to_str)?
-                        .to_owned(),
-                )
-            }
-
-            find_usb_interface_from_parents(d.parent())
-                .and_then(get_modalias_from_device)
-                .as_deref()
-                .and_then(parse_modalias)
-                .map_or(Ok(SerialPortType::Unknown), |port_info| {
-                    Ok(SerialPortType::UsbPort(port_info))
-                })
-        }
+        None => find_usb_interface_from_parents(d.parent())
+            .and_then(get_modalias_from_device)
+            .as_deref()
+            .and_then(parse_modalias)
+            .map_or(Ok(SerialPortType::Unknown), |port_info| {
+                Ok(SerialPortType::UsbPort(port_info))
+            }),
         _ => Ok(SerialPortType::Unknown),
     }
+}
+
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+fn find_usb_interface_from_parents(parent: Option<libudev::Device>) -> Option<libudev::Device> {
+    let mut p = parent?;
+
+    // limit the query depth
+    for _ in 1..4 {
+        match p.devtype() {
+            None => match p.parent() {
+                None => break,
+                Some(x) => p = x,
+            },
+            Some(s) => {
+                if s.to_str()? == "usb_interface" {
+                    break;
+                } else {
+                    match p.parent() {
+                        None => break,
+                        Some(x) => p = x,
+                    }
+                }
+            }
+        }
+    }
+
+    Some(p)
+}
+
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+fn get_modalias_from_device(d: libudev::Device) -> Option<String> {
+    Some(
+        d.property_value("MODALIAS")
+            .and_then(OsStr::to_str)?
+            .to_owned(),
+    )
 }
 
 //  MODALIAS = usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in00
