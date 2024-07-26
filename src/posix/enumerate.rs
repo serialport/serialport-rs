@@ -690,16 +690,56 @@ cfg_if! {
     }
 }
 
-#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
-#[test]
-fn parser_modalias() {
-    const MODALIAS: &str = "usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in0C";
+#[cfg(all(
+    test,
+    target_os = "linux",
+    not(target_env = "musl"),
+    feature = "libudev"
+))]
+mod test {
+    use super::*;
 
-    let port_info = parse_modalias(MODALIAS).expect("parse failed");
+    use quickcheck_macros::quickcheck;
 
-    assert_eq!(port_info.vid, 0x303A, "vendor parse invalid");
-    assert_eq!(port_info.pid, 0x1001, "product parse invalid");
+    #[quickcheck]
+    fn quickcheck_parse_modalias_does_not_panic_from_random_data(modalias: String) -> bool {
+        let _ = parse_modalias(&modalias);
+        true
+    }
 
-    #[cfg(feature = "usbportinfo-interface")]
-    assert_eq!(port_info.interface, Some(0x0C), "interface parse invalid");
+    #[test]
+    fn parse_modalias_canonical() {
+        const MODALIAS: &str = "usb:v303Ap1001d0101dcEFdsc02dp01ic02isc02ip00in0C";
+
+        let port_info = parse_modalias(MODALIAS).expect("parse failed");
+
+        assert_eq!(port_info.vid, 0x303A, "vendor parse invalid");
+        assert_eq!(port_info.pid, 0x1001, "product parse invalid");
+
+        #[cfg(feature = "usbportinfo-interface")]
+        assert_eq!(port_info.interface, Some(0x0C), "interface parse invalid");
+    }
+
+    #[test]
+    fn parse_modalias_corner_cases() {
+        assert!(parse_modalias("").is_none());
+        assert!(parse_modalias("usb").is_none());
+        assert!(parse_modalias("usb:").is_none());
+        assert!(parse_modalias("usb:vdcdc").is_none());
+        assert!(parse_modalias("usb:pdcdc").is_none());
+
+        // Just vendor and product IDs.
+        let info = parse_modalias("usb:vdcdcpabcd").unwrap();
+        assert_eq!(info.vid, 0xdcdc);
+        assert_eq!(info.pid, 0xabcd);
+        #[cfg(feature = "usbportinfo-interface")]
+        assert!(info.interface.is_none());
+
+        // Vendor and product ID plus an interface number.
+        let info = parse_modalias("usb:v1234p5678indc").unwrap();
+        assert_eq!(info.vid, 0x1234);
+        assert_eq!(info.pid, 0x5678);
+        #[cfg(feature = "usbportinfo-interface")]
+        assert_eq!(info.interface, Some(0xdc));
+    }
 }
