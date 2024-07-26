@@ -68,7 +68,7 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
     Ok(guids)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct HwidMatches<'hwid> {
     vid: &'hwid str,
     pid: &'hwid str,
@@ -537,50 +537,183 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     Ok(ports)
 }
 
-#[test]
-fn test_parsing_usb_port_information() {
-    let madeup_hwid = r"USB\VID_1D50&PID_6018+6&A694CA9&0&0000";
-    let info = parse_usb_port_info(madeup_hwid, None).unwrap();
-    // TODO: Fix returning no serial at all for devices without one. See issue #203.
-    assert_eq!(info.serial_number, Some("6".to_string()));
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
-    let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
-    let info = parse_usb_port_info(bm_uart_hwid, Some(bm_parent_hwid)).unwrap();
+    use quickcheck_macros::quickcheck;
 
-    assert_eq!(info.vid, 0x1D50);
-    assert_eq!(info.pid, 0x6018);
-    assert_eq!(info.serial_number, Some("85A12F01".to_string()));
-    #[cfg(feature = "usbportinfo-interface")]
-    assert_eq!(info.interface, Some(2));
+    // Check that passing some random data to HwidMatches::new() does not cause a panic.
+    #[quickcheck]
+    fn quickcheck_hwidmatches_new_does_not_panic_from_random_input(hwid: String) -> bool {
+        let _ = HwidMatches::new(&hwid);
+        true
+    }
 
-    let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
-    let info = parse_usb_port_info(ftdi_serial_hwid, None).unwrap();
+    // Corner cases which might not always represent what we want to/should parse. But they at
+    // least illustrate how we are parsing device identification strings today.
+    #[test]
+    fn test_hwidmatches_new_corner_cases() {
+        assert!(HwidMatches::new("").is_none());
+        assert!(HwidMatches::new("ROOT").is_none());
+        assert!(HwidMatches::new("ROOT\\").is_none());
+        assert!(HwidMatches::new("USB\\").is_none());
+        assert!(HwidMatches::new("USB\\VID_1234").is_none());
+        assert!(HwidMatches::new("USB\\PID_1234").is_none());
+        assert!(HwidMatches::new("USB\\MI_12").is_none());
 
-    assert_eq!(info.vid, 0x0403);
-    assert_eq!(info.pid, 0x6001);
-    assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
-    #[cfg(feature = "usbportinfo-interface")]
-    assert_eq!(info.interface, None);
+        assert_eq!(
+            HwidMatches::new("VID_1234&PID_5678").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: None,
+                interface: None,
+            }
+        );
 
-    let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
-    let info = parse_usb_port_info(pyboard_hwid, None).unwrap();
+        assert_eq!(
+            HwidMatches::new("ABC\\VID_1234&PID_5678&MI_90").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: None,
+                interface: Some("90"),
+            }
+        );
 
-    assert_eq!(info.vid, 0xF055);
-    assert_eq!(info.pid, 0x9802);
-    assert_eq!(info.serial_number, Some("385435603432".to_string()));
-    #[cfg(feature = "usbportinfo-interface")]
-    assert_eq!(info.interface, None);
+        assert_eq!(
+            HwidMatches::new("FTDIBUS\\VID_1234&PID_5678&MI_90").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: None,
+                interface: Some("90"),
+            }
+        );
 
-    let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432&test";
-    let info = parse_usb_port_info(unicode_serial, None).unwrap();
-    assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+        assert_eq!(
+            HwidMatches::new("USB\\VID_1234+PID_5678+MI_90").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: None,
+                interface: Some("90"),
+            }
+        );
 
-    let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432";
-    let info = parse_usb_port_info(unicode_serial, None).unwrap();
-    assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+        assert_eq!(
+            HwidMatches::new("FTDIBUS\\VID_1234+PID_5678\\0000").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: Some("0000"),
+                interface: None,
+            }
+        );
+    }
 
-    let unicode_serial = r"USB\VID_F055&PID_9802\3854356β";
-    let info = parse_usb_port_info(unicode_serial, None).unwrap();
-    assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
+    #[test]
+    fn test_hwidmatches_new_standard_cases_ftdi() {
+        assert_eq!(
+            HwidMatches::new("FTDIBUS\\VID_1234+PID_5678+SERIAL123\\0000").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: Some("SERIAL123"),
+                interface: None,
+            }
+        );
+    }
+
+    #[test]
+    fn test_hwidmatches_new_standard_cases_usb() {
+        assert_eq!(
+            HwidMatches::new("USB\\VID_1234&PID_5678").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: None,
+                interface: None,
+            }
+        );
+
+        assert_eq!(
+            HwidMatches::new("USB\\VID_1234&PID_5678&MI_90").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: None,
+                interface: Some("90"),
+            }
+        );
+
+        assert_eq!(
+            HwidMatches::new("USB\\VID_1234&PID_5678\\SERIAL123").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: Some("SERIAL123"),
+                interface: None,
+            }
+        );
+
+        assert_eq!(
+            HwidMatches::new("USB\\VID_1234&PID_5678&MI_90\\SERIAL123").unwrap(),
+            HwidMatches {
+                vid: "1234",
+                pid: "5678",
+                serial: Some("SERIAL123"),
+                interface: Some("90"),
+            }
+        );
+    }
+
+    #[test]
+    fn test_parsing_usb_port_information() {
+        let madeup_hwid = r"USB\VID_1D50&PID_6018+6&A694CA9&0&0000";
+        let info = parse_usb_port_info(madeup_hwid, None).unwrap();
+        // TODO: Fix returning no serial at all for devices without one. See issue #203.
+        assert_eq!(info.serial_number, Some("6".to_string()));
+
+        let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
+        let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
+        let info = parse_usb_port_info(bm_uart_hwid, Some(bm_parent_hwid)).unwrap();
+
+        assert_eq!(info.vid, 0x1D50);
+        assert_eq!(info.pid, 0x6018);
+        assert_eq!(info.serial_number, Some("85A12F01".to_string()));
+        #[cfg(feature = "usbportinfo-interface")]
+        assert_eq!(info.interface, Some(2));
+
+        let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
+        let info = parse_usb_port_info(ftdi_serial_hwid, None).unwrap();
+
+        assert_eq!(info.vid, 0x0403);
+        assert_eq!(info.pid, 0x6001);
+        assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
+        #[cfg(feature = "usbportinfo-interface")]
+        assert_eq!(info.interface, None);
+
+        let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
+        let info = parse_usb_port_info(pyboard_hwid, None).unwrap();
+
+        assert_eq!(info.vid, 0xF055);
+        assert_eq!(info.pid, 0x9802);
+        assert_eq!(info.serial_number, Some("385435603432".to_string()));
+        #[cfg(feature = "usbportinfo-interface")]
+        assert_eq!(info.interface, None);
+
+        let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432&test";
+        let info = parse_usb_port_info(unicode_serial, None).unwrap();
+        assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+
+        let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432";
+        let info = parse_usb_port_info(unicode_serial, None).unwrap();
+        assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+
+        let unicode_serial = r"USB\VID_F055&PID_9802\3854356β";
+        let info = parse_usb_port_info(unicode_serial, None).unwrap();
+        assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
+    }
 }
