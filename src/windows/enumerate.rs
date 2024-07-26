@@ -116,9 +116,10 @@ impl<'hwid> HwidMatches<'hwid> {
         let serial = if hwid_tail.starts_with('\\') || hwid_tail.starts_with('+') {
             hwid_tail.get(1..).and_then(|tail| {
                 let index = tail
-                    .chars()
-                    .take_while(|&character| character.is_alphanumeric())
-                    .count();
+                    .char_indices()
+                    .find(|&(_, char)| !char.is_alphanumeric())
+                    .map(|(index, _)| index)
+                    .unwrap_or(tail.len());
                 tail.get(..index)
             })
         } else {
@@ -570,4 +571,16 @@ fn test_parsing_usb_port_information() {
     assert_eq!(info.serial_number, Some("385435603432".to_string()));
     #[cfg(feature = "usbportinfo-interface")]
     assert_eq!(info.interface, None);
+
+    let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432&test";
+    let info = parse_usb_port_info(unicode_serial, None).unwrap();
+    assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+
+    let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432";
+    let info = parse_usb_port_info(unicode_serial, None).unwrap();
+    assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+
+    let unicode_serial = r"USB\VID_F055&PID_9802\3854356β";
+    let info = parse_usb_port_info(unicode_serial, None).unwrap();
+    assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
 }
