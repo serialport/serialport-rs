@@ -8,6 +8,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+* Replace using regex crate for parsing device identification strings for
+  `available_ports` on Windows. This is now done by some bespoke code to
+  significantly reduce build times.
+  [#201](https://github.com/serialport/serialport-rs/pull/201)
 ### Fixed
 ### Removed
 
