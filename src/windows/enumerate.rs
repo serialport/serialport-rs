@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::{mem, ptr};
 
+use winapi::ctypes::c_void;
 use winapi::shared::guiddef::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::winerror::*;
@@ -8,7 +9,7 @@ use winapi::um::cfgmgr32::*;
 use winapi::um::cguid::GUID_NULL;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::setupapi::*;
-use winapi::um::winnt::KEY_READ;
+use winapi::um::winnt::{KEY_READ, REG_SZ};
 use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
@@ -327,6 +328,7 @@ impl PortDevice {
 
     // Retrieves the port name (i.e. COM6) associated with this device.
     pub fn name(&mut self) -> String {
+        // https://learn.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdiopendevregkey
         let hkey = unsafe {
             SetupDiOpenDevRegKey(
                 self.hdi,
@@ -338,23 +340,41 @@ impl PortDevice {
             )
         };
 
-        let mut port_name_buffer = [0u16; MAX_PATH];
-        let mut port_name_len = port_name_buffer.len() as DWORD;
-        let value_name = as_utf16("PortName");
+        if hkey as *mut c_void == winapi::um::handleapi::INVALID_HANDLE_VALUE {
+            // failed to open registry key. Return empty string as the failure case
+            return String::new();
+        }
 
-        unsafe {
+        // https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
+        let mut port_name_buffer = [0u16; MAX_PATH];
+        let mut buffer_byte_len = 2 * port_name_buffer.len() as DWORD;
+        let mut key_type: DWORD = 0;
+
+        let value_name = as_utf16("PortName");
+        let err = unsafe {
             RegQueryValueExW(
                 hkey,
                 value_name.as_ptr(),
                 ptr::null_mut(),
-                ptr::null_mut(),
+                &mut key_type,
                 port_name_buffer.as_mut_ptr() as *mut u8,
-                &mut port_name_len,
+                &mut buffer_byte_len,
             )
         };
         unsafe { RegCloseKey(hkey) };
-
-        let port_name = &port_name_buffer[0..port_name_len as usize];
+        if FAILED(err) {
+            // failed to query registry for some reason. Return empty string as the failure case
+            return String::new();
+        }
+        // https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-value-types
+        let value_is_text = key_type == REG_SZ;
+        if !value_is_text || buffer_byte_len % 2 != 0 {
+            // read something but it wasn't the expected registry type
+            return String::new();
+        }
+        // len of u16 chars, not bytes
+        let len = buffer_byte_len as usize / 2;
+        let port_name = &port_name_buffer[0..len];
 
         from_utf16_lossy_trimmed(port_name)
     }
