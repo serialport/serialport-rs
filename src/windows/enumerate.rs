@@ -477,6 +477,7 @@ fn get_registry_com_ports() -> HashSet<String> {
                 // if 100 chars is not enough for COM<number> something is very wrong
                 let mut val_data = [0u16; 100];
                 let mut byte_len = 2 * val_data.len() as u32; // len doubled
+                let buffer_byte_len = byte_len;
 
                 // SAFETY: ffi, all inputs are correct
                 let res = unsafe {
@@ -491,7 +492,11 @@ fn get_registry_com_ports() -> HashSet<String> {
                         &mut byte_len,
                     )
                 };
-                if FAILED(res) || val_data.len() < byte_len as usize {
+                if FAILED(res)
+                    || value_type != REG_SZ // only valid for text values
+                    || byte_len % 2 != 0 // out byte len should be a multiple of char size
+                    || buffer_byte_len < byte_len
+                {
                     break;
                 }
                 // key data is returned as u16
