@@ -347,7 +347,8 @@ impl PortDevice {
 
         // https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
         let mut port_name_buffer = [0u16; MAX_PATH];
-        let mut buffer_byte_len = 2 * port_name_buffer.len() as DWORD;
+        let buffer_byte_len = 2 * port_name_buffer.len() as DWORD;
+        let mut byte_len = buffer_byte_len;
         let mut value_type = 0;
 
         let value_name = as_utf16("PortName");
@@ -358,7 +359,7 @@ impl PortDevice {
                 ptr::null_mut(),
                 &mut value_type,
                 port_name_buffer.as_mut_ptr() as *mut u8,
-                &mut buffer_byte_len,
+                &mut byte_len,
             )
         };
         unsafe { RegCloseKey(hkey) };
@@ -367,8 +368,7 @@ impl PortDevice {
             return String::new();
         }
         // https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-value-types
-        let value_is_text = value_type == REG_SZ;
-        if !value_is_text || buffer_byte_len % 2 != 0 {
+        if value_type != REG_SZ || byte_len % 2 != 0 || byte_len > buffer_byte_len {
             // read something but it wasn't the expected registry type
             return String::new();
         }
@@ -476,8 +476,8 @@ fn get_registry_com_ports() -> HashSet<String> {
                 let mut value_type = 0;
                 // if 100 chars is not enough for COM<number> something is very wrong
                 let mut val_data = [0u16; 100];
-                let mut byte_len = 2 * val_data.len() as u32; // len doubled
-                let buffer_byte_len = byte_len;
+                let buffer_byte_len = 2 * val_data.len() as DWORD; // len doubled
+                let mut byte_len = buffer_byte_len;
 
                 // SAFETY: ffi, all inputs are correct
                 let res = unsafe {
@@ -495,7 +495,7 @@ fn get_registry_com_ports() -> HashSet<String> {
                 if FAILED(res)
                     || value_type != REG_SZ // only valid for text values
                     || byte_len % 2 != 0 // out byte len should be a multiple of char size
-                    || buffer_byte_len < byte_len
+                    || byte_len > buffer_byte_len
                 {
                     break;
                 }
