@@ -474,8 +474,7 @@ fn get_registry_com_ports() -> HashSet<String> {
                 let mut val_name_buff = [0u16; MAX_PATH];
                 let mut val_name_size = MAX_PATH as u32;
                 let mut value_type = 0;
-                // if 100 chars is not enough for COM<number> something is very wrong
-                let mut val_data = [0u16; 100];
+                let mut val_data = [0u16; MAX_PATH];
                 let buffer_byte_len = 2 * val_data.len() as DWORD; // len doubled
                 let mut byte_len = buffer_byte_len;
 
