@@ -567,6 +567,26 @@ mod test {
 
     use quickcheck_macros::quickcheck;
 
+    #[test]
+    fn from_utf16_lossy_trimmed_trimming_empty() {
+        assert_eq!("", from_utf16_lossy_trimmed(&[]));
+        assert_eq!("", from_utf16_lossy_trimmed(&[0]));
+    }
+
+    #[test]
+    fn from_utf16_lossy_trimmed_trimming() {
+        let test_str = "Testing";
+        let wtest_str: Vec<u16> = as_utf16(test_str);
+        let wtest_str_trailing = wtest_str
+            .iter()
+            .copied()
+            .chain([0, 0, 0, 0]) // add some null chars
+            .collect::<Vec<_>>();
+        let and_back = from_utf16_lossy_trimmed(&wtest_str_trailing);
+
+        assert_eq!(test_str, and_back);
+    }
+
     // Check that passing some random data to HwidMatches::new() does not cause a panic.
     #[quickcheck]
     fn quickcheck_hwidmatches_new_does_not_panic_from_random_input(hwid: String) -> bool {
@@ -740,18 +760,4 @@ mod test {
         let info = parse_usb_port_info(unicode_serial, None).unwrap();
         assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
     }
-}
-
-#[test]
-fn encoding_trimming_utf16() {
-    let test_str = "Testing";
-    let wtest_str: Vec<u16> = as_utf16(test_str);
-    let wtest_str_trailing = wtest_str
-        .iter()
-        .copied()
-        .chain([0, 0, 0, 0]) // add some null chars
-        .collect::<Vec<_>>();
-    let and_back = from_utf16_lossy_trimmed(&wtest_str_trailing);
-
-    assert_eq!(test_str, and_back);
 }
