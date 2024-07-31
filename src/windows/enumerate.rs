@@ -394,6 +394,7 @@ impl PortDevice {
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
     fn property(&mut self, property_id: DWORD) -> Option<String> {
+        let mut value_type = 0;
         let mut property_buf = [0u16; MAX_PATH];
 
         let res = unsafe {
@@ -401,14 +402,14 @@ impl PortDevice {
                 self.hdi,
                 &mut self.devinfo_data,
                 property_id,
-                ptr::null_mut(),
+                &mut value_type,
                 property_buf.as_mut_ptr() as PBYTE,
                 property_buf.len() as DWORD,
                 ptr::null_mut(),
             )
         };
 
-        if res == FALSE {
+        if res == FALSE || value_type != REG_SZ {
             return None;
         }
 
