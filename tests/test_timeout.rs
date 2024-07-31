@@ -178,3 +178,50 @@ fn test_timeout_greater_zero(hw_config: HardwareConfig, #[case] timeout: Duratio
     assert!(flushed_at + timeout + margin > read_at);
     assert_eq!(buffer[..read], message[..read]);
 }
+
+/// Checks that reading data with a timeout of `Duration::MAX` returns some data and no error. It
+/// does not check the actual timeout for obvious reason.
+#[rstest]
+#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+fn test_timeout_max(hw_config: HardwareConfig) {
+    let sleep = Duration::from_millis(3000);
+    let margin = Duration::from_millis(500);
+    let mut sender = serialport::new(hw_config.port_1, 115200).open().unwrap();
+    let mut receiver = serialport::new(hw_config.port_2, 115200)
+        .timeout(Duration::MAX)
+        .open()
+        .unwrap();
+
+    let message =
+        b"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    let mut buffer: [u8; 1024] = [0xff; 1024];
+
+    sender.clear(ClearBuffer::All).unwrap();
+    receiver.clear(ClearBuffer::All).unwrap();
+
+    let started_at = Instant::now();
+
+    let sender_thread = thread::spawn(move || {
+        thread::sleep(sleep);
+
+        sender.write_all(message).unwrap();
+        sender.flush().unwrap();
+    });
+
+    let read = receiver.read(&mut buffer).unwrap();
+    let read_at = Instant::now();
+
+    println!(
+        "read: {} bytes of {} after {} ms",
+        read,
+        message.len(),
+        (Instant::now() - started_at).as_millis()
+    );
+
+    assert!(read > 0);
+    assert!(read_at > started_at + sleep);
+    assert!(read_at < started_at + sleep + margin);
+    assert_eq!(buffer[..read], message[..read]);
+
+    sender_thread.join().unwrap();
+}
