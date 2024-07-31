@@ -7,7 +7,6 @@ use winapi::shared::minwindef::*;
 use winapi::shared::winerror::*;
 use winapi::um::cfgmgr32::*;
 use winapi::um::cguid::GUID_NULL;
-use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::setupapi::*;
 use winapi::um::winnt::{KEY_READ, REG_SZ};
 use winapi::um::winreg::*;
@@ -409,7 +408,7 @@ impl PortDevice {
             )
         };
 
-        if res == FALSE && unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
+        if res == FALSE {
             return None;
         }
 
