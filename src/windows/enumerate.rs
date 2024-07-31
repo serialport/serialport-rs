@@ -348,7 +348,7 @@ impl PortDevice {
         // https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
         let mut port_name_buffer = [0u16; MAX_PATH];
         let mut buffer_byte_len = 2 * port_name_buffer.len() as DWORD;
-        let mut key_type: DWORD = 0;
+        let mut value_type = 0;
 
         let value_name = as_utf16("PortName");
         let err = unsafe {
@@ -356,7 +356,7 @@ impl PortDevice {
                 hkey,
                 value_name.as_ptr(),
                 ptr::null_mut(),
-                &mut key_type,
+                &mut value_type,
                 port_name_buffer.as_mut_ptr() as *mut u8,
                 &mut buffer_byte_len,
             )
@@ -367,7 +367,7 @@ impl PortDevice {
             return String::new();
         }
         // https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-value-types
-        let value_is_text = key_type == REG_SZ;
+        let value_is_text = value_type == REG_SZ;
         if !value_is_text || buffer_byte_len % 2 != 0 {
             // read something but it wasn't the expected registry type
             return String::new();
