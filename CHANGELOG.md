@@ -18,6 +18,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   `available_ports` on Windows. This is now done by some bespoke code to
   significantly reduce build times.
   [#201](https://github.com/serialport/serialport-rs/pull/201)
+* Switch from ANSI to Unicode/UTF-16 string API on Windows.
+   [#89](https://github.com/serialport/serialport-rs/pull/89)
 ### Fixed
 * Fix looking up `UsbPortInfo::interface` on macOS.
   [#193](https://github.com/serialport/serialport-rs/pull/193)
