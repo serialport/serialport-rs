@@ -156,7 +156,15 @@ impl COMPort {
     }
 
     fn timeout_constant(duration: Duration) -> DWORD {
-        duration.as_millis() as DWORD
+        let milliseconds = duration.as_millis();
+        // In the way we are setting up COMMTIMEOUTS, a timeout_constant of MAXDWORD gets rejected.
+        // Let's clamp the timeout constant for values of MAXDWORD and above. See remarks at
+        // https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts.
+        //
+        // This effectively throws away accuracy for really long timeouts but at least preserves a
+        // long-ish timeout. But just casting to DWORD would result in presumably unexpected short
+        // and non-monotonic timeouts from cutting off the higher bits.
+        u128::min(milliseconds, MAXDWORD as u128 - 1) as DWORD
     }
 }
 
