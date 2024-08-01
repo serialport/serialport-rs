@@ -493,7 +493,7 @@ fn get_registry_com_ports() -> HashSet<String> {
                 };
                 if FAILED(res)
                     || value_type != REG_SZ // only valid for text values
-                    || byte_len % 2 != 0 // out byte len should be a multiple of char size
+                    || byte_len % 2 != 0 // out byte len should be a multiple of u16 size
                     || byte_len > buffer_byte_len
                 {
                     break;
