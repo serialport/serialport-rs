@@ -23,6 +23,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 * Fix looking up `UsbPortInfo::interface` on macOS.
   [#193](https://github.com/serialport/serialport-rs/pull/193)
+* Fix issues with very long timeout values like `Duration::MAX` by clamping to
+  maximum supported value for underlying platform.
+  [#207](https://github.com/serialport/serialport-rs/issues/207),
+  [#208](https://github.com/serialport/serialport-rs/pull/208)
 ### Removed
 
 
