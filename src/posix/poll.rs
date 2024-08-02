@@ -66,3 +66,73 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
 fn milliseconds_i64(duration: Duration) -> i64 {
     duration.as_secs() as i64 * 1000 + i64::from(duration.subsec_nanos()) / 1_000_000
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use nix::libc::c_int;
+
+    // TODO: Harmonize with corresponding tests for Windows.
+    fn monotonicity_test_durations() -> Vec<Duration> {
+        vec![
+            Duration::ZERO,
+            Duration::from_nanos(1),
+            Duration::from_millis(1),
+            Duration::from_secs(1),
+            Duration::from_secs(i16::MAX as u64 - 1),
+            Duration::from_secs(i16::MAX as u64),
+            Duration::from_secs(i16::MAX as u64 + 1),
+            Duration::from_secs(i32::MAX as u64 - 1),
+            Duration::from_secs(i32::MAX as u64),
+            Duration::from_secs(i32::MAX as u64 + 1),
+            Duration::from_secs(i64::MAX as u64 - 1),
+            Duration::from_secs(i64::MAX as u64),
+            Duration::from_secs(i64::MAX as u64 + 1),
+            Duration::from_secs(u64::MAX - 1),
+            Duration::from_secs(u64::MAX),
+            Duration::from_secs(u64::MAX) + Duration::from_millis(1),
+            Duration::MAX,
+        ]
+    }
+
+    #[test]
+    fn milliseconds_i64_as_c_int_is_monotonic() {
+        let mut last = milliseconds_i64(Duration::ZERO) as c_int;
+
+        for (i, d) in monotonicity_test_durations().iter().enumerate() {
+            let next = milliseconds_i64(*d) as c_int;
+            dbg!((i, d));
+            assert!(
+                next >= last,
+                "{next} >= {last} failed for {d:?} at index {i}"
+            );
+            last = next;
+        }
+    }
+
+    #[test]
+    fn milliseconds_i64_as_c_int_zero_is_zero() {
+        assert_eq!(0, milliseconds_i64(Duration::ZERO) as c_int);
+    }
+
+    #[test]
+    fn milliseconds_i64_is_monotonic() {
+        let mut last = milliseconds_i64(Duration::ZERO);
+
+        for (i, d) in monotonicity_test_durations().iter().enumerate() {
+            let next = milliseconds_i64(*d);
+            dbg!((i, d));
+            assert!(
+                next >= last,
+                "{next} >= {last} failed for {d:?} at index {i}"
+            );
+            last = next;
+        }
+    }
+
+    #[test]
+    fn milliseconds_i64_zero_is_zero() {
+        assert_eq!(0, milliseconds_i64(Duration::ZERO));
+    }
+}
