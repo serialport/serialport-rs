@@ -326,7 +326,7 @@ pub struct SerialPortBuilder {
     /// Number of bits to use to signal the end of a character
     stop_bits: StopBits,
     /// Amount of time to wait to receive data before timing out
-    timeout: Duration,
+    timeout: Option<Duration>,
 }
 
 impl SerialPortBuilder {
@@ -377,7 +377,7 @@ impl SerialPortBuilder {
     /// Set the amount of time to wait to receive data before timing out
     #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+        self.timeout = Some(timeout);
         self
     }
 
@@ -461,7 +461,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn stop_bits(&self) -> Result<StopBits>;
 
     /// Returns the current timeout.
-    fn timeout(&self) -> Duration;
+    fn timeout(&self) -> Option<Duration>;
 
     // Port settings setters
 
@@ -487,7 +487,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()>;
 
     /// Sets the timeout for future I/O operations.
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()>;
+    fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<()>;
 
     // Functions for setting non-data control signal pins
 
@@ -649,7 +649,7 @@ impl<T: SerialPort> SerialPort for &mut T {
         (**self).stop_bits()
     }
 
-    fn timeout(&self) -> Duration {
+    fn timeout(&self) -> Option<Duration> {
         (**self).timeout()
     }
 
@@ -673,7 +673,7 @@ impl<T: SerialPort> SerialPort for &mut T {
         (**self).set_stop_bits(stop_bits)
     }
 
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
+    fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<()> {
         (**self).set_timeout(timeout)
     }
 
@@ -814,7 +814,7 @@ pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> Se
         flow_control: FlowControl::None,
         parity: Parity::None,
         stop_bits: StopBits::One,
-        timeout: Duration::from_millis(0),
+        timeout: None,
     }
 }
 
