@@ -108,35 +108,13 @@ fn clamped_millis_c_int(duration: Duration) -> c_int {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // TODO: Harmonize with corresponding tests for Windows.
-    fn monotonicity_test_durations() -> Vec<Duration> {
-        vec![
-            Duration::ZERO,
-            Duration::from_nanos(1),
-            Duration::from_millis(1),
-            Duration::from_secs(1),
-            Duration::from_secs(i16::MAX as u64 - 1),
-            Duration::from_secs(i16::MAX as u64),
-            Duration::from_secs(i16::MAX as u64 + 1),
-            Duration::from_secs(i32::MAX as u64 - 1),
-            Duration::from_secs(i32::MAX as u64),
-            Duration::from_secs(i32::MAX as u64 + 1),
-            Duration::from_secs(i64::MAX as u64 - 1),
-            Duration::from_secs(i64::MAX as u64),
-            Duration::from_secs(i64::MAX as u64 + 1),
-            Duration::from_secs(u64::MAX - 1),
-            Duration::from_secs(u64::MAX),
-            Duration::from_secs(u64::MAX) + Duration::from_millis(1),
-            Duration::MAX,
-        ]
-    }
+    use crate::tests::timeout::MONOTONIC_DURATIONS;
 
     #[test]
     fn clamped_millis_c_int_is_monotonic() {
         let mut last = clamped_millis_c_int(Duration::ZERO);
 
-        for (i, d) in monotonicity_test_durations().iter().enumerate() {
+        for (i, d) in MONOTONIC_DURATIONS.iter().enumerate() {
             let next = clamped_millis_c_int(*d);
             dbg!((i, d));
             assert!(
@@ -156,7 +134,7 @@ mod tests {
     fn clamped_time_spec_is_monotonic() {
         let mut last = clamped_time_spec(Duration::ZERO);
 
-        for (i, d) in monotonicity_test_durations().iter().enumerate() {
+        for (i, d) in MONOTONIC_DURATIONS.iter().enumerate() {
             let next = clamped_time_spec(*d);
             dbg!((i, d));
             assert!(
