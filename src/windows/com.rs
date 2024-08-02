@@ -154,6 +154,10 @@ impl COMPort {
             port_name: None,
         }
     }
+
+    fn timeout_constant(duration: Duration) -> DWORD {
+        duration.as_millis() as DWORD
+    }
 }
 
 impl Drop for COMPort {
@@ -248,14 +252,14 @@ impl SerialPort for COMPort {
     }
 
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
-        let milliseconds = timeout.as_millis();
+        let timeout_constant = Self::timeout_constant(timeout);
 
         let mut timeouts = COMMTIMEOUTS {
             ReadIntervalTimeout: MAXDWORD,
             ReadTotalTimeoutMultiplier: MAXDWORD,
-            ReadTotalTimeoutConstant: milliseconds as DWORD,
+            ReadTotalTimeoutConstant: timeout_constant,
             WriteTotalTimeoutMultiplier: 0,
-            WriteTotalTimeoutConstant: milliseconds as DWORD,
+            WriteTotalTimeoutConstant: timeout_constant,
         };
 
         if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
