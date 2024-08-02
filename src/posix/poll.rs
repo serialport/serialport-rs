@@ -24,8 +24,7 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
 
     let mut fd = PollFd::new(fd, events);
 
-    let milliseconds =
-        timeout.as_secs() as i64 * 1000 + i64::from(timeout.subsec_nanos()) / 1_000_000;
+    let milliseconds = milliseconds_i64(timeout);
     #[cfg(target_os = "linux")]
     let wait_res = {
         let timespec = TimeSpec::milliseconds(milliseconds);
@@ -62,4 +61,8 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     }
 
     Err(io::Error::new(io::ErrorKind::Other, EIO.desc()))
+}
+
+fn milliseconds_i64(duration: Duration) -> i64 {
+    duration.as_secs() as i64 * 1000 + i64::from(duration.subsec_nanos()) / 1_000_000
 }
