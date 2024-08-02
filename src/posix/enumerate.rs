@@ -696,7 +696,7 @@ cfg_if! {
     not(target_env = "musl"),
     feature = "libudev"
 ))]
-mod test {
+mod tests {
     use super::*;
 
     use quickcheck_macros::quickcheck;

@@ -562,7 +562,7 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     use quickcheck_macros::quickcheck;
