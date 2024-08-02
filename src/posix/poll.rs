@@ -63,6 +63,12 @@ fn poll_clamped(fd: &mut PollFd, timeout: Duration) -> nix::Result<c_int> {
 }
 
 #[cfg(any(target_os = "linux", test))]
+// The type time_t is deprecaten on musl. The nix crate internally uses this type and makes an
+// exeption for the deprecation for musl. And so do we.
+//
+// See https://github.com/rust-lang/libc/issues/1848 which is referenced from every exemption used
+// in nix.
+#[cfg_attr(target_env = "musl", allow(deprecated))]
 fn clamped_time_spec(duration: Duration) -> TimeSpec {
     use nix::libc::c_long;
     use nix::sys::time::time_t;
