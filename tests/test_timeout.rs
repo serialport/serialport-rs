@@ -59,7 +59,7 @@ fn test_read_returns_available_data_before_timeout(
                     );
                     received_message.extend_from_slice(&buffer[..read]);
                 }
-                _ => assert!(false),
+                e => panic!("unexpected error {:?}", e),
             }
 
             if received_message.len() >= expected_message.len() {
@@ -79,7 +79,7 @@ fn test_read_returns_available_data_before_timeout(
 
             println!("send: {} bytes", chunk.len());
 
-            next = next + send_period;
+            next += send_period;
             thread::sleep(next - Instant::now());
         }
     });
