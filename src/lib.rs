@@ -375,6 +375,14 @@ impl SerialPortBuilder {
     }
 
     /// Set the amount of time to wait to receive data before timing out
+    ///
+    /// <div class="warning">
+    ///
+    /// The accuracy is limited by the underlying platform's capabilities. Longer timeouts will be
+    /// clamped to the maximum supported value which is expected to be in the magnitude of a few
+    /// days.
+    ///
+    /// </div>
     #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
@@ -487,6 +495,14 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()>;
 
     /// Sets the timeout for future I/O operations.
+    ///
+    /// <div class="warning">
+    ///
+    /// The accuracy is limited by the underlying platform's capabilities. Longer timeouts will be
+    /// clamped to the maximum supported value which is expected to be in the magnitude of a few
+    /// days.
+    ///
+    /// </div>
     fn set_timeout(&mut self, timeout: Duration) -> Result<()>;
 
     // Functions for setting non-data control signal pins
