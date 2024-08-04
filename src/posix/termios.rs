@@ -213,11 +213,12 @@ pub(crate) fn set_stop_bits(termios: &mut Termios, stop_bits: StopBits) {
         ))
     )
 ))]
-pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
+pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
     termios.c_cflag &= !nix::libc::CBAUD;
     termios.c_cflag |= nix::libc::BOTHER;
     termios.c_ispeed = baud_rate;
     termios.c_ospeed = baud_rate;
+    Ok(())
 }
 
 // BSDs use the baud rate as the constant value so there's no translation necessary
@@ -227,9 +228,10 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
     target_os = "netbsd",
     target_os = "openbsd"
 ))]
-pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
-    // Ignore the return value because this should never fail
-    unsafe { libc::cfsetspeed(termios, baud_rate.into()) };
+pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
+    let res = unsafe { libc::cfsetspeed(termios, baud_rate.into()) };
+    nix::errno::Errno::result(res)?;
+    Ok(())
 }
 
 #[cfg(all(
@@ -240,7 +242,9 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
         target_arch = "powerpc64"
     )
 ))]
-pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
+pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
+    use crate::{Error, ErrorKind};
+
     use self::libc::{
         B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000, B460800,
         B500000, B576000, B921600,
@@ -281,8 +285,9 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) {
         3_000_000 => B3000000,
         3_500_000 => B3500000,
         4_000_000 => B4000000,
-        _ => return,
+        _ => return Err(Error::new(ErrorKind::InvalidInput, "Unsupported baud rate")),
     };
     let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
-    nix::errno::Errno::result(res).expect("cfsetspeed failed");
+    nix::errno::Errno::result(res)?;
+    Ok(())
 }

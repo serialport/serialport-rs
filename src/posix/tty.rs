@@ -176,7 +176,7 @@ impl TTYPort {
         termios::set_data_bits(&mut termios, builder.data_bits);
         termios::set_stop_bits(&mut termios, builder.stop_bits);
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
-        termios::set_baud_rate(&mut termios, builder.baud_rate);
+        termios::set_baud_rate(&mut termios, builder.baud_rate)?;
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         termios::set_termios(fd.0, &termios, builder.baud_rate)?;
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
@@ -630,7 +630,7 @@ impl SerialPort for TTYPort {
     ))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut termios = termios::get_termios(self.fd)?;
-        termios::set_baud_rate(&mut termios, baud_rate);
+        termios::set_baud_rate(&mut termios, baud_rate)?;
         termios::set_termios(self.fd, &termios)
     }
 
