@@ -142,7 +142,6 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 d.property_value("ID_USB_MODEL_ID"),
                 d.property_value("ID_USB_VENDOR"),
                 d.property_value("ID_USB_MODEL"),
-                d.property_value("ID_USB_SERIAL_SHORT"),
             ]
             .into_iter()
             .collect::<Option<Vec<_>>>();
