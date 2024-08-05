@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+### Removed
+
+
+## [4.5.0] - 2024-08-05
+
+### Added
 
 * Add `IntoRawHandle` implementation for `COMPort`
   [#199](https://github.com/serialport/serialport-rs/pull/199)
@@ -27,7 +35,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
   maximum supported value for underlying platform.
   [#207](https://github.com/serialport/serialport-rs/issues/207),
   [#208](https://github.com/serialport/serialport-rs/pull/208)
-### Removed
 
 
 ## [4.4.0] - 2024-06-26
@@ -422,7 +429,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/serialport/serialport-rs/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/serialport/serialport-rs/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/serialport/serialport-rs/compare/v4.2.2...v4.3.0
 [4.2.2]: https://github.com/serialport/serialport-rs/compare/v4.2.1...v4.2.2
