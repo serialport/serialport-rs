@@ -51,6 +51,7 @@ os_str_bytes = ">=6.0, <6.6.0"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 rstest = { version = "0.12.0", default-features = false }
+rstest_reuse = "0.6.0"
 rustversion = "1.0.16"
 
 [features]
