@@ -9,6 +9,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+* Fix ignoring errors from setting baud rate and ignoring unsupported baud
+  rates.
+  [#213](https://github.com/serialport/serialport-rs/pull/213)
 ### Removed
 
 
