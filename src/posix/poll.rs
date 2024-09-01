@@ -31,10 +31,7 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
             Ok(r) => r,
             Err(nix::Error::EINTR) => continue,
             Err(nix::Error::EAGAIN) => continue,
-            Err(e) => {
-                dbg!(e);
-                return Err(io::Error::from(crate::Error::from(e)));
-            }
+            Err(e) => return Err(io::Error::from(crate::Error::from(e))),
         };
         break;
     }
