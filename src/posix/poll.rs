@@ -3,7 +3,7 @@
 use std::io;
 use std::os::unix::io::RawFd;
 use std::slice;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use nix::libc::c_int;
 use nix::poll::{PollFd, PollFlags};
@@ -24,10 +24,10 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     use nix::errno::Errno::{EIO, EPIPE};
 
     let mut fd = PollFd::new(fd, events);
-    let end = std::time::Instant::now() + timeout;
+    let end = Instant::now() + timeout;
     let wait;
     loop {
-        wait = match poll_clamped(&mut fd, end - std::time::Instant::now()) {
+        wait = match poll_clamped(&mut fd, end.saturating_duration_since(Instant::now())) {
             Ok(r) => r,
             Err(nix::Error::EINTR) => continue,
             Err(nix::Error::EAGAIN) => continue,
