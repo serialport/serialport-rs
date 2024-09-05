@@ -17,6 +17,7 @@
 //! platform-specific port object which allows access to platform-specific functionality.
 
 #![deny(
+    clippy::dbg_macro,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations
