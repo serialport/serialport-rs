@@ -9,12 +9,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+### Removed
+
+
+## [4.5.1] - 2024-09-20
+
+### Fixed
+
 * Fix ignoring errors from setting baud rate and ignoring unsupported baud
   rates.
   [#213](https://github.com/serialport/serialport-rs/pull/213)
 * Remove leftover debug output from `posix::poll::wait_fd`.
   [#216](https://github.com/serialport/serialport-rs/pull/216)
-### Removed
 
 
 ## [4.5.0] - 2024-08-05
@@ -435,6 +441,7 @@ Unreleased, happened due to a user error using `cargo-release`.
 
 
 [Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.5.0...HEAD
+[4.5.1]: https://github.com/serialport/serialport-rs/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/serialport/serialport-rs/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/serialport/serialport-rs/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/serialport/serialport-rs/compare/v4.2.2...v4.3.0
