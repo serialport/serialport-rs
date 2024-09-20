@@ -12,6 +12,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Fix ignoring errors from setting baud rate and ignoring unsupported baud
   rates.
   [#213](https://github.com/serialport/serialport-rs/pull/213)
+* Remove leftover debug output from `posix::poll::wait_fd`.
+  [#216](https://github.com/serialport/serialport-rs/pull/216)
 ### Removed
 
 
