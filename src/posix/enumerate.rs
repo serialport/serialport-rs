@@ -8,9 +8,12 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(any(target_os = "ios", target_os = "macos"))] {
+        use core_foundation::base::TCFType;
+        use core_foundation::base::CFType;
+        use core_foundation::number::CFNumber;
+        use core_foundation::string::CFString;
         use core_foundation_sys::base::*;
         use core_foundation_sys::dictionary::*;
-        use core_foundation_sys::number::*;
         use core_foundation_sys::string::*;
         use io_kit_sys::*;
         use io_kit_sys::keys::*;
@@ -18,7 +21,6 @@ cfg_if! {
         use io_kit_sys::types::*;
         use io_kit_sys::usb::lib::*;
         use nix::libc::{c_char, c_void};
-        use std::convert::TryInto;
         use std::ffi::{CStr, CString};
         use std::mem::MaybeUninit;
     }
@@ -296,123 +298,54 @@ fn get_parent_device_by_type(
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
-fn get_int_property(
-    device_type: io_registry_entry_t,
-    property: &str,
-    cf_number_type: CFNumberType,
-) -> Result<u32> {
-    unsafe {
-        let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(
+fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<u32> {
+    let cf_property = CFString::new(property);
+
+    let cf_type_ref = unsafe {
+        IORegistryEntryCreateCFProperty(
+            device_type,
+            cf_property.as_concrete_TypeRef(),
             kCFAllocatorDefault,
-            prop_str.as_ptr(),
-            kCFStringEncodingUTF8,
-        );
-        if key.is_null() {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "Failed to create CFString for key",
-            ));
-        }
-        let _key_guard = scopeguard::guard((), |_| {
-            CFRelease(key as *const c_void);
-        });
-
-        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
-        if container.is_null() {
-            return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
-        }
-        let _container_guard = scopeguard::guard((), |_| {
-            CFRelease(container);
-        });
-
-        match cf_number_type {
-            kCFNumberSInt8Type => {
-                let mut num: u8 = 0;
-                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
-                if CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr) {
-                    Ok(num as u32)
-                } else {
-                    Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to get numerical value",
-                    ))
-                }
-            }
-            kCFNumberSInt16Type => {
-                let mut num: u16 = 0;
-                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
-                if CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr) {
-                    Ok(num as u32)
-                } else {
-                    Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to get numerical value",
-                    ))
-                }
-            }
-            kCFNumberSInt32Type => {
-                let mut num: u32 = 0;
-                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
-                if CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr) {
-                    Ok(num)
-                } else {
-                    Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to get numerical value",
-                    ))
-                }
-            }
-            _ => Err(Error::new(ErrorKind::Unknown, "Unsupported CFNumberType")),
-        }
+            0,
+        )
+    };
+    if cf_type_ref.is_null() {
+        return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
     }
+
+    let cf_type = unsafe { CFType::wrap_under_create_rule(cf_type_ref) };
+    cf_type
+        .downcast::<CFNumber>()
+        .and_then(|n| n.to_i64())
+        .map(|n| n as u32)
+        .ok_or(Error::new(
+            ErrorKind::Unknown,
+            "Failed to get numerical value",
+        ))
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Returns a specific property of the given device as a string.
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Result<String> {
-    unsafe {
-        let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(
+    let cf_property = CFString::new(property);
+
+    let cf_type_ref = unsafe {
+        IORegistryEntryCreateCFProperty(
+            device_type,
+            cf_property.as_concrete_TypeRef(),
             kCFAllocatorDefault,
-            prop_str.as_ptr(),
-            kCFStringEncodingUTF8,
-        );
-        if key.is_null() {
-            return Err(Error::new(
-                ErrorKind::Unknown,
-                "Failed to create CFString for key",
-            ));
-        }
-        let _key_guard = scopeguard::guard((), |_| {
-            CFRelease(key as *const c_void);
-        });
-
-        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
-        if container.is_null() {
-            return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
-        }
-        let _container_guard = scopeguard::guard((), |_| {
-            CFRelease(container);
-        });
-
-        let mut buf = Vec::with_capacity(256);
-        if true as Boolean
-            == CFStringGetCString(
-                container as CFStringRef,
-                buf.as_mut_ptr(),
-                buf.capacity().try_into().unwrap(),
-                kCFStringEncodingUTF8,
-            )
-        {
-            Ok(CStr::from_ptr(buf.as_ptr()).to_string_lossy().to_string())
-        } else {
-            Err(Error::new(
-                ErrorKind::Unknown,
-                "Failed to get C string from property value",
-            ))
-        }
+            0,
+        )
+    };
+    if cf_type_ref.is_null() {
+        return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
     }
+
+    let cf_type = unsafe { CFType::wrap_under_create_rule(cf_type_ref) };
+    cf_type
+        .downcast::<CFString>()
+        .map(|s| s.to_string())
+        .ok_or(Error::new(ErrorKind::Unknown, "Failed to get string value"))
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -427,10 +360,8 @@ fn port_type(service: io_object_t) -> SerialPortType {
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
         SerialPortType::UsbPort(UsbPortInfo {
-            vid: get_int_property(usb_device, "idVendor", kCFNumberSInt16Type).unwrap_or_default()
-                as u16,
-            pid: get_int_property(usb_device, "idProduct", kCFNumberSInt16Type).unwrap_or_default()
-                as u16,
+            vid: get_int_property(usb_device, "idVendor").unwrap_or_default() as u16,
+            pid: get_int_property(usb_device, "idProduct").unwrap_or_default() as u16,
             serial_number: get_string_property(usb_device, "USB Serial Number").ok(),
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
@@ -441,7 +372,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
             // https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_developer_driverkit_transport_usb
             // https://developer.apple.com/library/archive/documentation/DeviceDrivers/Conceptual/USBBook/USBOverview/USBOverview.html#//apple_ref/doc/uid/TP40002644-BBCEACAJ
             #[cfg(feature = "usbportinfo-interface")]
-            interface: get_int_property(usb_device, "bInterfaceNumber", kCFNumberSInt8Type)
+            interface: get_int_property(usb_device, "bInterfaceNumber")
                 .map(|x| x as u8)
                 .ok(),
         })
