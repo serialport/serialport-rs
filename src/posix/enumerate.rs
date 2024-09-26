@@ -8,20 +8,20 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(any(target_os = "ios", target_os = "macos"))] {
-        use core_foundation::base::TCFType;
         use core_foundation::base::CFType;
+        use core_foundation::base::TCFType;
+        use core_foundation::dictionary::CFDictionary;
+        use core_foundation::dictionary::CFMutableDictionary;
         use core_foundation::number::CFNumber;
         use core_foundation::string::CFString;
         use core_foundation_sys::base::*;
-        use core_foundation_sys::dictionary::*;
-        use core_foundation_sys::string::*;
         use io_kit_sys::*;
         use io_kit_sys::keys::*;
         use io_kit_sys::serial::keys::*;
         use io_kit_sys::types::*;
         use io_kit_sys::usb::lib::*;
         use nix::libc::{c_char, c_void};
-        use std::ffi::{CStr, CString};
+        use std::ffi::CStr;
         use std::mem::MaybeUninit;
     }
 }
@@ -401,43 +401,15 @@ cfg_if! {
                         "IOServiceMatching returned a NULL dictionary.",
                     ));
                 }
-                let _classes_to_match_guard = scopeguard::guard((), |_| {
-                    CFRelease(classes_to_match as *const c_void);
-                });
+                let mut classes_to_match = CFMutableDictionary::wrap_under_create_rule(classes_to_match);
 
                 // Populate the search dictionary with a single key/value pair indicating that we're
                 // searching for serial devices matching the RS232 device type.
-                let key = CFStringCreateWithCString(
-                    kCFAllocatorDefault,
-                    kIOSerialBSDTypeKey,
-                    kCFStringEncodingUTF8,
-                );
-                if key.is_null() {
-                    return Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to allocate key string.",
-                    ));
-                }
-                let _key_guard = scopeguard::guard((), |_| {
-                    CFRelease(key as *const c_void);
-                });
-
-                let value = CFStringCreateWithCString(
-                    kCFAllocatorDefault,
-                    kIOSerialBSDAllTypes,
-                    kCFStringEncodingUTF8,
-                );
-                if value.is_null() {
-                    return Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to allocate value string.",
-                    ));
-                }
-                let _value_guard = scopeguard::guard((), |_| {
-                    CFRelease(value as *const c_void);
-                });
-
-                CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
+                let search_key = CStr::from_ptr(kIOSerialBSDTypeKey);
+                let search_key = CFString::from_static_string(search_key.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
+                let search_value = CStr::from_ptr(kIOSerialBSDAllTypes);
+                let search_value = CFString::from_static_string(search_value.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
+                classes_to_match.set(search_key, search_value);
 
                 // Get an interface to IOKit
                 let mut master_port: mach_port_t = MACH_PORT_NULL;
@@ -449,11 +421,17 @@ cfg_if! {
                     ));
                 }
 
-                // Run the search.
+                // Run the search. IOServiceGetMatchingServices consumes one reference count of
+                // classes_to_match, so explicitly retain.
+                //
+                // TODO: We could also just mem::forget classes_to_match like in
+                // TCFType::into_CFType. Is there a special reason that there is no
+                // TCFType::into_concrete_TypeRef()?
+                CFRetain(classes_to_match.as_CFTypeRef());
                 let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
-                    CFRetain(classes_to_match as *const c_void) as *const __CFDictionary,
+                    classes_to_match.as_concrete_TypeRef(),
                     matching_services.as_mut_ptr(),
                 );
                 if kern_result != KERN_SUCCESS {
@@ -491,47 +469,24 @@ cfg_if! {
                         // properties dict has been allocated and we as the caller are in charge of
                         // releasing it.
                         let props = props.assume_init();
-                        let _props_guard = scopeguard::guard((), |_| {
-                            CFRelease(props as *const c_void);
-                        });
+                        let props: CFDictionary<CFString, *const c_void> = CFDictionary::wrap_under_create_rule(props);
 
                         for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
-                            let key_cstring = CString::new(*key).unwrap();
-                            let key_cfstring = CFStringCreateWithCString(
-                                kCFAllocatorDefault,
-                                key_cstring.as_ptr(),
-                                kCFStringEncodingUTF8,
-                            );
-                            if key_cfstring.is_null() {
-                                return Err(Error::new(ErrorKind::Unknown, "Failed to allocate CFString for key"));
-                            }
-                            let _key_cfstring_guard = scopeguard::guard((), |_| {
-                                CFRelease(key_cfstring as *const c_void);
-                            });
+                            let cf_key = CFString::new(key);
 
-                            let mut value = std::ptr::null();
-                            let found = CFDictionaryGetValueIfPresent(props, key_cfstring as *const c_void, &mut value);
-                            if found == true as Boolean {
-                                let type_id = CFGetTypeID(value);
-                                if type_id == CFStringGetTypeID() {
-                                    let mut buf = Vec::with_capacity(256);
-
-                                    if true as Boolean != CFStringGetCString(
-                                        value as CFStringRef,
-                                        buf.as_mut_ptr(),
-                                        buf.capacity() as isize,
-                                        kCFStringEncodingUTF8,
-                                    ) {
-                                        return Err(Error::new(ErrorKind::Unknown, "Failed to get C string from path"));
-                                    } else {
-                                        let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
+                            if let Some(cf_ref) = props.find(cf_key) {
+                                let cf_type = CFType::wrap_under_get_rule(*cf_ref);
+                                match cf_type
+                                     .downcast::<CFString>()
+                                     .map(|s| s.to_string())
+                                {
+                                    Some(path) => {
                                         vec.push(SerialPortInfo {
-                                            port_name: path.to_string(),
+                                            port_name: path,
                                             port_type: port_type(modem_service),
                                         });
                                     }
-                                } else {
-                                    return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
+                                    None => return Err(Error::new(ErrorKind::Unknown, format!("Failed to get string value for {}", key))),
                                 }
                             } else {
                                 return Err(Error::new(ErrorKind::Unknown, format!("Key {} missing in dict", key)));
