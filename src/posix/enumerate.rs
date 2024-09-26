@@ -8,18 +8,20 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(any(target_os = "ios", target_os = "macos"))] {
-        use core_foundation_sys::base::*;
-        use core_foundation_sys::dictionary::*;
-        use core_foundation_sys::number::*;
-        use core_foundation_sys::string::*;
+        use core_foundation::base::CFType;
+        use core_foundation::base::TCFType;
+        use core_foundation::dictionary::CFDictionary;
+        use core_foundation::dictionary::CFMutableDictionary;
+        use core_foundation::number::CFNumber;
+        use core_foundation::string::CFString;
+        use core_foundation_sys::base::{kCFAllocatorDefault, CFRetain};
         use io_kit_sys::*;
         use io_kit_sys::keys::*;
         use io_kit_sys::serial::keys::*;
         use io_kit_sys::types::*;
         use io_kit_sys::usb::lib::*;
         use nix::libc::{c_char, c_void};
-        use std::convert::TryInto;
-        use std::ffi::{CStr, CString};
+        use std::ffi::CStr;
         use std::mem::MaybeUninit;
     }
 }
@@ -299,91 +301,54 @@ fn get_parent_device_by_type(
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
-fn get_int_property(
-    device_type: io_registry_entry_t,
-    property: &str,
-    cf_number_type: CFNumberType,
-) -> Option<u32> {
-    unsafe {
-        let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(
+fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<u32> {
+    let cf_property = CFString::new(property);
+
+    let cf_type_ref = unsafe {
+        IORegistryEntryCreateCFProperty(
+            device_type,
+            cf_property.as_concrete_TypeRef(),
             kCFAllocatorDefault,
-            prop_str.as_ptr(),
-            kCFStringEncodingUTF8,
-        );
-        let _key_guard = scopeguard::guard((), |_| {
-            CFRelease(key as *const c_void);
-        });
-
-        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
-        if container.is_null() {
-            return None;
-        }
-        let _container_guard = scopeguard::guard((), |_| {
-            CFRelease(container);
-        });
-
-        match cf_number_type {
-            kCFNumberSInt8Type => {
-                let mut num: u8 = 0;
-                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
-                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
-                Some(num as u32)
-            }
-            kCFNumberSInt16Type => {
-                let mut num: u16 = 0;
-                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
-                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
-                Some(num as u32)
-            }
-            kCFNumberSInt32Type => {
-                let mut num: u32 = 0;
-                let num_ptr: *mut c_void = &mut num as *mut _ as *mut c_void;
-                CFNumberGetValue(container as CFNumberRef, cf_number_type, num_ptr);
-                Some(num)
-            }
-            _ => None,
-        }
+            0,
+        )
+    };
+    if cf_type_ref.is_null() {
+        return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
     }
+
+    let cf_type = unsafe { CFType::wrap_under_create_rule(cf_type_ref) };
+    cf_type
+        .downcast::<CFNumber>()
+        .and_then(|n| n.to_i64())
+        .map(|n| n as u32)
+        .ok_or(Error::new(
+            ErrorKind::Unknown,
+            "Failed to get numerical value",
+        ))
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Returns a specific property of the given device as a string.
-fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Option<String> {
-    unsafe {
-        let prop_str = CString::new(property).unwrap();
-        let key = CFStringCreateWithCString(
+fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Result<String> {
+    let cf_property = CFString::new(property);
+
+    let cf_type_ref = unsafe {
+        IORegistryEntryCreateCFProperty(
+            device_type,
+            cf_property.as_concrete_TypeRef(),
             kCFAllocatorDefault,
-            prop_str.as_ptr(),
-            kCFStringEncodingUTF8,
-        );
-        let _key_guard = scopeguard::guard((), |_| {
-            CFRelease(key as *const c_void);
-        });
-
-        let container = IORegistryEntryCreateCFProperty(device_type, key, kCFAllocatorDefault, 0);
-        if container.is_null() {
-            return None;
-        }
-        let _container_guard = scopeguard::guard((), |_| {
-            CFRelease(container);
-        });
-
-        let mut buf = Vec::with_capacity(256);
-        let result = CFStringGetCString(
-            container as CFStringRef,
-            buf.as_mut_ptr(),
-            buf.capacity().try_into().unwrap(),
-            kCFStringEncodingUTF8,
-        );
-        let opt_str = if result != 0 {
-            CStr::from_ptr(buf.as_ptr()).to_str().ok().map(String::from)
-        } else {
-            None
-        };
-
-        opt_str
+            0,
+        )
+    };
+    if cf_type_ref.is_null() {
+        return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
     }
+
+    let cf_type = unsafe { CFType::wrap_under_create_rule(cf_type_ref) };
+    cf_type
+        .downcast::<CFString>()
+        .map(|s| s.to_string())
+        .ok_or(Error::new(ErrorKind::Unknown, "Failed to get string value"))
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -398,13 +363,11 @@ fn port_type(service: io_object_t) -> SerialPortType {
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
         SerialPortType::UsbPort(UsbPortInfo {
-            vid: get_int_property(usb_device, "idVendor", kCFNumberSInt16Type).unwrap_or_default()
-                as u16,
-            pid: get_int_property(usb_device, "idProduct", kCFNumberSInt16Type).unwrap_or_default()
-                as u16,
-            serial_number: get_string_property(usb_device, "USB Serial Number"),
-            manufacturer: get_string_property(usb_device, "USB Vendor Name"),
-            product: get_string_property(usb_device, "USB Product Name"),
+            vid: get_int_property(usb_device, "idVendor").unwrap_or_default() as u16,
+            pid: get_int_property(usb_device, "idProduct").unwrap_or_default() as u16,
+            serial_number: get_string_property(usb_device, "USB Serial Number").ok(),
+            manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
+            product: get_string_property(usb_device, "USB Product Name").ok(),
             // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
             // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
             // we will lookup the interface number using the same method. See:
@@ -412,8 +375,9 @@ fn port_type(service: io_object_t) -> SerialPortType {
             // https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_developer_driverkit_transport_usb
             // https://developer.apple.com/library/archive/documentation/DeviceDrivers/Conceptual/USBBook/USBOverview/USBOverview.html#//apple_ref/doc/uid/TP40002644-BBCEACAJ
             #[cfg(feature = "usbportinfo-interface")]
-            interface: get_int_property(usb_device, "bInterfaceNumber", kCFNumberSInt8Type)
-                .map(|x| x as u8),
+            interface: get_int_property(usb_device, "bInterfaceNumber")
+                .map(|x| x as u8)
+                .ok(),
         })
     } else if get_parent_device_by_type(service, bluetooth_device_class_name).is_some() {
         SerialPortType::BluetoothPort
@@ -440,43 +404,15 @@ cfg_if! {
                         "IOServiceMatching returned a NULL dictionary.",
                     ));
                 }
-                let _classes_to_match_guard = scopeguard::guard((), |_| {
-                    CFRelease(classes_to_match as *const c_void);
-                });
+                let mut classes_to_match = CFMutableDictionary::wrap_under_create_rule(classes_to_match);
 
                 // Populate the search dictionary with a single key/value pair indicating that we're
                 // searching for serial devices matching the RS232 device type.
-                let key = CFStringCreateWithCString(
-                    kCFAllocatorDefault,
-                    kIOSerialBSDTypeKey,
-                    kCFStringEncodingUTF8,
-                );
-                if key.is_null() {
-                    return Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to allocate key string.",
-                    ));
-                }
-                let _key_guard = scopeguard::guard((), |_| {
-                    CFRelease(key as *const c_void);
-                });
-
-                let value = CFStringCreateWithCString(
-                    kCFAllocatorDefault,
-                    kIOSerialBSDAllTypes,
-                    kCFStringEncodingUTF8,
-                );
-                if value.is_null() {
-                    return Err(Error::new(
-                        ErrorKind::Unknown,
-                        "Failed to allocate value string.",
-                    ));
-                }
-                let _value_guard = scopeguard::guard((), |_| {
-                    CFRelease(value as *const c_void);
-                });
-
-                CFDictionarySetValue(classes_to_match, key as CFTypeRef, value as CFTypeRef);
+                let search_key = CStr::from_ptr(kIOSerialBSDTypeKey);
+                let search_key = CFString::from_static_string(search_key.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
+                let search_value = CStr::from_ptr(kIOSerialBSDAllTypes);
+                let search_value = CFString::from_static_string(search_value.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
+                classes_to_match.set(search_key, search_value);
 
                 // Get an interface to IOKit
                 let mut master_port: mach_port_t = MACH_PORT_NULL;
@@ -488,11 +424,17 @@ cfg_if! {
                     ));
                 }
 
-                // Run the search.
+                // Run the search. IOServiceGetMatchingServices consumes one reference count of
+                // classes_to_match, so explicitly retain.
+                //
+                // TODO: We could also just mem::forget classes_to_match like in
+                // TCFType::into_CFType. Is there a special reason that there is no
+                // TCFType::into_concrete_TypeRef()?
+                CFRetain(classes_to_match.as_CFTypeRef());
                 let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
-                    CFRetain(classes_to_match as *const c_void) as *const __CFDictionary,
+                    classes_to_match.as_concrete_TypeRef(),
                     matching_services.as_mut_ptr(),
                 );
                 if kern_result != KERN_SUCCESS {
@@ -525,42 +467,29 @@ cfg_if! {
                         kCFAllocatorDefault,
                         0,
                     );
-                    let _props_guard = scopeguard::guard((), |_| {
-                        CFRelease(props.assume_init() as *const c_void);
-                    });
-
                     if result == KERN_SUCCESS {
+                        // A successful call to IORegistryEntryCreateCFProperties indicates that a
+                        // properties dict has been allocated and we as the caller are in charge of
+                        // releasing it.
+                        let props = props.assume_init();
+                        let props: CFDictionary<CFString, *const c_void> = CFDictionary::wrap_under_create_rule(props);
+
                         for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
-                            let key_cstring = CString::new(*key).unwrap();
-                            let key_cfstring = CFStringCreateWithCString(
-                                kCFAllocatorDefault,
-                                key_cstring.as_ptr(),
-                                kCFStringEncodingUTF8,
-                            );
-                            let _key_cfstring_guard = scopeguard::guard((), |_| {
-                                CFRelease(key_cfstring as *const c_void);
-                            });
+                            let cf_key = CFString::new(key);
 
-                            let mut value = std::ptr::null();
-                            let found = CFDictionaryGetValueIfPresent(props.assume_init(), key_cfstring as *const c_void, &mut value);
-                            if found == true as Boolean {
-                                let type_id = CFGetTypeID(value);
-                                if type_id == CFStringGetTypeID() {
-                                    let mut buf = Vec::with_capacity(256);
-
-                                    CFStringGetCString(
-                                        value as CFStringRef,
-                                        buf.as_mut_ptr(),
-                                        buf.capacity() as isize,
-                                        kCFStringEncodingUTF8,
-                                    );
-                                    let path = CStr::from_ptr(buf.as_ptr()).to_string_lossy();
-                                    vec.push(SerialPortInfo {
-                                        port_name: path.to_string(),
-                                        port_type: port_type(modem_service),
-                                    });
-                                } else {
-                                    return Err(Error::new(ErrorKind::Unknown, "Found invalid type for TypeID"));
+                            if let Some(cf_ref) = props.find(cf_key) {
+                                let cf_type = CFType::wrap_under_get_rule(*cf_ref);
+                                match cf_type
+                                     .downcast::<CFString>()
+                                     .map(|s| s.to_string())
+                                {
+                                    Some(path) => {
+                                        vec.push(SerialPortInfo {
+                                            port_name: path,
+                                            port_type: port_type(modem_service),
+                                        });
+                                    }
+                                    None => return Err(Error::new(ErrorKind::Unknown, format!("Failed to get string value for {}", key))),
                                 }
                             } else {
                                 return Err(Error::new(ErrorKind::Unknown, format!("Key {} missing in dict", key)));
