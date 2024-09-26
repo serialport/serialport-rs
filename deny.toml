@@ -49,6 +49,7 @@ yanked = "deny"
 ignore = [
     "RUSTSEC-2021-0145", # caused by unmaintained atty
     "RUSTSEC-2024-0370", # caused by unmaintained proc-macro-error used by some examples
+    "RUSTSEC-2024-0375", # caused by umnaintained atty (again, with migration hint)
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
