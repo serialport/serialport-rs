@@ -12,11 +12,19 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#219](https://github.com/serialport/serialport-rs/pull/219)
 
 ### Changed
+
+* Switched from core-foundation-sys to core-foundation for more conviniently
+  working with Core Foundation types for enumeration on macOS.
+  [#218](https://github.com/serialport/serialport-rs/pull/218)
+
 ### Fixed
 
 * Fix enumeration USB reported as PCI devices which do not have a (short)
   serial number.
   [#160](https://github.com/serialport/serialport-rs/pull/160)
+* Fix ignoring the status of several function calls into Core Foundation on mac
+  OS.
+  [#218](https://github.com/serialport/serialport-rs/pull/218)
 
 ### Removed
 
