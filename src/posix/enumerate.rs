@@ -14,7 +14,7 @@ cfg_if! {
         use core_foundation::dictionary::CFMutableDictionary;
         use core_foundation::number::CFNumber;
         use core_foundation::string::CFString;
-        use core_foundation_sys::base::*;
+        use core_foundation_sys::base::{kCFAllocatorDefault, CFRetain};
         use io_kit_sys::*;
         use io_kit_sys::keys::*;
         use io_kit_sys::serial::keys::*;
