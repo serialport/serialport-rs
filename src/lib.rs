@@ -787,7 +787,9 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
-    /// Interface (id number for multiplexed devices)
+    /// The interface index of the USB port. This can be either the interface number of
+    /// the communication interface (as is the case on Windows and Linux) or the data
+    /// interface (as is the case on macOS), so you should recognize both interface numbers.
     #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
 }
