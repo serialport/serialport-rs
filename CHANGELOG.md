@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
+
+* Add recommendation on how to interpret `UsbPortInfo::interface_number`.
+  [#219](https://github.com/serialport/serialport-rs/pull/219)
+
 ### Changed
 ### Fixed
 ### Removed
