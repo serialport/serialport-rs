@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+
+* Fix enumeration USB reported as PCI devices which do not have a (short)
+  serial number.
+  [#160](https://github.com/serialport/serialport-rs/pull/160)
+
 ### Removed
 
 
