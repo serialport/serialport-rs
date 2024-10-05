@@ -33,11 +33,7 @@ cfg_if! {
     target_os = "macos"
 ))]
 use crate::SerialPortType;
-#[cfg(any(
-    target_os = "ios",
-    all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "ios", target_os = "linux", target_os = "macos"))]
 use crate::UsbPortInfo;
 #[cfg(any(
     target_os = "android",
@@ -538,11 +534,62 @@ cfg_if! {
         use std::io::Read;
         use std::path::Path;
 
+        fn read_file_to_trimmed_string(dir: &Path, file: &str) -> Option<String> {
+            let dir = dir.join(file);
+            let mut s = String::new();
+            File::open(dir).ok()?.read_to_string(&mut s).ok()?;
+            Some(s.trim().to_owned())
+        }
+
+        fn read_file_to_u16(dir: &Path, file: &str) -> Option<u16> {
+            u16::from_str_radix(&read_file_to_trimmed_string(dir, file)?, 16).ok()
+        }
+
+        #[cfg(feature = "usbportinfo-interface")]
+        fn read_file_to_u8(dir: &Path, file: &str) -> Option<u8> {
+            u8::from_str_radix(&read_file_to_trimmed_string(dir, file)?, 16).ok()
+        }
+
+        fn read_usb_port_info(device_path: &Path) -> Option<SerialPortType> {
+
+            let device_path = device_path
+                .canonicalize()
+                .ok()?;
+            let subsystem = device_path.join("subsystem").canonicalize().ok()?;
+            let subsystem = subsystem.file_name()?.to_string_lossy();
+
+            let usb_interface_path = if subsystem == "usb-serial" {
+                device_path.parent()?
+            } else if subsystem == "usb" {
+                &device_path
+            } else {
+                return None;
+            };
+            let usb_device_path = usb_interface_path.parent()?;
+
+            let vid = read_file_to_u16(&usb_device_path, &"idVendor")?;
+            let pid = read_file_to_u16(&usb_device_path, &"idProduct")?;
+            #[cfg(feature = "usbportinfo-interface")]
+            let interface = read_file_to_u8(&usb_interface_path, &"bInterfaceNumber");
+            let serial_number = read_file_to_trimmed_string(&usb_device_path, &"serial");
+            let product = read_file_to_trimmed_string(&usb_device_path, &"product");
+            let manufacturer = read_file_to_trimmed_string(&usb_device_path, &"manufacturer");
+            Some(SerialPortType::UsbPort(UsbPortInfo {
+                vid,
+                pid,
+                serial_number,
+                manufacturer,
+                product,
+                #[cfg(feature = "usbportinfo-interface")]
+                interface,
+            }))
+        }
+
         /// Scans `/sys/class/tty` for serial devices (on Linux systems without libudev).
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             let sys_path = Path::new("/sys/class/tty/");
-            let device_path = Path::new("/dev");
+            let dev_path = Path::new("/dev");
             let mut s;
             for path in sys_path.read_dir().expect("/sys/class/tty/ doesn't exist on this system") {
                 let raw_path = path?.path().clone();
@@ -552,6 +599,8 @@ cfg_if! {
                 if !path.is_dir() {
                     continue;
                 }
+
+                let port_type = read_usb_port_info(&path).unwrap_or(SerialPortType::Unknown);
 
                 path.push("driver_override");
                 if path.is_file() {
@@ -568,14 +617,14 @@ cfg_if! {
                 //
                 // See https://github.com/serialport/serialport-rs/issues/66 for details.
                 if let Some(file_name) = raw_path.file_name() {
-                    let device_file = device_path.join(file_name);
+                    let device_file = dev_path.join(file_name);
                     if !device_file.exists() {
                         continue;
                     }
 
                     vec.push(SerialPortInfo {
                         port_name: device_file.to_string_lossy().to_string(),
-                        port_type: SerialPortType::Unknown,
+                        port_type,
                     });
                 }
             }
