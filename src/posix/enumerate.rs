@@ -551,7 +551,6 @@ cfg_if! {
         }
 
         fn read_usb_port_info(device_path: &Path) -> Option<SerialPortType> {
-
             let device_path = device_path
                 .canonicalize()
                 .ok()?;
