@@ -2,12 +2,17 @@ use serialport::{available_ports, SerialPortType};
 
 fn main() {
     match available_ports() {
-        Ok(ports) => {
+        Ok(mut ports) => {
+            // Let's output ports in a stable order to facilitate comparing the output from
+            // different runs (on different platforms, with different features, ...).
+            ports.sort_by_key(|i| i.port_name.clone());
+
             match ports.len() {
                 0 => println!("No ports found."),
                 1 => println!("Found 1 port:"),
                 n => println!("Found {} ports:", n),
             };
+
             for p in ports {
                 println!("    {}", p.port_name);
                 match p.port_type {
