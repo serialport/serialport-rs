@@ -535,9 +535,9 @@ cfg_if! {
         use std::path::Path;
 
         fn read_file_to_trimmed_string(dir: &Path, file: &str) -> Option<String> {
-            let dir = dir.join(file);
+            let path = dir.join(file);
             let mut s = String::new();
-            File::open(dir).ok()?.read_to_string(&mut s).ok()?;
+            File::open(path).ok()?.read_to_string(&mut s).ok()?;
             Some(s.trim().to_owned())
         }
 
