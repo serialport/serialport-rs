@@ -10,6 +10,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Add recommendation on how to interpret `UsbPortInfo::interface_number`.
   [#219](https://github.com/serialport/serialport-rs/pull/219)
+* Add support for retrieving USB port info on Linux without libudev.
+  [#220](https://github.com/serialport/serialport-rs/pull/220)
 
 ### Changed
 
