@@ -18,6 +18,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Switched from core-foundation-sys to core-foundation for more conveniently
   working with Core Foundation types for enumeration on macOS.
   [#218](https://github.com/serialport/serialport-rs/pull/218)
+* Refactored output from example `list_ports` (alignment and order) for easily
+  comparing different runs.
+  [#220](https://github.com/serialport/serialport-rs/pull/220)
 
 ### Fixed
 
