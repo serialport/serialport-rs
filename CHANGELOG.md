@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Added
+### Changed
+### Fixed
+### Removed
+
+
+## [4.6.0] - 2024-10-21
+
 ### Added
 
 * Add recommendation on how to interpret `UsbPortInfo::interface_number`.
@@ -30,8 +39,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Fix ignoring the status of several function calls into Core Foundation on mac
   OS.
   [#218](https://github.com/serialport/serialport-rs/pull/218)
-
-### Removed
 
 
 ## [4.5.1] - 2024-09-20
@@ -462,7 +469,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/serialport/serialport-rs/compare/v4.5.1...v4.6.0
 [4.5.1]: https://github.com/serialport/serialport-rs/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/serialport/serialport-rs/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/serialport/serialport-rs/compare/v4.3.0...v4.4.0
