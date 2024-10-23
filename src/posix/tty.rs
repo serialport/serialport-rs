@@ -441,8 +441,13 @@ impl io::Write for TTYPort {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        nix::sys::termios::tcdrain(self.fd)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "flush failed"))
+        loop {
+            return match nix::sys::termios::tcdrain(self.fd) {
+                Ok(_) => Ok(()),
+                Err(nix::errno::Errno::EINTR) => continue,
+                Err(_) => Err(io::Error::new(io::ErrorKind::Other, "flush failed")),
+            };
+        }
     }
 }
 
