@@ -3,3 +3,6 @@
 # by default to avoid race conditions (see
 # https://github.com/rust-lang/cargo/issues/8430).
 RUST_TEST_THREADS = "1"
+
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg=web_sys_unstable_apis"]
