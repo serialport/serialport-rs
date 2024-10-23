@@ -14,6 +14,15 @@ license = "MPL-2.0"
 keywords = ["serial", "hardware", "system", "RS232"]
 categories = ["hardware-support"]
 
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+js-sys = { version = "0.3.72" }
+wasm-bindgen = { version = "0.2.95" }
+web-sys = { version = "0.3.72", features = ['Window', 'SerialPort', 'SerialOutputSignals', 'SerialOptions', 'ReadableStream', 'WritableStream', 'WritableStreamDefaultWriter', 'ReadableStreamDefaultReader', 'ReadableStreamByobReader', 'ReadableStreamGetReaderOptions', 'ReadableStreamReaderMode', 'FlowControlType', 'ParityType'] }
+wasm-bindgen-futures = { version = "0.4.45" }
+futures-executor = { version = "0.3" }
+futures = { version = "0.3" }
+
 [target."cfg(unix)".dependencies]
 bitflags = "2.4.0"
 nix = { version = "0.26", default-features = false, features = ["fs", "ioctl", "poll", "signal", "term"] }

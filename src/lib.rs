@@ -48,6 +48,11 @@ mod windows;
 #[cfg(windows)]
 pub use windows::COMPort;
 
+#[cfg(target_family = "wasm")]
+mod wasm;
+#[cfg(target_family = "wasm")]
+pub use wasm::WebPort;
+
 #[cfg(test)]
 pub(crate) mod tests;
 
