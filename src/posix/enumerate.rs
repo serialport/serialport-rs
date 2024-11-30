@@ -110,6 +110,21 @@ fn udev_restore_spaces(source: String) -> String {
 }
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+fn device_location(d: &libudev::Device) -> String {
+    match d.devpath() {
+        Some(path) => path
+            .to_str()
+            .unwrap_or_default()
+            .split("/")
+            .take(8)
+            .last()
+            .unwrap_or_default()
+            .to_string(),
+        None => "".to_string(),
+    }
+}
+
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
         Some("usb") => {
@@ -123,12 +138,14 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
             let product =
                 udev_property_encoded_or_replaced_as_string(d, "ID_MODEL_ENC", "ID_MODEL")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
+
             Ok(SerialPortType::UsbPort(UsbPortInfo {
                 vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
                 pid: udev_hex_property_as_int(d, "ID_MODEL_ID", &u16::from_str_radix)?,
                 serial_number,
                 manufacturer,
                 product,
+                location: device_location(d),
                 #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
                     .ok(),
@@ -154,12 +171,14 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     "ID_USB_MODEL_ENC",
                     "ID_USB_MODEL",
                 );
+
                 Ok(SerialPortType::UsbPort(UsbPortInfo {
                     vid: udev_hex_property_as_int(d, "ID_USB_VENDOR_ID", &u16::from_str_radix)?,
                     pid: udev_hex_property_as_int(d, "ID_USB_MODEL_ID", &u16::from_str_radix)?,
                     serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
                     manufacturer,
                     product,
+                    location: device_location(d),
                     #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
                         d,
@@ -252,6 +271,7 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         serial_number: None,
         manufacturer: None,
         product: None,
+        location: "".to_string(),
         // Only attempt to find the interface if the feature is enabled.
         #[cfg(feature = "usbportinfo-interface")]
         interface: mod_tail.get(pid_start + 4..).and_then(|mod_tail| {
@@ -349,7 +369,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Resu
 /// port numbers, and then formats them in a hierarchical form like “0-1.2.4”.
 fn location_to_string(location_id: u32) -> String {
     let mut location_id = location_id;
-    let bus_id =  format!("{:02x}", (location_id >> 24) as u8);
+    let bus_id = format!("{:02x}", (location_id >> 24) as u8);
     let mut path = format!("{bus_id}-");
     while location_id & 0xf00000 != 0 {
         let item = (location_id >> 20) & 0xf;
