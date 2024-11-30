@@ -787,8 +787,10 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
-    /// Location (bus_id-a.b string)
-    pub location: String,
+    /// Device's bus id
+    pub bus_id: String,
+    /// Physycal port hierarchy
+    pub port_chain: Vec<u8>,
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
     /// interface (as is the case on macOS), so you should recognize both interface numbers.

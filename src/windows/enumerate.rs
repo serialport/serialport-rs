@@ -144,6 +144,23 @@ impl<'hwid> HwidMatches<'hwid> {
     }
 }
 
+fn parse_location_path(s: &str) -> Option<(String, Vec<u8>)> {
+    let usbroot = "#USBROOT(";
+    let start_i = s.find(usbroot)?;
+    let close_i = s[start_i + usbroot.len()..].find(')')?;
+    let (bus, mut s) = s.split_at(start_i + usbroot.len() + close_i + 1);
+
+    let mut path = vec![];
+
+    while let Some((_, next)) = s.split_once("#USB(") {
+        let (port_num, next) = next.split_once(")")?;
+        path.push(port_num.parse().ok()?);
+        s = next;
+    }
+
+    Some((bus.to_owned(), path))
+}
+
 /// Windows usb port information can be determined by the port's HWID string.
 ///
 /// This function parses the HWID string using regex, and returns the USB port
@@ -386,6 +403,16 @@ impl PortDevice {
             .map(|mut info: UsbPortInfo| {
                 info.manufacturer = self.property(SPDRP_MFG);
                 info.product = self.property(SPDRP_FRIENDLYNAME);
+
+                let location_paths = self.property(SPDRP_LOCATION_PATHS);
+
+                let (bus_id, port_chain) = location_paths
+                    .iter()
+                    .find_map(|p| parse_location_path(p))
+                    .unwrap_or_default();
+
+                info.bus_id = bus_id;
+                info.port_chain = port_chain;
                 SerialPortType::UsbPort(info)
             })
             .unwrap_or(SerialPortType::Unknown)
@@ -409,17 +436,19 @@ impl PortDevice {
             )
         };
 
-        if res == FALSE || value_type != REG_SZ {
+        if res == FALSE || (value_type != REG_SZ && value_type != REG_MULTI_SZ) {
             return None;
+        }
+
+        let mut property_val = from_utf16_lossy_trimmed(&property_buf);
+        if value_type == REG_MULTI_SZ {
+            property_val = property_val.split('\0').next().unwrap_or("").to_string();
         }
 
         // Using the unicode version of 'SetupDiGetDeviceRegistryProperty' seems to report the
         // entire mfg registry string. This typically includes some driver information that we should discard.
         // Example string: 'FTDI5.inf,%ftdi%;FTDI'
-        from_utf16_lossy_trimmed(&property_buf)
-            .split(';')
-            .last()
-            .map(str::to_string)
+        property_val.split(';').last().map(str::to_string)
     }
 }
 
