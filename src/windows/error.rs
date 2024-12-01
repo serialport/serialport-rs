@@ -1,13 +1,30 @@
 use std::io;
 use std::ptr;
 
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::winerror::*;
-use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::winbase::{
-    FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
-};
-use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT, WCHAR};
+// use winapi::shared::minwindef::DWORD;
+// use winapi::shared::winerror::*;
+// use winapi::um::errhandlingapi::GetLastError;
+// use winapi::um::winbase::{
+//     FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
+// };
+// use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT, WCHAR};
+
+use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, ERROR_ACCESS_DENIED, GetLastError};
+use windows_sys::Win32::System::Diagnostics::Debug::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS};
+use windows_sys::Win32::System::SystemServices::SUBLANG_SYS_DEFAULT;
+use windows_sys::Win32::Globalization::LANG_SYSTEM_DEFAULT;
+//https://github.com/microsoft/windows-rs/issues/881
+type DWORD = u32;
+type WORD = u16;
+//https://docs.rs/winapi/latest/src/winapi/um/winnt.rs.html#129
+type LANGID = WORD;
+//https://github.com/microsoft/windows-rs/issues/1874
+#[cfg(windows)]
+type WCHAR = u16;
+//https://docs.rs/winapi/latest/src/winapi/um/winnt.rs.html#776-778
+fn MAKELANGID(p: WORD, s: WORD) -> LANGID {
+    (s << 10) | p
+}
 
 use crate::{Error, ErrorKind};
 
@@ -33,7 +50,7 @@ fn error_string(errnum: u32) -> String {
 
     // This value is calculated from the macro
     // MAKELANGID(LANG_SYSTEM_DEFAULT, SUBLANG_SYS_DEFAULT)
-    let langId = MAKELANGID(LANG_SYSTEM_DEFAULT, SUBLANG_SYS_DEFAULT) as DWORD;
+    let langId = MAKELANGID(LANG_SYSTEM_DEFAULT as u16, SUBLANG_SYS_DEFAULT as u16) as DWORD;
 
     let mut buf = [0 as WCHAR; 2048];
 
