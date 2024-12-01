@@ -10,11 +10,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+### Removed
+
+
+## [4.6.1] - 2024-12-01
+
+### Fixed
 
 * Pin subdependeny `libc` to maintain compatibility with MSRV 1.59.0.
   [#229](https://github.com/serialport/serialport-rs/pull/229)
-
-### Removed
 
 
 ## [4.6.0] - 2024-10-21
@@ -473,7 +477,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.6.1...HEAD
+[4.6.1]: https://github.com/serialport/serialport-rs/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/serialport/serialport-rs/compare/v4.5.1...v4.6.0
 [4.5.1]: https://github.com/serialport/serialport-rs/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/serialport/serialport-rs/compare/v4.4.0...v4.5.0
