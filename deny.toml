@@ -81,6 +81,7 @@ allow = [
     "BSD-2-Clause",
     "MIT",
     "MPL-2.0",
+    "Unicode-3.0",
     "Unicode-DFS-2016",
 ]
 # The confidence threshold for detecting a license from license text.
