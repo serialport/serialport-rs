@@ -44,6 +44,11 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 assert_hex = "0.4.1"
 clap = { version = "3.1.6", features = ["derive"] }
 envconfig = "0.10.0"
+# TODES Remove pinning this subdependency (of clap) when we are bumping our
+# MSRV (libc raised its MSRV with a patch release 0.2.167 from 1.19.0 to
+# 1.63.0). Trick the resolver into picking a compatible release of libc by
+# adding it as a direct dependency meanwhile.
+libc = ">=0.2.0, <=0.2.163"
 # TODO: Remove pinning this subdependency of clap when we are bumping our MSRV.
 # (There has been an incompatible change with the MSRV of os_str_bytes with
 # 6.6.0) Until then we are tricking the dependency resolver into using a
