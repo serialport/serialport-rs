@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::ffi::NulError;
 use std::{mem, ptr};
 
 // use winapi::ctypes::c_void;
@@ -218,8 +219,17 @@ impl PortDevices {
     // Creates PortDevices object which represents the set of devices associated with a particular
     // Ports class (given by `guid`).
     pub fn new(guid: &GUID) -> Self {
+
+        //https://github.com/microsoft/windows-rs/issues/3093
+        //in windows-sys 0.52.0
+        let null:isize = 0;
+        
         PortDevices {
-            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), ptr::null_mut(), DIGCF_PRESENT) },
+            //in windows-sys 0.59.0
+            // hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), ptr::null_mut(), DIGCF_PRESENT) },
+
+            //in windows-sys 0.52.0
+            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), null, DIGCF_PRESENT) },
             dev_idx: 0,
         }
     }
@@ -363,7 +373,11 @@ impl PortDevice {
             )
         };
 
-        if hkey as *mut c_void == INVALID_HANDLE_VALUE {
+        //in windows-sys 0.59.0
+        // if hkey as *mut c_void == INVALID_HANDLE_VALUE {
+
+        //in windows-sys 0.52.0
+        if hkey as isize == INVALID_HANDLE_VALUE {
             // failed to open registry key. Return empty string as the failure case
             return String::new();
         }
@@ -457,7 +471,13 @@ fn get_registry_com_ports() -> HashSet<String> {
 
     let reg_key = as_utf16("HARDWARE\\DEVICEMAP\\SERIALCOMM");
     let key_ptr = reg_key.as_ptr();
-    let mut ports_key = std::ptr::null_mut();
+
+    //https://github.com/microsoft/windows-rs/issues/3093
+    //in windows-sys 0.59.0
+    // let mut ports_key = std::ptr::null_mut();
+
+    //in windows-sys 0.52.0
+    let mut ports_key:isize = 0;
 
     // SAFETY: ffi, all inputs are correct
     let open_res =

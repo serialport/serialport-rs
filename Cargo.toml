@@ -45,6 +45,7 @@ features = [
     "Win32_Devices_Communication", 
     "Win32_Devices_DeviceAndDriverInstallation",
     "Win32_Devices_Properties",
+    "Win32_Foundation",
     "Win32_Media",
     "Win32_Media_KernelStreaming",
     "Win32_System_Diagnostics",

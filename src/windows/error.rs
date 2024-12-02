@@ -12,7 +12,15 @@ use std::ptr;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, ERROR_ACCESS_DENIED, GetLastError};
 use windows_sys::Win32::System::Diagnostics::Debug::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS};
 use windows_sys::Win32::System::SystemServices::SUBLANG_SYS_DEFAULT;
-use windows_sys::Win32::Globalization::LANG_SYSTEM_DEFAULT;
+
+//in windows-sys 0.59.0
+//In windows-sys 0.52.0 there is no such
+// use windows_sys::Win32::Globalization::LANG_SYSTEM_DEFAULT;
+
+//in windows-sys 0.52.0
+//https://docs.rs/windows-sys/latest/windows_sys/Win32/Globalization/constant.LANG_SYSTEM_DEFAULT.html
+pub const LANG_SYSTEM_DEFAULT: i32 = 2048i32;
+
 //https://github.com/microsoft/windows-rs/issues/881
 type DWORD = u32;
 type WORD = u16;

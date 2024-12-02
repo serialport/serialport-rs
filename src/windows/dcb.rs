@@ -40,7 +40,8 @@ pub(crate) fn init(dcb: &mut DCB) {
     dcb.XoffChar = 19;
     //dcb.ErrorChar = '\0' as winapi::ctypes::c_char;
     //https://github.com/microsoft/windows-rs/issues/2188
-    dcb.ErrorChar = '\0' as i8;
+    // dcb.ErrorChar = '\0' as i8;
+    dcb.ErrorChar = '\0' as u8;
     dcb.EofChar = 26;
     // dcb.EvtChar
     // always true for communications resources
