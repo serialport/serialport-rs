@@ -36,7 +36,7 @@ features = [
 ]
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.59.0"
+version = "0.52.0"
 features = [
     "Win32_Storage", 
     "Win32_Storage_FileSystem", 
