@@ -7,7 +7,7 @@ use std::mem::MaybeUninit;
 use windows_sys::Win32::Devices::Communication::*;
 use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::Foundation::{TRUE, FALSE};
-use windows_sys::Win32::System::WindowsProgramming::{DTR_CONTROL_DISABLE};
+use windows_sys::Win32::System::WindowsProgramming::DTR_CONTROL_DISABLE;
 //https://github.com/microsoft/windows-rs/issues/881
 type DWORD = u32;
 
@@ -100,46 +100,46 @@ pub trait MyTrait {
 }
 
 impl MyTrait for DCB {
-    fn set_fBinary(&mut self, fBinary: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_0000_0001) | (fBinary & 0x1);
+    fn set_fBinary(&mut self, f_binary: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_0000_0001) | (f_binary & 0x1);
     }
-    fn set_fParity(&mut self, fParity: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_0000_0010) | ((fParity & 0x1) << 1);
+    fn set_fParity(&mut self, f_parity: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_0000_0010) | ((f_parity & 0x1) << 1);
     }
-    fn set_fOutxCtsFlow(&mut self, fOutxCtsFlow: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_0000_0100) | ((fOutxCtsFlow & 0x1) << 2);
+    fn set_fOutxCtsFlow(&mut self, f_outx_cts_flow: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_0000_0100) | ((f_outx_cts_flow & 0x1) << 2);
     }
-    fn set_fOutxDsrFlow(&mut self, fOutxDsrFlow: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_0000_1000) | ((fOutxDsrFlow & 0x1) << 3);
+    fn set_fOutxDsrFlow(&mut self, f_outx_dsr_flow: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_0000_1000) | ((f_outx_dsr_flow & 0x1) << 3);
     }
-    fn set_fDtrControl(&mut self, fDtrControl: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_0001_0000) | ((fDtrControl & 0x1) << 4);
-        self._bitfield =  (self._bitfield & !0b0000_0000_0010_0000) | ((fDtrControl & 0x2) << 4);
+    fn set_fDtrControl(&mut self, f_dtr_control: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_0001_0000) | ((f_dtr_control & 0x1) << 4);
+        self._bitfield =  (self._bitfield & !0b0000_0000_0010_0000) | ((f_dtr_control & 0x2) << 4);
     }
-    fn set_fDsrSensitivity(&mut self, fDsrSensitivity: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_0100_0000) | ((fDsrSensitivity & 0x1) << 6);
+    fn set_fDsrSensitivity(&mut self, f_dsr_sensitivity: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_0100_0000) | ((f_dsr_sensitivity & 0x1) << 6);
     }
-    fn set_fTXContinueOnXoff(&mut self, fTXContinueOnXoff: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0000_1000_0000) | ((fTXContinueOnXoff & 0x1) << 7);
+    fn set_fTXContinueOnXoff(&mut self, f_tx_continue_on_x_off: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0000_1000_0000) | ((f_tx_continue_on_x_off & 0x1) << 7);
     }
-    fn set_fOutX(&mut self, fOutX: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0001_0000_0000) | ((fOutX & 0x1) << 8);
+    fn set_fOutX(&mut self, f_out_x: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0001_0000_0000) | ((f_out_x & 0x1) << 8);
     }
-    fn set_fInX(&mut self, fInX: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0010_0000_0000) | ((fInX & 0x1) << 9);
+    fn set_fInX(&mut self, f_in_x: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0010_0000_0000) | ((f_in_x & 0x1) << 9);
     }
-    fn set_fErrorChar(&mut self, fErrorChar: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_0100_0000_0000) | ((fErrorChar & 0x1) << 10);
+    fn set_fErrorChar(&mut self, f_error_char: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_0100_0000_0000) | ((f_error_char & 0x1) << 10);
     }
-    fn set_fNull(&mut self, fNull: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0000_1000_0000_0000) | ((fNull & 0x1) << 11);
+    fn set_fNull(&mut self, f_null: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0000_1000_0000_0000) | ((f_null & 0x1) << 11);
     }
-    fn set_fRtsControl(&mut self, fRtsControl: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0001_0000_0000_0000) | ((fRtsControl & 0x1) << 12);
-        self._bitfield =  (self._bitfield & !0b0010_0000_0000_0000) | ((fRtsControl & 0x2) << 12);
+    fn set_fRtsControl(&mut self, f_rts_control: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0001_0000_0000_0000) | ((f_rts_control & 0x1) << 12);
+        self._bitfield =  (self._bitfield & !0b0010_0000_0000_0000) | ((f_rts_control & 0x2) << 12);
     }
-    fn set_fAbortOnError(&mut self, fAbortOnError: DWORD) -> () {
-        self._bitfield =  (self._bitfield & !0b0100_0000_0000_0000) | ((fAbortOnError & 0x1) << 14);
+    fn set_fAbortOnError(&mut self, f_abort_on_error: DWORD) -> () {
+        self._bitfield =  (self._bitfield & !0b0100_0000_0000_0000) | ((f_abort_on_error & 0x1) << 14);
     }
 
     fn fBinary(&self) -> DWORD {

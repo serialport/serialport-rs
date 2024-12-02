@@ -15,10 +15,10 @@ use std::{io, ptr};
 
 use windows_sys::Win32::Storage::FileSystem::*;
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
-use windows_sys::Win32::System::SystemServices::{MAXDWORD};
+use windows_sys::Win32::System::SystemServices::MAXDWORD;
 use windows_sys::Win32::Foundation::{DUPLICATE_SAME_ACCESS, TRUE, GENERIC_READ, GENERIC_WRITE, HANDLE, 
     INVALID_HANDLE_VALUE, DuplicateHandle, CloseHandle};
-use windows_sys::Win32::Devices::Communication::{SetCommMask, ClearCommError, COMMTIMEOUTS, 
+use windows_sys::Win32::Devices::Communication::{ClearCommError, COMMTIMEOUTS, 
     SETRTS, CLRRTS, SETDTR, CLRDTR, 
     PURGE_RXABORT, PURGE_RXCLEAR, PURGE_TXABORT, PURGE_TXCLEAR, 
     MS_RLSD_ON, MS_CTS_ON, MS_DSR_ON ,MS_RING_ON, EscapeCommFunction, SetCommTimeouts, 

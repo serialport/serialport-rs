@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::ffi::NulError;
+// use std::ffi::NulError;
 use std::{mem, ptr};
 
 // use winapi::ctypes::c_void;
@@ -12,7 +12,7 @@ use std::{mem, ptr};
 // use winapi::um::winnt::{KEY_READ, REG_SZ};
 // use winapi::um::winreg::*;
 
-use std::os::raw::c_void;
+// use std::os::raw::c_void;
 use windows_sys::core::GUID;
 use windows_sys::Win32::Media::KernelStreaming::GUID_NULL;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::*;
