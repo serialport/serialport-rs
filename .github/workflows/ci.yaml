@@ -5,6 +5,9 @@ on:
     branches:
       - main
   push:
+  # Check for new issues from updated dependencies once a week (Friday noon).
+  schedule:
+    - cron: "0 12 * * 5"
   workflow_dispatch:
 
 jobs:
