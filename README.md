@@ -27,10 +27,11 @@ expose additional platform-specific functionality use the platform-specific stru
 `TTYPort` for POSIX systems and `COMPort` for Windows.
 
 Serial enumeration is provided on most platforms. The implementation on Linux using `glibc` relies
-on `libudev`, an external dynamic library that will need to be available on the system the final
-binary is running on. Enumeration will still be available if this feature is disabled, but won't
-expose as much information and may return ports that don't exist physically. However this dependency
-can be removed by disabling the default `libudev` feature:
+on `libudev` (unless you disable the default `libudev` feature), an external dynamic library that
+will need to be available on the system the final binary is running on. Enumeration will still be
+available if this feature is disabled, but won't expose as much information and may return ports
+that don't exist physically. However this dependency can be removed by disabling the default
+`libudev` feature:
 
 ```shell
 $ cargo build --no-default-features
