@@ -550,30 +550,39 @@ cfg_if! {
             u8::from_str_radix(&read_file_to_trimmed_string(dir, file)?, 16).ok()
         }
 
-        fn read_usb_port_info(device_path: &Path) -> Option<SerialPortType> {
-            let device_path = device_path
+        fn read_port_type(path: &Path) -> Option<SerialPortType> {
+            let path = path
                 .canonicalize()
                 .ok()?;
-            let subsystem = device_path.join("subsystem").canonicalize().ok()?;
+            let subsystem = path.join("subsystem").canonicalize().ok()?;
             let subsystem = subsystem.file_name()?.to_string_lossy();
 
-            let usb_interface_path = if subsystem == "usb-serial" {
-                device_path.parent()?
-            } else if subsystem == "usb" {
-                &device_path
-            } else {
-                return None;
-            };
-            let usb_device_path = usb_interface_path.parent()?;
+            match subsystem.as_ref() {
+                "pci" => Some(SerialPortType::PciPort),
+                "pnp" => Some(SerialPortType::Unknown),
+                "usb" => usb_port_type(&path),
+                "usb-serial" => usb_port_type(path.parent()?),
+                _ => None,
+            }
+        }
 
-            let vid = read_file_to_u16(&usb_device_path, &"idVendor")?;
-            let pid = read_file_to_u16(&usb_device_path, &"idProduct")?;
+        fn usb_port_type(interface_path: &Path) -> Option<SerialPortType> {
+            let info = read_usb_port_info(interface_path)?;
+            Some(SerialPortType::UsbPort(info))
+        }
+
+        fn read_usb_port_info(interface_path: &Path) -> Option<UsbPortInfo> {
+            let device_path = interface_path.parent()?;
+
+            let vid = read_file_to_u16(&device_path, "idVendor")?;
+            let pid = read_file_to_u16(&device_path, "idProduct")?;
             #[cfg(feature = "usbportinfo-interface")]
-            let interface = read_file_to_u8(&usb_interface_path, &"bInterfaceNumber");
-            let serial_number = read_file_to_trimmed_string(&usb_device_path, &"serial");
-            let product = read_file_to_trimmed_string(&usb_device_path, &"product");
-            let manufacturer = read_file_to_trimmed_string(&usb_device_path, &"manufacturer");
-            Some(SerialPortType::UsbPort(UsbPortInfo {
+            let interface = read_file_to_u8(&interface_path, &"bInterfaceNumber");
+            let serial_number = read_file_to_trimmed_string(&device_path, &"serial");
+            let product = read_file_to_trimmed_string(&device_path, &"product");
+            let manufacturer = read_file_to_trimmed_string(&device_path, &"manufacturer");
+
+            Some(UsbPortInfo {
                 vid,
                 pid,
                 serial_number,
@@ -581,7 +590,7 @@ cfg_if! {
                 product,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface,
-            }))
+            })
         }
 
         /// Scans `/sys/class/tty` for serial devices (on Linux systems without libudev).
@@ -589,7 +598,6 @@ cfg_if! {
             let mut vec = Vec::new();
             let sys_path = Path::new("/sys/class/tty/");
             let dev_path = Path::new("/dev");
-            let mut s;
             for path in sys_path.read_dir().expect("/sys/class/tty/ doesn't exist on this system") {
                 let raw_path = path?.path().clone();
                 let mut path = raw_path.clone();
@@ -599,16 +607,16 @@ cfg_if! {
                     continue;
                 }
 
-                let port_type = read_usb_port_info(&path).unwrap_or(SerialPortType::Unknown);
-
-                path.push("driver_override");
-                if path.is_file() {
-                    s = String::new();
-                    File::open(path)?.read_to_string(&mut s)?;
-                    if &s == "(null)\n" {
-                        continue;
-                    }
-                }
+                // Determine port type and proceed, if it's a known.
+                //
+                // TODO: Switch to a likely more readable let-else statement when our MSRV supports
+                // it.
+                let port_type = read_port_type(&path);
+                let port_type = if let Some(port_type) = port_type {
+                    port_type
+                } else {
+                    continue;
+                };
 
                 // Generate the device file path `/dev/DEVICE` from the TTY class path
                 // `/sys/class/tty/DEVICE` and emit a serial device if this path exists. There are
