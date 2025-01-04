@@ -558,6 +558,8 @@ cfg_if! {
             let subsystem = subsystem.file_name()?.to_string_lossy();
 
             match subsystem.as_ref() {
+                // Broadcom SoC UARTs (of Raspberry Pi devices).
+                "amba" => Some(SerialPortType::Unknown),
                 "pci" => Some(SerialPortType::PciPort),
                 "pnp" => Some(SerialPortType::Unknown),
                 "usb" => usb_port_type(&path),
