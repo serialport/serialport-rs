@@ -85,6 +85,10 @@ impl COMPort {
         dcb::set_flow_control(&mut dcb, builder.flow_control);
         dcb::set_dcb(handle, dcb)?;
 
+        if let Some(dtr) = builder.dtr_on_open {
+            com.write_data_terminal_ready(dtr)?;
+        }
+
         com.set_timeout(builder.timeout)?;
         com.port_name = Some(builder.path.clone());
         Ok(com)
