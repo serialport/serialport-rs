@@ -331,6 +331,8 @@ pub struct SerialPortBuilder {
     stop_bits: StopBits,
     /// Amount of time to wait to receive data before timing out
     timeout: Duration,
+    /// The state to set DTR to when opening the device
+    dtr_on_open: Option<bool>,
 }
 
 impl SerialPortBuilder {
@@ -390,6 +392,22 @@ impl SerialPortBuilder {
     #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
+        self
+    }
+
+    /// Set data terminal ready (DTR) to the given state when opening the device
+    #[must_use]
+    pub fn dtr_on_open(mut self, state: bool) -> Self {
+        self.dtr_on_open = Some(state);
+        self
+    }
+
+    /// Preserve the state of data terminal ready (DTR) when opening the device. Your outcome may
+    /// vary depending on the operation system. For example, Linux sets DTR by default and Windows
+    /// doesn't.
+    #[must_use]
+    pub fn preserve_dtr_on_open(mut self) -> Self {
+        self.dtr_on_open = None;
         self
     }
 
@@ -837,6 +855,11 @@ pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> Se
         parity: Parity::None,
         stop_bits: StopBits::One,
         timeout: Duration::from_millis(0),
+        // By default, set DTR when opening the device. There are USB devices performing "wait for
+        // DTR" before sending any data and users stumbled over this multiple times (see issues #29
+        // and #204). We are expecting little to no negative consequences from setting DTR by
+        // default but less hassle for users.
+        dtr_on_open: Some(true),
     }
 }
 

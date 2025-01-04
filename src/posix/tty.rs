@@ -183,14 +183,23 @@ impl TTYPort {
         termios::set_termios(fd.0, &termios)?;
 
         // Return the final port object
-        Ok(TTYPort {
+        let mut port = TTYPort {
             fd: fd.into_raw(),
             timeout: builder.timeout,
             exclusive: true,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: builder.baud_rate,
-        })
+        };
+
+        // Ignore setting DTR for pseudo terminals (indicated by baud_rate == 0).
+        if builder.baud_rate > 0 {
+            if let Some(dtr) = builder.dtr_on_open {
+                port.write_data_terminal_ready(dtr)?;
+            }
+        }
+
+        Ok(port)
     }
 
     /// Returns the exclusivity of the port
