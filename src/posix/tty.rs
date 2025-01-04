@@ -1,7 +1,7 @@
 use std::mem::MaybeUninit;
 use std::os::unix::prelude::*;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{io, mem};
 
 use nix::fcntl::{fcntl, OFlag};
@@ -441,10 +441,22 @@ impl io::Write for TTYPort {
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        let timeout = Instant::now() + self.timeout;
         loop {
             return match nix::sys::termios::tcdrain(self.fd) {
                 Ok(_) => Ok(()),
-                Err(nix::errno::Errno::EINTR) => continue,
+                Err(nix::errno::Errno::EINTR) => {
+                    // Retry flushing. But only up to the ports timeout for not retrying
+                    // indefinitely in case that it gets interrupted again.
+                    if Instant::now() < timeout {
+                        continue;
+                    } else {
+                        Err(io::Error::new(
+                            io::ErrorKind::TimedOut,
+                            "timeout for retrying flush reached",
+                        ))
+                    }
+                }
                 Err(_) => Err(io::Error::new(io::ErrorKind::Other, "flush failed")),
             };
         }
