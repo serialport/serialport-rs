@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 ### Changed
+
+* Enumerate ports from more subsystems on Linux without libudev.
+  [#238](https://github.com/serialport/serialport-rs/pull/238)
+
 ### Fixed
 ### Removed
 
