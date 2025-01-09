@@ -21,7 +21,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-* Pin subdependeny `libc` to maintain compatibility with MSRV 1.59.0.
+* Pin subdependency `libc` to maintain compatibility with MSRV 1.59.0.
   [#229](https://github.com/serialport/serialport-rs/pull/229)
 
 
