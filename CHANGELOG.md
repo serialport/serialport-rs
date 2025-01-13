@@ -12,6 +12,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Enumerate ports from more subsystems on Linux without libudev.
   [#238](https://github.com/serialport/serialport-rs/pull/238)
+* Set data terminal ready (DTR) signal when opening a port by default and allow
+  to customize this behavior through the builder.
+  [#239](https://github.com/serialport/serialport-rs/pull/239)
 
 ### Fixed
 
