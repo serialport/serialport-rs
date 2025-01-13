@@ -14,6 +14,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#238](https://github.com/serialport/serialport-rs/pull/238)
 
 ### Fixed
+
+* Retry flushing data on `EINTR` up to the ports read/write timeout.
+  [#225](https://github.com/serialport/serialport-rs/pull/225)
+
 ### Removed
 
 
