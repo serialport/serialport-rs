@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 ### Changed
+### Fixed
+### Removed
+
+
+## [4.7.0] - 2025-01-13
+
+### Changed
 
 * Enumerate ports from more subsystems on Linux without libudev.
   [#238](https://github.com/serialport/serialport-rs/pull/238)
@@ -20,8 +27,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Retry flushing data on `EINTR` up to the ports read/write timeout.
   [#225](https://github.com/serialport/serialport-rs/pull/225)
-
-### Removed
 
 
 ## [4.6.1] - 2024-12-01
@@ -488,7 +493,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.6.1...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/serialport/serialport-rs/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/serialport/serialport-rs/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/serialport/serialport-rs/compare/v4.5.1...v4.6.0
 [4.5.1]: https://github.com/serialport/serialport-rs/compare/v4.5.0...v4.5.1
