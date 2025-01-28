@@ -112,7 +112,7 @@ jobs:
   # code. The feature groups are used for attempting to cover different
   # backends for a platform (like Linux with and without libudev).
 
-  semver-aarch64-apple-darwin:
+  semver:
     runs-on: ubuntu-latest
     strategy:
       matrix:
