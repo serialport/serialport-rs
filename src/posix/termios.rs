@@ -98,7 +98,6 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
 
 #[cfg(any(target_os = "ios", target_os = "macos",))]
 pub(crate) fn set_termios(fd: RawFd, termios: &mut libc::termios, baud_rate: u32) -> Result<()> {
-
     let mut ispeed_res = 0;
     let mut ospeed_res = 0;
     if baud_rate > 0 {
