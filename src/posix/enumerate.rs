@@ -172,6 +172,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 Ok(SerialPortType::PciPort)
             }
         }
+        None if is_rfcomm(d) => Ok(SerialPortType::BluetoothPort),
         None => find_usb_interface_from_parents(d.parent())
             .and_then(get_modalias_from_device)
             .as_deref()
@@ -496,6 +497,14 @@ cfg_if! {
             Ok(vec)
         }
     } else if #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))] {
+        fn is_rfcomm(device: &libudev::Device) -> bool {
+            device
+                .sysname()
+                .and_then(|o| o.to_str())
+                .map(|s| s.starts_with("rfcomm"))
+                .unwrap_or(false)
+        }
+
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port
         /// which can be used for opening it.
@@ -506,22 +515,22 @@ cfg_if! {
                 enumerator.match_subsystem("tty")?;
                 let devices = enumerator.scan_devices()?;
                 for d in devices {
-                    if let Some(p) = d.parent() {
-                        if let Some(devnode) = d.devnode() {
-                            if let Some(path) = devnode.to_str() {
-                                if let Some(driver) = p.driver() {
-                                    if driver == "serial8250" && crate::new(path, 9600).open().is_err() {
-                                        continue;
-                                    }
+                    if let Some(devnode) = d.devnode().and_then(|o| o.to_str()) {
+                        let parent = d.parent();
+                        if parent.is_some() || is_rfcomm(&d) {
+                            if let Some(driver) = parent.as_ref().and_then(|d| d.driver()) {
+                                if driver == "serial8250" && crate::new(devnode, 9600).open().is_err() {
+                                    continue;
                                 }
-                                // Stop bubbling up port_type errors here so problematic ports are just
-                                // skipped instead of causing no ports to be returned.
-                                if let Ok(pt) = port_type(&d) {
-                                    vec.push(SerialPortInfo {
-                                        port_name: String::from(path),
-                                        port_type: pt,
-                                    });
-                                }
+                            }
+
+                            // Stop bubbling up port_type errors here so problematic ports are just
+                            // skipped instead of causing no ports to be returned.
+                            if let Ok(pt) = port_type(&d) {
+                                vec.push(SerialPortInfo {
+                                    port_name: String::from(devnode),
+                                    port_type: pt,
+                                });
                             }
                         }
                     }
@@ -533,6 +542,14 @@ cfg_if! {
         use std::fs::File;
         use std::io::Read;
         use std::path::Path;
+
+        fn is_rfcomm(path: &Path) -> bool {
+            path
+                .file_name()
+                .and_then(|o| o.to_str())
+                .map(|s| s.starts_with("rfcomm"))
+                .unwrap_or(false)
+        }
 
         fn read_file_to_trimmed_string(dir: &Path, file: &str) -> Option<String> {
             let path = dir.join(file);
@@ -604,20 +621,24 @@ cfg_if! {
                 let raw_path = path?.path().clone();
                 let mut path = raw_path.clone();
 
-                path.push("device");
-                if !path.is_dir() {
-                    continue;
-                }
-
-                // Determine port type and proceed, if it's a known.
-                //
-                // TODO: Switch to a likely more readable let-else statement when our MSRV supports
-                // it.
-                let port_type = read_port_type(&path);
-                let port_type = if let Some(port_type) = port_type {
-                    port_type
+                let port_type = if is_rfcomm(&raw_path) {
+                    SerialPortType::BluetoothPort
                 } else {
-                    continue;
+                    path.push("device");
+                    if !path.is_dir() {
+                        continue;
+                    }
+
+                    // Determine port type and proceed, if it's a known.
+                    //
+                    // TODO: Switch to a likely more readable let-else statement when our MSRV supports
+                    // it.
+                    let port_type = read_port_type(&path);
+                    if let Some(port_type) = port_type {
+                        port_type
+                    } else {
+                        continue;
+                    }
                 };
 
                 // Generate the device file path `/dev/DEVICE` from the TTY class path
