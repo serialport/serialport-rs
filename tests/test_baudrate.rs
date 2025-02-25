@@ -41,7 +41,7 @@ mod builder {
     use super::*;
 
     #[apply(standard_baud_rates)]
-    #[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn test_standard_baud_rate(hw_config: HardwareConfig, #[case] baud: u32) {
         let port = serialport::new(hw_config.port_1, RESET_BAUD_RATE)
             .baud_rate(baud)
@@ -53,7 +53,7 @@ mod builder {
     #[apply(non_standard_baud_rates)]
     #[cfg_attr(
         any(
-            feature = "ignore-hardware-tests",
+            not(feature = "hardware-tests"),
             not(all(target_os = "linux", target_env = "musl")),
         ),
         ignore
@@ -71,7 +71,7 @@ mod builder {
     #[apply(non_standard_baud_rates)]
     #[cfg_attr(
         any(
-            feature = "ignore-hardware-tests",
+            not(feature = "hardware-tests"),
             all(target_os = "linux", target_env = "musl"),
         ),
         ignore
@@ -93,7 +93,7 @@ mod new {
     use super::*;
 
     #[apply(standard_baud_rates)]
-    #[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn test_standard_baud_rate(hw_config: HardwareConfig, #[case] baud: u32) {
         let port = serialport::new(hw_config.port_1, baud).open().unwrap();
         check_baud_rate(port.as_ref(), baud);
@@ -102,7 +102,7 @@ mod new {
     #[apply(non_standard_baud_rates)]
     #[cfg_attr(
         any(
-            feature = "ignore-hardware-tests",
+            not(feature = "hardware-tests"),
             not(all(target_os = "linux", target_env = "musl")),
         ),
         ignore
@@ -117,7 +117,7 @@ mod new {
     #[apply(non_standard_baud_rates)]
     #[cfg_attr(
         any(
-            feature = "ignore-hardware-tests",
+            not(feature = "hardware-tests"),
             all(target_os = "linux", target_env = "musl"),
         ),
         ignore
@@ -136,7 +136,7 @@ mod set_baud {
     use super::*;
 
     #[apply(standard_baud_rates)]
-    #[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn test_standard_baud_rate(hw_config: HardwareConfig, #[case] baud: u32) {
         let mut port = serialport::new(hw_config.port_1, RESET_BAUD_RATE)
             .open()
@@ -150,7 +150,7 @@ mod set_baud {
     #[apply(non_standard_baud_rates)]
     #[cfg_attr(
         any(
-            feature = "ignore-hardware-tests",
+            not(feature = "hardware-tests"),
             not(all(target_os = "linux", target_env = "musl")),
         ),
         ignore
@@ -171,7 +171,7 @@ mod set_baud {
     #[apply(non_standard_baud_rates)]
     #[cfg_attr(
         any(
-            feature = "ignore-hardware-tests",
+            not(feature = "hardware-tests"),
             all(target_os = "linux", target_env = "musl"),
         ),
         ignore

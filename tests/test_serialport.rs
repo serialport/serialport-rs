@@ -7,7 +7,7 @@ use serialport::*;
 use std::time::Duration;
 
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_listing_ports() {
     let ports = serialport::available_ports().expect("No ports found!");
     for p in ports {
@@ -16,7 +16,7 @@ fn test_listing_ports() {
 }
 
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_opening_found_ports(hw_config: HardwareConfig) {
     // There is no guarantee that we even might open the ports returned by `available_ports`. But
     // the ports we are using for testing shall be among them.
@@ -26,13 +26,13 @@ fn test_opening_found_ports(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_opening_port(hw_config: HardwareConfig) {
     serialport::new(hw_config.port_1, 9600).open().unwrap();
 }
 
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_opening_native_port(hw_config: HardwareConfig) {
     serialport::new(hw_config.port_1, 9600)
         .open_native()
@@ -40,7 +40,7 @@ fn test_opening_native_port(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_configuring_ports(hw_config: HardwareConfig) {
     serialport::new(hw_config.port_1, 9600)
         .data_bits(DataBits::Five)
@@ -53,7 +53,7 @@ fn test_configuring_ports(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_duplicating_port_config(hw_config: HardwareConfig) {
     let port1_config = serialport::new(hw_config.port_1, 9600)
         .data_bits(DataBits::Five)
