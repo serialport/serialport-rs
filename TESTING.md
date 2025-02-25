@@ -18,6 +18,12 @@ With two devices connected to each other:
  * `cargo run --example hardware_check <DEVICE1> --loopback-port <DEVICE2>`
  * Also `cargo run --example heartbeat <DEVICE1> <BAUD>` in one terminal and
    `cargo run --example receive_data <DEVICE2> <BAUD>` in another
+ * Running tests with test cases requiring hardware devices enabled:
+     ```
+     $ export SERIALPORT_TEST_PORT_1=$(realpath /dev/ttyX)
+     $ export SERIALPORT_TEST_PORT_2=$(realpath /dev/ttyY)
+     $ cargo test --features hardware-tests
+     ```
 
 Can also verify trickier settings (like non-standard baud rates) using serial terminal programs
 like:
