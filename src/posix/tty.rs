@@ -71,7 +71,7 @@ pub struct TTYPort {
     timeout: Duration,
     exclusive: bool,
     port_name: Option<String>,
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    #[cfg(target_vendor = "apple")]
     baud_rate: u32,
 }
 
@@ -150,7 +150,7 @@ impl TTYPort {
             ));
         };
 
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         if builder.baud_rate > 0 {
             Errno::result(unsafe { libc::tcflush(fd.as_raw_fd(), libc::TCIOFLUSH) })?;
         }
@@ -164,12 +164,12 @@ impl TTYPort {
         termios::set_flow_control(&mut termios, builder.flow_control);
         termios::set_data_bits(&mut termios, builder.data_bits);
         termios::set_stop_bits(&mut termios, builder.stop_bits);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_vendor = "apple"))]
         termios::set_baud_rate(&mut termios, builder.baud_rate)?;
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
-        termios::set_termios(fd.as_raw_fd(), &termios, builder.baud_rate)?;
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_vendor = "apple"))]
         termios::set_termios(fd.as_raw_fd(), &termios)?;
+        #[cfg(target_vendor = "apple")]
+        termios::set_termios(fd.as_raw_fd(), &termios, builder.baud_rate)?;
 
         // Return the final port object
         let mut port = TTYPort {
@@ -177,7 +177,7 @@ impl TTYPort {
             timeout: builder.timeout,
             exclusive: builder.exclusive,
             port_name: Some(builder.path.clone()),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            #[cfg(target_vendor = "apple")]
             baud_rate: builder.baud_rate,
         };
 
@@ -299,7 +299,7 @@ impl TTYPort {
         let ptty_name = nix::pty::ptsname_r(&master)?;
 
         // Open the slave port
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         let baud_rate = 9600;
 
         let slave_fd = nix::fcntl::open(
@@ -327,7 +327,7 @@ impl TTYPort {
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: Some(ptty_name),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            #[cfg(target_vendor = "apple")]
             baud_rate,
         };
 
@@ -341,7 +341,7 @@ impl TTYPort {
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: None,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            #[cfg(target_vendor = "apple")]
             baud_rate,
         };
 
@@ -384,7 +384,7 @@ impl TTYPort {
             exclusive: self.exclusive,
             port_name: self.port_name.clone(),
             timeout: self.timeout,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            #[cfg(target_vendor = "apple")]
             baud_rate: self.baud_rate,
         })
     }
@@ -403,7 +403,7 @@ impl IntoRawFd for TTYPort {
 }
 
 /// Get the baud speed for a port from its file descriptor
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 fn get_termios_speed(fd: RawFd) -> u32 {
     let mut termios = MaybeUninit::uninit();
     // TODO: Propagate error instead of panicking.
@@ -450,7 +450,7 @@ impl FromRawFd for TTYPort {
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
             port_name: None,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
+            #[cfg(target_vendor = "apple")]
             baud_rate,
         }
     }
@@ -546,7 +546,7 @@ impl TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    #[cfg(target_vendor = "apple")]
     pub(crate) fn baud_rate(&self) -> Result<u32> {
         Ok(self.baud_rate)
     }
@@ -678,7 +678,7 @@ impl TTYPort {
     }
 
     // Mac OS needs special logic for setting arbitrary baud rates.
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    #[cfg(target_vendor = "apple")]
     pub(crate) fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         ioctl::iossiospeed(self.fd.as_raw_fd(), &(baud_rate as libc::speed_t))?;
         self.baud_rate = baud_rate;
@@ -688,36 +688,36 @@ impl TTYPort {
     pub(crate) fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_flow_control(&mut termios, flow_control);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         return termios::set_termios(self.fd.as_raw_fd(), &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_vendor = "apple"))]
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
     pub(crate) fn set_parity(&mut self, parity: Parity) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_parity(&mut termios, parity);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         return termios::set_termios(self.fd.as_raw_fd(), &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_vendor = "apple"))]
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
     pub(crate) fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_data_bits(&mut termios, data_bits);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         return termios::set_termios(self.fd.as_raw_fd(), &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_vendor = "apple"))]
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
     pub(crate) fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_stop_bits(&mut termios, stop_bits);
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         return termios::set_termios(self.fd.as_raw_fd(), &termios, self.baud_rate);
-        #[cfg(not(any(target_os = "ios", target_os = "macos")))]
+        #[cfg(not(target_vendor = "apple"))]
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
