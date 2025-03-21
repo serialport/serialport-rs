@@ -10,8 +10,6 @@ cfg_if! {
     if #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
-        target_os = "ios",
-        target_os = "macos",
         target_os = "netbsd",
         target_os = "openbsd",
         all(
@@ -21,7 +19,8 @@ cfg_if! {
                 target_arch = "powerpc",
                 target_arch = "powerpc64"
             )
-        )
+        ),
+        target_vendor = "apple",
     ))] {
         pub(crate) type Termios = libc::termios;
     } else if #[cfg(any(
@@ -45,7 +44,7 @@ cfg_if! {
 // calls in this lib to the IOSSIOSPEED ioctl. So whenever we get this struct, make sure to
 // reset the input & output baud rates to a safe default. This is accounted for by the
 // corresponding set_termios that is mac-specific and always calls IOSSIOSPEED.
-#[cfg(any(target_os = "ios", target_os = "macos",))]
+#[cfg(target_vendor = "apple")]
 pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     use std::mem::MaybeUninit;
 
@@ -96,7 +95,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
     crate::posix::ioctl::tcgets2(fd)
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos",))]
+#[cfg(target_vendor = "apple")]
 pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) -> Result<()> {
     let res = unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) };
     nix::errno::Errno::result(res)?;
