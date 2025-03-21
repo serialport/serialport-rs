@@ -23,10 +23,9 @@ mod raw {
     #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
-        target_os = "ios",
-        target_os = "macos",
         target_os = "netbsd",
-        target_os = "openbsd"
+        target_os = "openbsd",
+        target_vendor = "apple",
     ))]
     ioctl_read!(fionread, b'f', 127, libc::c_int);
 
@@ -37,10 +36,9 @@ mod raw {
     #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
-        target_os = "ios",
-        target_os = "macos",
         target_os = "netbsd",
-        target_os = "openbsd"
+        target_os = "openbsd",
+        target_vendor = "apple"
     ))]
     ioctl_read!(tiocoutq, b't', 115, libc::c_int);
 
@@ -80,10 +78,10 @@ mod raw {
         0x2B,
         libc::termios2
     );
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
+    #[cfg(target_vendor = "apple")]
     const IOSSIOSPEED: libc::c_ulong = 0x80045402;
     ioctl_write_ptr_bad!(
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        #[cfg(target_vendor = "apple")]
         iossiospeed,
         IOSSIOSPEED,
         libc::speed_t
@@ -199,7 +197,7 @@ pub fn tcsets2(fd: RawFd, options: &libc::termios2) -> Result<()> {
         .map_err(|e| e.into())
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 pub fn iossiospeed(fd: RawFd, baud_rate: &libc::speed_t) -> Result<()> {
     unsafe { raw::iossiospeed(fd, baud_rate) }
         .map(|_| ())
