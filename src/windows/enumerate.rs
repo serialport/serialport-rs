@@ -759,5 +759,9 @@ mod tests {
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β";
         let info = parse_usb_port_info(unicode_serial, None).unwrap();
         assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
+
+        let serial_with_underscore_hwid = r"USB\VID_0483&PID_5740\TMCS_B000000000";
+        let info = parse_usb_port_info(serial_with_underscore_hwid, None).unwrap();
+        assert_eq!(info.serial_number.as_deref(), Some("TMCS_B000000000"));
     }
 }
