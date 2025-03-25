@@ -13,6 +13,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Parsing serial numbers with underscore from Windows HWIDs
   [#253](https://github.com/serialport/serialport-rs/issues/253)
+* Enumerate Bluetooth serial devices (RFCOMM) on Linux too.
+  [#246](https://github.com/serialport/serialport-rs/issues/246)
 
 ### Removed
 
