@@ -10,13 +10,17 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+### Removed
+
+
+## [4.7.1] - 2025-03-25
+
+### Fixed
 
 * Parsing serial numbers with underscore from Windows HWIDs
   [#253](https://github.com/serialport/serialport-rs/issues/253)
 * Enumerate Bluetooth serial devices (RFCOMM) on Linux too.
   [#246](https://github.com/serialport/serialport-rs/issues/246)
-
-### Removed
 
 
 ## [4.7.0] - 2025-01-13
@@ -499,7 +503,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.1...HEAD
+[4.7.1]: https://github.com/serialport/serialport-rs/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/serialport/serialport-rs/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/serialport/serialport-rs/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/serialport/serialport-rs/compare/v4.5.1...v4.6.0
