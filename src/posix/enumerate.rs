@@ -20,9 +20,20 @@ cfg_if! {
         use io_kit_sys::serial::keys::*;
         use io_kit_sys::types::*;
         use io_kit_sys::usb::lib::*;
-        use nix::libc::{c_char, c_void};
-        use std::ffi::CStr;
-        use std::mem::MaybeUninit;
+        use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
+        use core::mem::MaybeUninit;
+
+        // NOTE: Do not use `mach` nor `mach2` crates, they're unmaintained,
+        // and don't work on tvOS/watchOS/visionOS.
+        //
+        // Instead, define the types ourselves, we use sufficiently little
+        // that this is not a very hard task.
+        #[allow(non_camel_case_types)]
+        type kern_return_t = c_int;
+        #[allow(non_camel_case_types)]
+        type mach_port_t = c_uint;
+        const KERN_SUCCESS: kern_return_t = 0;
+        const MACH_PORT_NULL: mach_port_t = 0;
     }
 }
 
@@ -265,7 +276,6 @@ fn get_parent_device_by_type(
     parent_type: *const c_char,
 ) -> Option<io_registry_entry_t> {
     let parent_type = unsafe { CStr::from_ptr(parent_type) };
-    use mach2::kern_return::KERN_SUCCESS;
     let mut device = device;
     loop {
         let mut class_name = MaybeUninit::<[c_char; 128]>::uninit();
@@ -379,9 +389,6 @@ cfg_if! {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-            use mach2::kern_return::KERN_SUCCESS;
-            use mach2::port::{mach_port_t, MACH_PORT_NULL};
-
             let mut vec = Vec::new();
             unsafe {
                 // Create a dictionary for specifying the search terms against the IOService

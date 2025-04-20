@@ -20,6 +20,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Output USB VID and PID in hexadecimal digits in `UsbPortInfo`'s `Debug`
   representation.
   [#290](https://github.com/serialport/serialport-rs/pull/290)
+* Migrated away from unmaintainted dependency `mach2`.
 
 ### Fixed
 ### Removed
