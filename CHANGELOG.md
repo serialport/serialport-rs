@@ -21,6 +21,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   representation.
   [#290](https://github.com/serialport/serialport-rs/pull/290)
 * Migrated away from unmaintainted dependency `mach2`.
+* Migrated from `io-kit-sys` to `objc2-io-kit`.
+* Migrated from `core-foundation` to `objc2-core-foundation`.
 
 ### Fixed
 ### Removed
