@@ -422,7 +422,7 @@ impl io::Write for TTYPort {
             return Err(io::Error::from(Error::from(e)));
         }
 
-        nix::unistd::write(self.fd.as_raw_fd(), buf).map_err(|e| io::Error::from(Error::from(e)))
+        nix::unistd::write(self.fd.as_fd(), buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 
     fn flush(&mut self) -> io::Result<()> {
