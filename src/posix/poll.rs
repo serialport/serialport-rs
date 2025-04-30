@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types, dead_code)]
 
 use std::io;
-use std::os::unix::io::RawFd;
+use std::os::fd::AsFd;
 use std::slice;
 use std::time::Duration;
 
@@ -12,18 +12,19 @@ use nix::sys::signal::SigSet;
 #[cfg(any(target_os = "linux", test))]
 use nix::sys::time::TimeSpec;
 
-pub fn wait_read_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd, PollFlags::POLLIN, timeout)
+pub fn wait_read_fd<Fd: AsFd>(fd: Fd, timeout: Duration) -> io::Result<()> {
+    wait_fd(fd.as_fd(), PollFlags::POLLIN, timeout)
 }
 
-pub fn wait_write_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd, PollFlags::POLLOUT, timeout)
+pub fn wait_write_fd<Fd: AsFd>(fd: Fd, timeout: Duration) -> io::Result<()> {
+    wait_fd(fd.as_fd(), PollFlags::POLLOUT, timeout)
 }
 
-fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
+fn wait_fd<Fd: AsFd>(fd: Fd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     use nix::errno::Errno::{EIO, EPIPE};
 
-    let mut fd = PollFd::new(fd, events);
+    let fd = fd.as_fd();
+    let mut fd = PollFd::new(&fd, events);
 
     let wait = match poll_clamped(&mut fd, timeout) {
         Ok(r) => r,
