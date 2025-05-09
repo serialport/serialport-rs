@@ -39,6 +39,7 @@ features = [
 cfg-if = "1.0.0"
 scopeguard = "1.1"
 serde = { version = "1.0", features = ["derive"], optional = true }
+schemars = { package = "schemars", version = "0.8", features = ["derive"], optional = true }
 
 [dev-dependencies]
 assert_hex = "0.4.1"

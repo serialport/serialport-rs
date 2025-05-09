@@ -138,6 +138,7 @@ impl From<Error> for io::Error {
 /// Number of bits per character
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum DataBits {
     /// 5 bits per character
     Five,
@@ -199,6 +200,7 @@ impl TryFrom<u8> for DataBits {
 /// transmitted.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -225,6 +227,7 @@ impl fmt::Display for Parity {
 /// Stop bits are transmitted after every character.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum StopBits {
     /// One stop bit.
     One,
@@ -266,6 +269,7 @@ impl TryFrom<u8> for StopBits {
 /// Flow control modes
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum FlowControl {
     /// No flow control.
     None,
@@ -305,6 +309,7 @@ impl FromStr for FlowControl {
 /// [`clear`]: trait.SerialPort.html#tymethod.clear
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum ClearBuffer {
     /// Specify to clear data received but not read
     Input,
@@ -798,6 +803,7 @@ impl fmt::Debug for dyn SerialPort {
 /// Contains all possible USB information about a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct UsbPortInfo {
     /// Vendor ID
     pub vid: u16,
@@ -819,6 +825,7 @@ pub struct UsbPortInfo {
 /// The physical type of a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum SerialPortType {
     /// The serial port is connected via USB
     UsbPort(UsbPortInfo),
@@ -833,6 +840,7 @@ pub enum SerialPortType {
 /// A device-independent implementation of serial port information
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
