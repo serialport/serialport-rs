@@ -4,7 +4,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 use std::{io, mem};
 
-use nix::fcntl::{fcntl, OFlag};
+use nix::fcntl::{fcntl, FlockArg, OFlag};
 use nix::{libc, unistd};
 
 use crate::posix::ioctl::{self, SerialLines};
@@ -29,6 +29,43 @@ fn close(fd: RawFd) {
     // close() also should never be retried, and the error code
     // in most cases in purely informative
     let _ = unistd::close(fd);
+}
+
+/// Convenience method to acquire an exclusive lock using flock
+///
+/// This is used ensure that no other applications
+/// are using the port. This requires that the other application also uses flock,
+/// so this does not work with all applications.
+fn flock_exclusive(fd: RawFd) -> Result<()> {
+    nix::fcntl::flock(fd, FlockArg::LockExclusiveNonblock).map_err(|e| {
+        if e == nix::errno::Errno::EWOULDBLOCK {
+            Error::new(
+                ErrorKind::NoDevice,
+                "Unable to acquire exclusive lock on serial port",
+            )
+        } else {
+            e.into()
+        }
+    })
+}
+
+/// Convenience method to acquire a shared lock using flock
+///
+/// With the shared lock, other applications are able to use the port
+/// as well, if they're also using a shared lock,
+/// but this makes sure that they cannot acquire an exclusive
+/// lock while we're using the port.
+fn flock_shared(fd: RawFd) -> Result<()> {
+    nix::fcntl::flock(fd, FlockArg::LockSharedNonblock).map_err(|e| {
+        if e == nix::errno::Errno::EWOULDBLOCK {
+            Error::new(
+                ErrorKind::NoDevice,
+                "Unable to acquire exclusive lock on serial port",
+            )
+        } else {
+            e.into()
+        }
+    })
 }
 
 /// A serial port implementation for POSIX TTY ports
@@ -130,6 +167,9 @@ impl TTYPort {
         // other applications that may have an exclusive port lock.
         ioctl::tiocexcl(fd.0)?;
 
+        // Also use flock to lock the port
+        flock_exclusive(fd.0)?;
+
         let mut termios = MaybeUninit::uninit();
         nix::errno::Errno::result(unsafe { tcgetattr(fd.0, termios.as_mut_ptr()) })?;
         let mut termios = unsafe { termios.assume_init() };
@@ -216,7 +256,13 @@ impl TTYPort {
     /// If a port is exclusive, then trying to open the same device path again
     /// will fail.
     ///
-    /// See the man pages for the tiocexcl and tiocnxcl ioctl's for more details.
+    /// The tiocexcl ioctl is used to prevent other applications from opening
+    /// the port.
+    ///
+    /// `flock` is used to place an advisory lock, which prevents conflicts with
+    /// other applications using `flock`.
+    ///
+    /// See the man pages for the tiocexcl/tiocnxcl ioctl's and `flock` for more details.
     ///
     /// ## Errors
     ///
@@ -229,6 +275,15 @@ impl TTYPort {
         };
 
         setting_result?;
+
+        let flock_result = if exclusive {
+            flock_exclusive(self.fd)
+        } else {
+            flock_shared(self.fd)
+        };
+
+        flock_result?;
+
         self.exclusive = exclusive;
         Ok(())
     }
@@ -415,10 +470,20 @@ fn get_termios_speed(fd: RawFd) -> u32 {
 
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        let flock_exclusive_successful = flock_exclusive(fd).is_ok();
+
+        // TODO: If we fail to get the exclusive lock, this probably means that
+        // another process is using the port, and we should return an error,
+        // instead of using the port in non-exclusive mode.
+        //
+        // This will require a breaking change, as this method currently can't fail.
+
+        let in_exclusive_mode = ioctl::tiocexcl(fd).is_ok();
+
         TTYPort {
             fd,
             timeout: Duration::from_millis(100),
-            exclusive: ioctl::tiocexcl(fd).is_ok(),
+            exclusive: in_exclusive_mode && flock_successful,
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
             port_name: None,
