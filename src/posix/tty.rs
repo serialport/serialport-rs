@@ -470,7 +470,7 @@ fn get_termios_speed(fd: RawFd) -> u32 {
 
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        let flock_exclusive_successful = flock_exclusive(fd).is_ok();
+        let flock_successful = flock_exclusive(fd).is_ok();
 
         // TODO: If we fail to get the exclusive lock, this probably means that
         // another process is using the port, and we should return an error,
