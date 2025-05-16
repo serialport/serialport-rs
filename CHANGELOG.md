@@ -10,6 +10,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+
+* Set data terminal ready (DTR) on best-effort for not failing in the situation
+  where we can't detect whether to apply this setting reliably.
+  [#268](https://github.com/serialport/serialport-rs/pull/268)
+
 ### Removed
 
 
