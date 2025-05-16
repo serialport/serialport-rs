@@ -10,12 +10,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+### Removed
+
+
+## [4.7.2] - 2025-05-16
+
+### Fixed
 
 * Set data terminal ready (DTR) on best-effort for not failing in the situation
   where we can't detect whether to apply this setting reliably.
   [#268](https://github.com/serialport/serialport-rs/pull/268)
-
-### Removed
 
 
 ## [4.7.1] - 2025-03-25
@@ -508,7 +512,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.1...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.2...HEAD
+[4.7.2]: https://github.com/serialport/serialport-rs/compare/v4.7.1...v4.7.2
 [4.7.1]: https://github.com/serialport/serialport-rs/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/serialport/serialport-rs/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/serialport/serialport-rs/compare/v4.6.0...v4.6.1
