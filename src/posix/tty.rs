@@ -192,10 +192,11 @@ impl TTYPort {
             baud_rate: builder.baud_rate,
         };
 
-        // Ignore setting DTR for pseudo terminals (indicated by baud_rate == 0).
+        // Ignore setting DTR for pseudo terminals. This might be indicated by baud_rate == 0, but
+        // as this is not always the case, just try on best-effort.
         if builder.baud_rate > 0 {
             if let Some(dtr) = builder.dtr_on_open {
-                port.write_data_terminal_ready(dtr)?;
+                let _ = port.write_data_terminal_ready(dtr);
             }
         }
 
