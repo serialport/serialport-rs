@@ -85,8 +85,9 @@ impl COMPort {
         dcb::set_flow_control(&mut dcb, builder.flow_control);
         dcb::set_dcb(handle, dcb)?;
 
+        // Try to set DTR on best-effort.
         if let Some(dtr) = builder.dtr_on_open {
-            com.write_data_terminal_ready(dtr)?;
+            let _ = com.write_data_terminal_ready(dtr);
         }
 
         com.set_timeout(builder.timeout)?;
