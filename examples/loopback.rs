@@ -193,16 +193,6 @@ fn loopback_standard<'a>(
     }
 }
 
-#[rustversion::before(1.63)]
-fn loopback_split<'a>(
-    _port: &mut Box<dyn SerialPort>,
-    _read_stats: &mut Stats<'a>,
-    _write_stats: &mut Stats<'a>,
-) {
-    unimplemented!("requires Rust 1.63 or later");
-}
-
-#[rustversion::since(1.63)]
 fn loopback_split<'a>(
     port: &mut Box<dyn SerialPort>,
     read_stats: &mut Stats<'a>,

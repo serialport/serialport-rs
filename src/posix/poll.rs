@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types, dead_code)]
 
 use std::io;
-use std::os::unix::io::RawFd;
+use std::os::fd::AsFd;
 use std::slice;
 use std::time::Duration;
 
@@ -12,18 +12,18 @@ use nix::sys::signal::SigSet;
 #[cfg(any(target_os = "linux", test))]
 use nix::sys::time::TimeSpec;
 
-pub fn wait_read_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd, PollFlags::POLLIN, timeout)
+pub fn wait_read_fd<Fd: AsFd>(fd: Fd, timeout: Duration) -> io::Result<()> {
+    wait_fd(fd.as_fd(), PollFlags::POLLIN, timeout)
 }
 
-pub fn wait_write_fd(fd: RawFd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd, PollFlags::POLLOUT, timeout)
+pub fn wait_write_fd<Fd: AsFd>(fd: Fd, timeout: Duration) -> io::Result<()> {
+    wait_fd(fd.as_fd(), PollFlags::POLLOUT, timeout)
 }
 
-fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
+fn wait_fd<Fd: AsFd>(fd: Fd, events: PollFlags, timeout: Duration) -> io::Result<()> {
     use nix::errno::Errno::{EIO, EPIPE};
 
-    let mut fd = PollFd::new(fd, events);
+    let mut fd = PollFd::new(fd.as_fd(), events);
 
     let wait = match poll_clamped(&mut fd, timeout) {
         Ok(r) => r,
@@ -86,44 +86,39 @@ fn clamped_time_spec(duration: Duration) -> TimeSpec {
 // by `poll`.
 #[cfg(not(target_os = "linux"))]
 fn poll_clamped(fd: &mut PollFd, timeout: Duration) -> nix::Result<c_int> {
-    let millis = clamped_millis_c_int(timeout);
+    let millis = clamped_duration_nix(timeout);
     nix::poll::poll(slice::from_mut(fd), millis)
 }
 
 #[cfg(any(not(target_os = "linux"), test))]
-fn clamped_millis_c_int(duration: Duration) -> c_int {
-    let secs_limit = (c_int::MAX as u64) / 1000;
-    let secs = duration.as_secs();
-
-    if secs <= secs_limit {
-        secs as c_int * 1000 + duration.subsec_millis() as c_int
-    } else {
-        c_int::MAX
-    }
+fn clamped_duration_nix(duration: Duration) -> nix::poll::PollTimeout {
+    nix::poll::PollTimeout::try_from(duration).unwrap_or(nix::poll::PollTimeout::MAX)
 }
 
 #[cfg(test)]
 mod tests {
+    use nix::poll::PollTimeout;
+
     use super::*;
     use crate::tests::timeout::MONOTONIC_DURATIONS;
 
     #[test]
-    fn clamped_millis_c_int_is_monotonic() {
-        let mut last = clamped_millis_c_int(Duration::ZERO);
+    fn clamped_duration_nix_is_monotonic() {
+        let mut last = clamped_duration_nix(Duration::ZERO);
 
         for (i, d) in MONOTONIC_DURATIONS.iter().enumerate() {
-            let next = clamped_millis_c_int(*d);
+            let next = clamped_duration_nix(*d);
             assert!(
                 next >= last,
-                "{next} >= {last} failed for {d:?} at index {i}"
+                "{next:?} >= {last:?} failed for {d:?} at index {i}"
             );
             last = next;
         }
     }
 
     #[test]
-    fn clamped_millis_c_int_zero_is_zero() {
-        assert_eq!(0, clamped_millis_c_int(Duration::ZERO));
+    fn clamped_duration_nix_zero_is_zero() {
+        assert_eq!(PollTimeout::ZERO, clamped_duration_nix(Duration::ZERO));
     }
 
     #[test]

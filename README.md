@@ -1,7 +1,7 @@
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/serialport)
 [![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/serialport/serialport-rs/ci.yaml?branch=main&logo=github)](https://github.com/serialport/serialport-rs/actions)
-[![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.59.0-blue?logo=rust)](https://blog.rust-lang.org/2022/02/24/Rust-1.59.0.html)
+[![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.69.0-blue?logo=rust)](https://blog.rust-lang.org/2023/04/20/Rust-1.69.0/)
 
 # Introduction
 
@@ -105,7 +105,7 @@ can help debug software or hardware errors.
 
 # Dependencies
 
-Rust versions 1.59.0 and higher are supported by the library itself. There are
+Rust versions 1.69.0 and higher are supported by the library itself. There are
 examples requiring newer versions of Rust.
 
 For GNU/Linux `pkg-config` headers are required:
