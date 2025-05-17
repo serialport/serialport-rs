@@ -52,7 +52,10 @@ impl COMPort {
     pub fn open(builder: &SerialPortBuilder) -> Result<COMPort> {
         let mut name = Vec::<u16>::with_capacity(4 + builder.path.len() + 1);
 
-        name.extend(r"\\.\".encode_utf16());
+        if !builder.path.starts_with('\\') {
+            name.extend(r"\\.\".encode_utf16());
+        }
+
         name.extend(builder.path.encode_utf16());
         name.push(0);
 
