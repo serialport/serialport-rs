@@ -3,8 +3,12 @@ use std::os::windows::prelude::*;
 use std::time::Duration;
 use std::{io, ptr};
 
+use winapi::um::ioapiset::CancelIo;
+
 use winapi::shared::minwindef::*;
+use winapi::shared::winerror::{ERROR_IO_PENDING, WAIT_TIMEOUT};
 use winapi::um::commapi::*;
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
@@ -13,11 +17,43 @@ use winapi::um::winnt::{
     DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, MAXDWORD,
 };
 
+use winapi::um::ioapiset::GetOverlappedResult;
+use winapi::um::minwinbase::OVERLAPPED;
+use winapi::um::synchapi::{CreateEventW, WaitForSingleObject};
+use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
+
 use crate::windows::dcb;
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
     SerialPortBuilder, StopBits,
 };
+
+struct Overlapped(OVERLAPPED);
+
+impl Overlapped {
+    #[inline]
+    fn new() -> io::Result<Self> {
+        let event = unsafe { CreateEventW(ptr::null_mut(), TRUE, FALSE, ptr::null_mut()) };
+        if event.is_null() {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(Self(OVERLAPPED {
+            Internal: 0,
+            InternalHigh: 0,
+            u: unsafe { std::mem::zeroed() },
+            hEvent: event,
+        }))
+    }
+}
+
+impl Drop for Overlapped {
+    #[inline(always)]
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.0.hEvent);
+        }
+    }
+}
 
 /// A serial port implementation for Windows COM ports
 ///
@@ -63,7 +99,7 @@ impl COMPort {
                 0,
                 ptr::null_mut(),
                 OPEN_EXISTING,
-                FILE_ATTRIBUTE_NORMAL,
+                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                 0 as HANDLE,
             )
         };
@@ -205,26 +241,63 @@ impl io::Read for COMPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut len: DWORD = 0;
 
+        let mut overlapped = Overlapped::new()?;
+
+        let process_result = |len| -> io::Result<usize> {
+            if len != 0 {
+                return Ok(len as usize);
+            }
+            // if timeout occured len == 0
+            Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Operation timed out",
+            ))
+        };
+
         match unsafe {
             ReadFile(
                 self.handle,
                 buf.as_mut_ptr() as LPVOID,
                 buf.len() as DWORD,
                 &mut len,
-                ptr::null_mut(),
+                &mut overlapped.0,
             )
         } {
-            0 => Err(io::Error::last_os_error()),
-            _ => {
-                if len != 0 {
-                    Ok(len as usize)
-                } else {
-                    Err(io::Error::new(
-                        io::ErrorKind::TimedOut,
-                        "Operation timed out",
-                    ))
+            FALSE => match unsafe { GetLastError() } {
+                ERROR_IO_PENDING => {
+                    let timeout = u128::min(self.timeout.as_millis(), INFINITE as u128 - 1) as u32;
+                    match unsafe { WaitForSingleObject(overlapped.0.hEvent, timeout) } as u32 {
+                        WAIT_OBJECT_0 => {
+                            if unsafe {
+                                GetOverlappedResult(self.handle, &mut overlapped.0, &mut len, TRUE)
+                            } == TRUE
+                            {
+                                return process_result(len);
+                            }
+                            Err(io::Error::last_os_error())
+                        }
+                        WAIT_TIMEOUT => {
+                            if unsafe { CancelIo(self.handle) } == TRUE {
+                                let _ = unsafe {
+                                    GetOverlappedResult(
+                                        self.handle,
+                                        &mut overlapped.0,
+                                        &mut len,
+                                        TRUE,
+                                    )
+                                };
+                            }
+                            Err(io::Error::new(
+                                io::ErrorKind::TimedOut,
+                                "Operation timed out",
+                            ))
+                        }
+                        _ => Err(io::Error::last_os_error()),
+                    }
                 }
-            }
+                _ => Err(io::Error::last_os_error()),
+            },
+            _ => process_result(len),
         }
     }
 }
@@ -233,16 +306,35 @@ impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut len: DWORD = 0;
 
+        let mut overlapped = Overlapped::new()?;
+
         match unsafe {
             WriteFile(
                 self.handle,
                 buf.as_ptr() as LPVOID,
                 buf.len() as DWORD,
                 &mut len,
-                ptr::null_mut(),
+                &mut overlapped.0,
             )
         } {
-            0 => Err(io::Error::last_os_error()),
+            FALSE => match unsafe { GetLastError() } {
+                ERROR_IO_PENDING => {
+                    match unsafe { WaitForSingleObject(overlapped.0.hEvent, INFINITE) } as u32 {
+                        WAIT_OBJECT_0 => {
+                            if unsafe {
+                                GetOverlappedResult(self.handle, &mut overlapped.0, &mut len, TRUE)
+                            } == TRUE
+                            {
+                                Ok(len as usize)
+                            } else {
+                                Err(io::Error::last_os_error())
+                            }
+                        }
+                        _ => Err(io::Error::last_os_error()),
+                    }
+                }
+                _ => Err(io::Error::last_os_error()),
+            },
             _ => Ok(len as usize),
         }
     }
