@@ -93,7 +93,7 @@ jobs:
     with:
       disable_extra_builds: true
       disable_tests: true
-      runs_on: windows-2019
+      runs_on: windows-2025
       target: x86_64-pc-windows-msvc
       toolchain: "1.59.0"
 
@@ -211,13 +211,13 @@ jobs:
   i686-pc-windows-gnu:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-2019
+      runs_on: windows-2025
       target: i686-pc-windows-gnu
 
   i686-pc-windows-msvc:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-2019
+      runs_on: windows-2025
       target: i686-pc-windows-msvc
 
   i686-unknown-linux-gnu:
@@ -243,13 +243,13 @@ jobs:
   x86_64-pc-windows-gnu:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-2019
+      runs_on: windows-2025
       target: x86_64-pc-windows-gnu
 
   x86_64-pc-windows-msvc:
     uses: ./.github/workflows/build.yaml
     with:
-      runs_on: windows-2019
+      runs_on: windows-2025
       target: x86_64-pc-windows-msvc
 
   x86_64-unknown-freebsd:
@@ -293,7 +293,7 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       continue-on-error: true
-      runs_on: windows-2019
+      runs_on: windows-2025
       target: x86_64-pc-windows-msvc
       toolchain: nightly
 

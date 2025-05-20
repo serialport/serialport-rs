@@ -65,7 +65,7 @@ jobs:
           sudo apt-get -qq -y install build-essential curl git pkg-config ${{ inputs.extra_packages }}
 
       - name: Build | add mingw32 to path
-        if: inputs.runs_on == 'windows-2019'
+        if: inputs.runs_on == 'windows-2025'
         shell: bash
         run: |
           echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
