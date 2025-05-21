@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
+
+* Add support for opening serial ports on windows with an absolute path.
+  [#259](https://github.com/serialport/serialport-rs/pull/259)
+
 ### Changed
 ### Fixed
 ### Removed
