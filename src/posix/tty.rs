@@ -1,7 +1,7 @@
 use std::mem::MaybeUninit;
 use std::os::unix::prelude::*;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{io, mem};
 
 use nix::fcntl::{fcntl, OFlag};
@@ -183,14 +183,24 @@ impl TTYPort {
         termios::set_termios(fd.0, &termios)?;
 
         // Return the final port object
-        Ok(TTYPort {
+        let mut port = TTYPort {
             fd: fd.into_raw(),
             timeout: builder.timeout,
             exclusive: true,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: builder.baud_rate,
-        })
+        };
+
+        // Ignore setting DTR for pseudo terminals. This might be indicated by baud_rate == 0, but
+        // as this is not always the case, just try on best-effort.
+        if builder.baud_rate > 0 {
+            if let Some(dtr) = builder.dtr_on_open {
+                let _ = port.write_data_terminal_ready(dtr);
+            }
+        }
+
+        Ok(port)
     }
 
     /// Returns the exclusivity of the port
@@ -441,8 +451,25 @@ impl io::Write for TTYPort {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        nix::sys::termios::tcdrain(self.fd)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "flush failed"))
+        let timeout = Instant::now() + self.timeout;
+        loop {
+            return match nix::sys::termios::tcdrain(self.fd) {
+                Ok(_) => Ok(()),
+                Err(nix::errno::Errno::EINTR) => {
+                    // Retry flushing. But only up to the ports timeout for not retrying
+                    // indefinitely in case that it gets interrupted again.
+                    if Instant::now() < timeout {
+                        continue;
+                    } else {
+                        Err(io::Error::new(
+                            io::ErrorKind::TimedOut,
+                            "timeout for retrying flush reached",
+                        ))
+                    }
+                }
+                Err(_) => Err(io::Error::new(io::ErrorKind::Other, "flush failed")),
+            };
+        }
     }
 }
 

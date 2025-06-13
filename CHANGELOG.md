@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
 ### Added
 
 * Add support for opening serial ports on windows with an absolute path.
@@ -14,6 +15,78 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 ### Fixed
 ### Removed
+
+
+## [4.7.2] - 2025-05-16
+
+### Fixed
+
+* Set data terminal ready (DTR) on best-effort for not failing in the situation
+  where we can't detect whether to apply this setting reliably.
+  [#268](https://github.com/serialport/serialport-rs/pull/268)
+
+
+## [4.7.1] - 2025-03-25
+
+### Fixed
+
+* Parsing serial numbers with underscore from Windows HWIDs
+  [#253](https://github.com/serialport/serialport-rs/issues/253)
+* Enumerate Bluetooth serial devices (RFCOMM) on Linux too.
+  [#246](https://github.com/serialport/serialport-rs/issues/246)
+
+
+## [4.7.0] - 2025-01-13
+
+### Changed
+
+* Enumerate ports from more subsystems on Linux without libudev.
+  [#238](https://github.com/serialport/serialport-rs/pull/238)
+* Set data terminal ready (DTR) signal when opening a port by default and allow
+  to customize this behavior through the builder.
+  [#239](https://github.com/serialport/serialport-rs/pull/239)
+
+### Fixed
+
+* Retry flushing data on `EINTR` up to the ports read/write timeout.
+  [#225](https://github.com/serialport/serialport-rs/pull/225)
+
+
+## [4.6.1] - 2024-12-01
+
+### Fixed
+
+* Pin subdependency `libc` to maintain compatibility with MSRV 1.59.0.
+  [#229](https://github.com/serialport/serialport-rs/pull/229)
+
+
+## [4.6.0] - 2024-10-21
+
+### Added
+
+* Add recommendation on how to interpret `UsbPortInfo::interface_number`.
+  [#219](https://github.com/serialport/serialport-rs/pull/219)
+* Add support for retrieving USB port info on Linux without libudev.
+  [#220](https://github.com/serialport/serialport-rs/pull/220)
+
+### Changed
+
+* Switched from core-foundation-sys to core-foundation for more conveniently
+  working with Core Foundation types for enumeration on macOS.
+  [#218](https://github.com/serialport/serialport-rs/pull/218)
+* Refactored output from example `list_ports` (alignment and order) for easily
+  comparing different runs.
+  [#220](https://github.com/serialport/serialport-rs/pull/220)
+
+### Fixed
+
+* Fix enumeration USB reported as PCI devices which do not have a (short)
+  serial number.
+  [#160](https://github.com/serialport/serialport-rs/pull/160)
+* Fix ignoring the status of several function calls into Core Foundation on mac
+  OS.
+  [#218](https://github.com/serialport/serialport-rs/pull/218)
+
 
 ## [4.5.1] - 2024-09-20
 
@@ -443,7 +516,12 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.2...HEAD
+[4.7.2]: https://github.com/serialport/serialport-rs/compare/v4.7.1...v4.7.2
+[4.7.1]: https://github.com/serialport/serialport-rs/compare/v4.7.0...v4.7.1
+[4.7.0]: https://github.com/serialport/serialport-rs/compare/v4.6.1...v4.7.0
+[4.6.1]: https://github.com/serialport/serialport-rs/compare/v4.6.0...v4.6.1
+[4.6.0]: https://github.com/serialport/serialport-rs/compare/v4.5.1...v4.6.0
 [4.5.1]: https://github.com/serialport/serialport-rs/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/serialport/serialport-rs/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/serialport/serialport-rs/compare/v4.3.0...v4.4.0

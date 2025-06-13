@@ -85,12 +85,19 @@ jobs:
       - name: Build | build library (default features)
         run: cargo build --target=${{ inputs.target }}
 
+      - name: Build | build library (no default features)
+        run: cargo build --no-default-features --target=${{ inputs.target }}
+
       - name: Build | build library (all features)
         run: cargo build --all-features --target=${{ inputs.target }}
 
       - name: Build | build examples (default features)
         if: ${{ inputs.disable_extra_builds == false }}
         run: cargo build --examples --target=${{ inputs.target }}
+
+      - name: Build | build examples (no default features)
+        if: ${{ inputs.disable_extra_builds == false }}
+        run: cargo build --no-default-features --examples --target=${{ inputs.target }}
 
       - name: Build | build examples (all features)
         if: ${{ inputs.disable_extra_builds == false }}
@@ -102,13 +109,20 @@ jobs:
 
       - name: Build | run tests (default features)
         if: ${{ inputs.disable_tests == false }}
-        run: cargo test --no-fail-fast --features ignore-hardware-tests --target=${{ inputs.target }}
+        run: cargo test --no-fail-fast --target=${{ inputs.target }}
 
-      - name: Build | build tests (all features)
+      - name: Build | build tests (no default features)
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --tests --all-features --target=${{ inputs.target }}
+        run: cargo build --tests --no-default-features --target=${{ inputs.target }}
 
-      - name: Build | run tests (all features)
+      - name: Build | run tests (no default features)
         if: ${{ inputs.disable_tests == false }}
-        # Enabling all features includes ignoring hardware tests.
-        run: cargo test --no-fail-fast --all-features --target=${{ inputs.target }}
+        run: cargo test --no-default-features --no-fail-fast --target=${{ inputs.target }}
+
+      - name: Build | build tests (selected features)
+        if: ${{ inputs.disable_extra_builds == false }}
+        run: cargo build --tests --features libudev,usbportinfo-interface --target=${{ inputs.target }}
+
+      - name: Build | run tests (selected features)
+        if: ${{ inputs.disable_tests == false }}
+        run: cargo test --no-fail-fast --features libudev,usbportinfo-interface --target=${{ inputs.target }}

@@ -13,6 +13,8 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
+const CONNECTOR_PUNCTUATION_SELECTION: &[char] = &['_', '\u{ff3f}'];
+
 /// takes normal Rust `str` and outputs a null terminated UTF-16 encoded string
 fn as_utf16(utf8: &str) -> Vec<u16> {
     utf8.encode_utf16().chain(Some(0)).collect()
@@ -117,8 +119,8 @@ impl<'hwid> HwidMatches<'hwid> {
             None
         };
 
-        // ([\\+](?P<serial>\w+))? with slightly modified check for alphanumeric characters instead
-        // of regex word character
+        // ([\\+](?P<serial>\w+))? with slightly modified check for alphanumeric plus some more
+        // hand-picked characters instead of regex word character
         //
         // TODO: Fix returning no serial number at all for devices without one. The previous regex
         // and the code below return the first thing from the intance ID. See issue #203.
@@ -126,7 +128,9 @@ impl<'hwid> HwidMatches<'hwid> {
             hwid_tail.get(1..).and_then(|tail| {
                 let index = tail
                     .char_indices()
-                    .find(|&(_, char)| !char.is_alphanumeric())
+                    .find(|&(_, char)| {
+                        !(char.is_alphanumeric() || CONNECTOR_PUNCTUATION_SELECTION.contains(&char))
+                    })
                     .map(|(index, _)| index)
                     .unwrap_or(tail.len());
                 tail.get(..index)
@@ -759,5 +763,9 @@ mod tests {
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β";
         let info = parse_usb_port_info(unicode_serial, None).unwrap();
         assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
+
+        let serial_with_underscore_hwid = r"USB\VID_0483&PID_5740\TMCS_B000000000";
+        let info = parse_usb_port_info(serial_with_underscore_hwid, None).unwrap();
+        assert_eq!(info.serial_number.as_deref(), Some("TMCS_B000000000"));
     }
 }

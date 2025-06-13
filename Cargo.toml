@@ -1,6 +1,6 @@
 [package]
 name = "serialport"
-version = "4.5.1"
+version = "4.7.3-alpha.0"
 authors = [
     "Bryant Mairs <bryant@mai.rs>",
     "Jesse Braham <jesse@beta7.io>",
@@ -23,6 +23,7 @@ libudev = { version = "0.3.0", optional = true }
 unescaper = "0.1.3"
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
+core-foundation = "0.10.0"
 core-foundation-sys = "0.8.4"
 io-kit-sys = "0.4.0"
 mach2 = "0.4.1"
@@ -43,6 +44,11 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 assert_hex = "0.4.1"
 clap = { version = "3.1.6", features = ["derive"] }
 envconfig = "0.10.0"
+# TODES Remove pinning this subdependency (of clap) when we are bumping our
+# MSRV (libc raised its MSRV with a patch release 0.2.167 from 1.19.0 to
+# 1.63.0). Trick the resolver into picking a compatible release of libc by
+# adding it as a direct dependency meanwhile.
+libc = ">=0.2.0, <=0.2.163"
 # TODO: Remove pinning this subdependency of clap when we are bumping our MSRV.
 # (There has been an incompatible change with the MSRV of os_str_bytes with
 # 6.6.0) Until then we are tricking the dependency resolver into using a
@@ -56,7 +62,7 @@ rustversion = "1.0.16"
 
 [features]
 default = ["libudev"]
-ignore-hardware-tests = []
+hardware-tests = []
 # TODO: Make the feature unconditionally available with the next major release
 # (5.0) and remove this feature gate.
 usbportinfo-interface = []

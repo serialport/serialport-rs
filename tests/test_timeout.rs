@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
     20,
     Vec::from(b"0123456789:;<=>?@abcdefghijklmnopqrstuvwxyz[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")
 )]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_read_returns_available_data_before_timeout(
     hw_config: HardwareConfig,
     #[case] chunk_size: usize,
@@ -92,7 +92,7 @@ fn test_read_returns_available_data_before_timeout(
 #[case(b"a")]
 #[case(b"0123456789")]
 #[case(b"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_timeout_zero(hw_config: HardwareConfig, #[case] message: &[u8]) {
     let timeout = Duration::ZERO;
     let margin = Duration::from_millis(100);
@@ -142,7 +142,7 @@ fn test_timeout_zero(hw_config: HardwareConfig, #[case] message: &[u8]) {
 #[case(Duration::from_millis(10))]
 #[case(Duration::from_millis(100))]
 #[case(Duration::from_millis(1000))]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_timeout_greater_zero(hw_config: HardwareConfig, #[case] timeout: Duration) {
     let margin = Duration::from_millis(100);
 
@@ -182,7 +182,7 @@ fn test_timeout_greater_zero(hw_config: HardwareConfig, #[case] timeout: Duratio
 /// Checks that reading data with a timeout of `Duration::MAX` returns some data and no error. It
 /// does not check the actual timeout for obvious reason.
 #[rstest]
-#[cfg_attr(feature = "ignore-hardware-tests", ignore)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_timeout_max(hw_config: HardwareConfig) {
     let sleep = Duration::from_millis(3000);
     let margin = Duration::from_millis(500);

@@ -331,6 +331,8 @@ pub struct SerialPortBuilder {
     stop_bits: StopBits,
     /// Amount of time to wait to receive data before timing out
     timeout: Duration,
+    /// The state to set DTR to when opening the device
+    dtr_on_open: Option<bool>,
 }
 
 impl SerialPortBuilder {
@@ -390,6 +392,26 @@ impl SerialPortBuilder {
     #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
+        self
+    }
+
+    /// Set data terminal ready (DTR) to the given state when opening the device
+    ///
+    /// Note: On Linux, DTR is automatically set on open. Even if you set `dtr_on_open` to false,
+    /// DTR will be asserted for a short moment when opening the port. This can't be prevented
+    /// without kernel modifications.
+    #[must_use]
+    pub fn dtr_on_open(mut self, state: bool) -> Self {
+        self.dtr_on_open = Some(state);
+        self
+    }
+
+    /// Preserve the state of data terminal ready (DTR) when opening the device. Your outcome may
+    /// vary depending on the operation system. For example, Linux sets DTR by default and Windows
+    /// doesn't.
+    #[must_use]
+    pub fn preserve_dtr_on_open(mut self) -> Self {
+        self.dtr_on_open = None;
         self
     }
 
@@ -787,7 +809,9 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
-    /// Interface (id number for multiplexed devices)
+    /// The interface index of the USB serial port. This can be either the interface number of
+    /// the communication interface (as is the case on Windows and Linux) or the data
+    /// interface (as is the case on macOS), so you should recognize both interface numbers.
     #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
 }
@@ -835,6 +859,11 @@ pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> Se
         parity: Parity::None,
         stop_bits: StopBits::One,
         timeout: Duration::from_millis(0),
+        // By default, set DTR when opening the device. There are USB devices performing "wait for
+        // DTR" before sending any data and users stumbled over this multiple times (see issues #29
+        // and #204). We are expecting little to no negative consequences from setting DTR by
+        // default but less hassle for users.
+        dtr_on_open: Some(true),
     }
 }
 

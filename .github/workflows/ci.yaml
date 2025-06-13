@@ -5,6 +5,9 @@ on:
     branches:
       - main
   push:
+  # Check for new issues from updated dependencies once a week (Friday noon).
+  schedule:
+    - cron: "0 12 * * 5"
   workflow_dispatch:
 
 jobs:
@@ -101,6 +104,43 @@ jobs:
       disable_tests: true
       target: x86_64-unknown-netbsd
       toolchain: "1.59.0"
+
+  # --------------------------------------------------------------------------
+  # Semantic Versioning
+  #
+  # Check at least once per platform as we heavily depend on platform-specific
+  # code. The feature groups are used for attempting to cover different
+  # backends for a platform (like Linux with and without libudev).
+
+  semver:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - arm-linux-androideabi
+          - x86_64-pc-windows-msvc
+          - x86_64-unknown-freebsd
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-netbsd
+        feature-group:
+          - "only-explicit-features"
+          - "all-features"
+    steps:
+    - run: |
+        # TODO: Harmonize with build.yaml
+        sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
+        sudo apt-get -qq update
+        sudo apt-get -qq -y install build-essential curl git pkg-config libudev-dev
+    - uses: actions/checkout@v2
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        target: ${{ matrix.target }}
+    - uses: Swatinem/rust-cache@v2
+    - uses: obi1kenobi/cargo-semver-checks-action@v2
+      with:
+        rust-target: ${{ matrix.target }}
+        feature-group: ${{ matrix.feature-group }}
 
   # --------------------------------------------------------------------------
   # cargo-deny
