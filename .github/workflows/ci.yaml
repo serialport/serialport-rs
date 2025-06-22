@@ -208,12 +208,6 @@ jobs:
       disable_tests: true
       target: armv7-linux-androideabi
 
-  i686-pc-windows-gnu:
-    uses: ./.github/workflows/build.yaml
-    with:
-      runs_on: windows-2025
-      target: i686-pc-windows-gnu
-
   i686-pc-windows-msvc:
     uses: ./.github/workflows/build.yaml
     with:
