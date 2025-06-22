@@ -20,7 +20,6 @@ targets = [
     { triple = "aarch64-unknown-linux-musl" },
     { triple = "arm-linux-androideabi" },
     { triple = "armv7-linux-androideabi" },
-    { triple = "i686-pc-windows-gnu" },
     { triple = "i686-pc-windows-msvc" },
     { triple = "i686-unknown-linux-gnu" },
     { triple = "i686-unknown-linux-musl" },
