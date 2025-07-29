@@ -35,10 +35,26 @@ features = [
     "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt",
 ]
 
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.60"
+optional = true
+features = [
+	"Win32_Foundation",
+	"Win32_Graphics_Gdi",
+	"Win32_Security",
+	"Win32_System_Threading",
+	"Win32_System_LibraryLoader",
+	"Win32_System_Rpc",
+	"Win32_UI_WindowsAndMessaging",
+]
+
 [dependencies]
 cfg-if = "1.0.0"
 scopeguard = "1.1"
 serde = { version = "1.0", features = ["derive"], optional = true }
+futures = { version = "0.3", optional = true }
+crossbeam = { version = "0.8", optional = true }
+parking_lot = { version = "0.12", optional = true }
 
 [dev-dependencies]
 assert_hex = "0.4.1"
@@ -66,3 +82,9 @@ hardware-tests = []
 # TODO: Make the feature unconditionally available with the next major release
 # (5.0) and remove this feature gate.
 usbportinfo-interface = []
+listener = [
+	"dep:windows-sys",
+	"dep:futures",
+	"dep:parking_lot",
+	"dep:crossbeam",
+]

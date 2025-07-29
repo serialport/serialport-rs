@@ -47,6 +47,8 @@ pub use posix::{BreakDuration, TTYPort};
 mod windows;
 #[cfg(windows)]
 pub use windows::COMPort;
+#[cfg(all(windows, feature = "listener"))]
+pub use windows::Listener;
 
 #[cfg(test)]
 pub(crate) mod tests;
@@ -882,5 +884,20 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
     Err(Error::new(
         ErrorKind::Unknown,
         "available_ports() not implemented for platform",
+    ))
+}
+
+/// Returns a [`Listener`]
+pub fn listen<N: Into<std::ffi::OsString>>(name: N) -> Listener {
+    #[cfg(unix)]
+    unimplemented!();
+
+    #[cfg(windows)]
+    return crate::windows::listen(name);
+
+    #[cfg(not(any(unix, windows)))]
+    Err(Error::new(
+        ErrorKind::Unknown,
+        "listen() not implemented for platform",
     ))
 }
