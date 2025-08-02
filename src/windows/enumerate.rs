@@ -13,7 +13,7 @@ use winapi::um::winreg::*;
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
-const CONNECTOR_PUNCTUATION_SELECTION: &[char] = &['_', '\u{ff3f}'];
+const CONNECTOR_PUNCTUATION_SELECTION: &[char] = &[':', '_', '\u{ff3f}'];
 
 /// takes normal Rust `str` and outputs a null terminated UTF-16 encoded string
 fn as_utf16(utf8: &str) -> Vec<u16> {
