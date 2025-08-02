@@ -715,6 +715,17 @@ mod tests {
                 interface: Some("90"),
             }
         );
+
+        // There are ESP32 Arduino devices using colons in their serial numbers. See issue #279.
+        assert_eq!(
+            HwidMatches::new("USB\\VID_303A&PID_1001\\B4:3A:45:B0:08:24").unwrap(),
+            HwidMatches {
+                vid: "303A",
+                pid: "1001",
+                serial: Some("B4:3A:45:B0:08:24"),
+                interface: None,
+            },
+        )
     }
 
     #[test]
