@@ -29,7 +29,7 @@ io-kit-sys = "0.4.0"
 mach2 = "0.4.1"
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.60.2"
+version = "0.52.0"
 features = [
     "Win32_Devices_Communication",
     "Win32_Foundation",
