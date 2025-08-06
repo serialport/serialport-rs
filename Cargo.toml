@@ -28,11 +28,19 @@ core-foundation-sys = "0.8.4"
 io-kit-sys = "0.4.0"
 mach2 = "0.4.1"
 
-[target."cfg(windows)".dependencies.winapi]
-version = "0.3.9"
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.60.2"
 features = [
-    "cguid", "commapi", "errhandlingapi", "fileapi", "guiddef", "handleapi", "minwinbase",
-    "minwindef", "ntdef", "setupapi", "winbase", "winerror", "winnt",
+    "Win32_Devices_Communication",
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Registry",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_System_Threading",
+    "Win32_Security",
+    "Win32_System_SystemServices",
 ]
 
 [dependencies]

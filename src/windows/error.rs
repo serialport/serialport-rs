@@ -1,13 +1,12 @@
 use std::io;
 use std::ptr;
 
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::winerror::*;
-use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::winbase::{
+use windows_sys::Win32::Foundation::{
+    GetLastError, ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND,
+};
+use windows_sys::Win32::System::Diagnostics::Debug::{
     FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 };
-use winapi::um::winnt::{LANG_SYSTEM_DEFAULT, MAKELANGID, SUBLANG_SYS_DEFAULT, WCHAR};
 
 use crate::{Error, ErrorKind};
 
@@ -29,27 +28,28 @@ fn errno() -> u32 {
 }
 
 fn error_string(errnum: u32) -> String {
-    #![allow(non_snake_case)]
-
-    // This value is calculated from the macro
-    // MAKELANGID(LANG_SYSTEM_DEFAULT, SUBLANG_SYS_DEFAULT)
-    let langId = MAKELANGID(LANG_SYSTEM_DEFAULT, SUBLANG_SYS_DEFAULT) as DWORD;
-
-    let mut buf = [0 as WCHAR; 2048];
+    let mut buf = [0u16; 2048];
 
     unsafe {
         let res = FormatMessageW(
             FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            ptr::null_mut(),
-            errnum as DWORD,
-            langId as DWORD,
+            ptr::null(),
+            errnum,
+            // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagew
+            // If zero is passed, FormatMessage searches for a message using LANGIDs in this order:
+            // 1. Language neutral
+            // 2. Thread LANGID (from the thread's locale)
+            // 3. User default LANGID (from the user's default locale)
+            // 4. System default LANGID (from the system's default locale)
+            // 5. US English
+            0,
             buf.as_mut_ptr(),
-            buf.len() as DWORD,
-            ptr::null_mut(),
+            buf.len() as u32,
+            ptr::null(),
         );
         if res == 0 {
             // Sometimes FormatMessageW can fail e.g. system doesn't like langId,
-            let fm_err = errno();
+            let fm_err = GetLastError();
             return format!(
                 "OS Error {} (FormatMessageW() returned error {})",
                 errnum, fm_err
