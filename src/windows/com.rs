@@ -3,17 +3,17 @@ use std::os::windows::prelude::*;
 use std::time::Duration;
 use std::{io, ptr};
 
-use winapi::shared::minwindef::*;
-use winapi::um::commapi::*;
-use winapi::um::fileapi::*;
-use winapi::um::handleapi::*;
-use winapi::um::processthreadsapi::GetCurrentProcess;
-use winapi::um::winbase::*;
-use winapi::um::winnt::{
-    DUPLICATE_SAME_ACCESS, FILE_ATTRIBUTE_NORMAL, GENERIC_READ, GENERIC_WRITE, HANDLE, MAXDWORD,
+use windows_sys::Win32::Devices::Communication::*;
+use windows_sys::Win32::Foundation::{
+    CloseHandle, DuplicateHandle, DUPLICATE_SAME_ACCESS, GENERIC_READ, GENERIC_WRITE, HANDLE,
+    INVALID_HANDLE_VALUE, TRUE,
 };
+use windows_sys::Win32::Storage::FileSystem::{
+    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING,
+};
+use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
-use crate::windows::dcb;
+use crate::windows::dcb::{self, DCBBitField};
 use crate::{
     ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
     SerialPortBuilder, StopBits,
@@ -137,15 +137,15 @@ impl COMPort {
         }
     }
 
-    fn escape_comm_function(&mut self, function: DWORD) -> Result<()> {
+    fn escape_comm_function(&mut self, function: u32) -> Result<()> {
         match unsafe { EscapeCommFunction(self.handle, function) } {
             0 => Err(super::error::last_os_error()),
             _ => Ok(()),
         }
     }
 
-    fn read_pin(&mut self, pin: DWORD) -> Result<bool> {
-        let mut status: DWORD = 0;
+    fn read_pin(&mut self, pin: u32) -> Result<bool> {
+        let mut status: u32 = 0;
 
         match unsafe { GetCommModemStatus(self.handle, &mut status) } {
             0 => Err(super::error::last_os_error()),
@@ -163,16 +163,16 @@ impl COMPort {
         }
     }
 
-    fn timeout_constant(duration: Duration) -> DWORD {
+    fn timeout_constant(duration: Duration) -> u32 {
         let milliseconds = duration.as_millis();
-        // In the way we are setting up COMMTIMEOUTS, a timeout_constant of MAXDWORD gets rejected.
-        // Let's clamp the timeout constant for values of MAXDWORD and above. See remarks at
+        // In the way we are setting up COMMTIMEOUTS, a timeout_constant of u32::MAX gets rejected.
+        // Let's clamp the timeout constant for values of u32::MAX and above. See remarks at
         // https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts.
         //
         // This effectively throws away accuracy for really long timeouts but at least preserves a
         // long-ish timeout. But just casting to DWORD would result in presumably unexpected short
         // and non-monotonic timeouts from cutting off the higher bits.
-        u128::min(milliseconds, MAXDWORD as u128 - 1) as DWORD
+        u128::min(milliseconds, u32::MAX as u128 - 1) as u32
     }
 }
 
@@ -206,13 +206,13 @@ impl IntoRawHandle for COMPort {
 
 impl io::Read for COMPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let mut len: DWORD = 0;
+        let mut len: u32 = 0;
 
         match unsafe {
             ReadFile(
                 self.handle,
-                buf.as_mut_ptr() as LPVOID,
-                buf.len() as DWORD,
+                buf.as_mut_ptr(),
+                buf.len() as u32,
                 &mut len,
                 ptr::null_mut(),
             )
@@ -234,13 +234,13 @@ impl io::Read for COMPort {
 
 impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut len: DWORD = 0;
+        let mut len: u32 = 0;
 
         match unsafe {
             WriteFile(
                 self.handle,
-                buf.as_ptr() as LPVOID,
-                buf.len() as DWORD,
+                buf.as_ptr(),
+                buf.len() as u32,
                 &mut len,
                 ptr::null_mut(),
             )
@@ -270,15 +270,15 @@ impl SerialPort for COMPort {
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         let timeout_constant = Self::timeout_constant(timeout);
 
-        let mut timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: MAXDWORD,
-            ReadTotalTimeoutMultiplier: MAXDWORD,
+        let timeouts = COMMTIMEOUTS {
+            ReadIntervalTimeout: u32::MAX,
+            ReadTotalTimeoutMultiplier: u32::MAX,
             ReadTotalTimeoutConstant: timeout_constant,
             WriteTotalTimeoutMultiplier: 0,
             WriteTotalTimeoutConstant: timeout_constant,
         };
 
-        if unsafe { SetCommTimeouts(self.handle, &mut timeouts) } == 0 {
+        if unsafe { SetCommTimeouts(self.handle, &timeouts) } == 0 {
             return Err(super::error::last_os_error());
         }
 
@@ -320,7 +320,7 @@ impl SerialPort for COMPort {
 
     fn baud_rate(&self) -> Result<u32> {
         let dcb = dcb::get_dcb(self.handle)?;
-        Ok(dcb.BaudRate as u32)
+        Ok(dcb.BaudRate)
     }
 
     fn data_bits(&self) -> Result<DataBits> {
@@ -364,9 +364,9 @@ impl SerialPort for COMPort {
 
     fn flow_control(&self) -> Result<FlowControl> {
         let dcb = dcb::get_dcb(self.handle)?;
-        if dcb.fOutxCtsFlow() != 0 || dcb.fRtsControl() != 0 {
+        if dcb.fOutxCtsFlow() || dcb.fRtsControl() != dcb::RtsControl::Disable {
             Ok(FlowControl::Hardware)
-        } else if dcb.fOutX() != 0 || dcb.fInX() != 0 {
+        } else if dcb.fOutX() || dcb.fInX() {
             Ok(FlowControl::Software)
         } else {
             Ok(FlowControl::None)
@@ -404,7 +404,7 @@ impl SerialPort for COMPort {
     }
 
     fn bytes_to_read(&self) -> Result<u32> {
-        let mut errors: DWORD = 0;
+        let mut errors: u32 = 0;
         let mut comstat = MaybeUninit::uninit();
 
         if unsafe { ClearCommError(self.handle, &mut errors, comstat.as_mut_ptr()) != 0 } {
@@ -415,7 +415,7 @@ impl SerialPort for COMPort {
     }
 
     fn bytes_to_write(&self) -> Result<u32> {
-        let mut errors: DWORD = 0;
+        let mut errors: u32 = 0;
         let mut comstat = MaybeUninit::uninit();
 
         if unsafe { ClearCommError(self.handle, &mut errors, comstat.as_mut_ptr()) != 0 } {
