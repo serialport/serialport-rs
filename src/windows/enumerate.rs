@@ -11,7 +11,7 @@ use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
 };
 use windows_sys::Win32::Foundation::{FALSE, FILETIME, INVALID_HANDLE_VALUE, MAX_PATH};
 use windows_sys::Win32::System::Registry::{
-    RegCloseKey, RegEnumValueW, RegOpenKeyExW, RegQueryInfoKeyW, RegQueryValueExW,
+    RegCloseKey, RegEnumValueW, RegOpenKeyExW, RegQueryInfoKeyW, RegQueryValueExW, HKEY,
     HKEY_LOCAL_MACHINE, KEY_READ, REG_SZ,
 };
 
@@ -51,7 +51,7 @@ fn get_ports_guids() -> Result<Vec<GUID>> {
 
         // first attempt with size == 1, second with the size returned from the first try
         for _ in 0..2 {
-            guids.resize(class_start_idx + num_guids as usize, GUID::default());
+            guids.resize(class_start_idx + num_guids as usize, GUID::from_u128(0));
             let guid_buffer = &mut guids[class_start_idx..];
             // Find out how many GUIDs are associated with this class name.  num_guids will tell us how many there actually are.
             let res = unsafe {
@@ -203,7 +203,7 @@ impl PortDevices {
     // Ports class (given by `guid`).
     pub fn new(guid: &GUID) -> Self {
         PortDevices {
-            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), ptr::null_mut(), DIGCF_PRESENT) },
+            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), 0, DIGCF_PRESENT) },
             dev_idx: 0,
         }
     }
@@ -218,8 +218,8 @@ impl Iterator for PortDevices {
         let mut port_dev = PortDevice {
             hdi: self.hdi,
             devinfo_data: SP_DEVINFO_DATA {
-                cbSize: size_of::<SP_DEVINFO_DATA>() as u32,
-                ClassGuid: GUID::default(),
+                cbSize: std::mem::size_of::<SP_DEVINFO_DATA>() as u32,
+                ClassGuid: GUID::from_u128(0),
                 DevInst: 0,
                 Reserved: 0,
             },
@@ -441,7 +441,7 @@ fn get_registry_com_ports() -> HashSet<String> {
 
     let reg_key = as_utf16("HARDWARE\\DEVICEMAP\\SERIALCOMM");
     let key_ptr = reg_key.as_ptr();
-    let mut ports_key = ptr::null_mut();
+    let mut ports_key: HKEY = 0;
 
     // SAFETY: ffi, all inputs are correct
     let open_res =
