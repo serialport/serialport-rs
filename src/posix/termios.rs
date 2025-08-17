@@ -214,7 +214,7 @@ pub(crate) fn set_stop_bits(termios: &mut Termios, stop_bits: StopBits) {
     )
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
-    termios.c_cflag &= !nix::libc::CBAUD;
+    termios.c_cflag &= !(nix::libc::CBAUD | nix::libc::CIBAUD);
     termios.c_cflag |= nix::libc::BOTHER;
     termios.c_ispeed = baud_rate;
     termios.c_ospeed = baud_rate;
