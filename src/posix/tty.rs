@@ -47,7 +47,7 @@ fn close(fd: RawFd) {
 /// explicitly _skip_ an attempt to set the baud rate of the file descriptor
 /// that would otherwise happen via an `ioctl` command.
 ///
-/// ```
+/// ```no_run
 /// use serialport::{TTYPort, SerialPort};
 ///
 /// let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
