@@ -887,3 +887,25 @@ pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
         "available_ports() not implemented for platform",
     ))
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::rstest;
+
+    /// Checks parameters and that default values don't get charged by accident.
+    #[rstest]
+    fn builder_new() {
+        let builder = new("port_test_dummy", 12345);
+
+        assert_eq!(builder.path, "port_test_dummy");
+        assert_eq!(builder.baud_rate, 12345);
+
+        assert_eq!(builder.data_bits, DataBits::Eight);
+        assert_eq!(builder.flow_control, FlowControl::None);
+        assert_eq!(builder.parity, Parity::None);
+        assert_eq!(builder.stop_bits, StopBits::One);
+        assert_eq!(builder.timeout, Duration::ZERO);
+        assert_eq!(builder.dtr_on_open, None);
+    }
+}
