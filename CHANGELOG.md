@@ -16,6 +16,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#282](https://github.com/serialport/serialport-rs/issues/282)
 
 ### Changed
+
+* Revert automatically setting DTR when opening a port as the reported issues
+  seem to outweigh the aimed benefit.
+  [#285](https://github.com/serialport/serialport-rs/pull/285)
+  [#251](https://github.com/serialport/serialport-rs/issues/251)
+  [#243](https://github.com/serialport/serialport-rs/issues/243)
+  [#239](https://github.com/serialport/serialport-rs/pull/239)
+  [#29](https://github.com/serialport/serialport-rs/pull/29)
+
 ### Fixed
 ### Removed
 
