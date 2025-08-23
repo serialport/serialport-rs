@@ -42,46 +42,57 @@ It should also be noted that on macOS, both the Callout (`/dev/cu.*`) and Dial-i
 
 # Usage
 
-Listing available ports:
+## Listing Available Ports:
 
 ```rust
 let ports = serialport::available_ports().expect("No ports found!");
 for p in ports {
     println!("{}", p.port_name);
 }
-
 ```
 
-Opening and configuring a port:
+## Opening and Configuring a Port
 
 ```rust
 let port = serialport::new("/dev/ttyUSB0", 115_200)
     .timeout(Duration::from_millis(10))
-    .open().expect("Failed to open port");
+    .open()
+    .expect("Failed to open port");
+```
+Some platforms expose additional functionality, which is opened using the `open_native()` method:
+
+```rust
+let port = serialport::new("/dev/ttyUSB0", 115_200)
+    .open_native()
+    .expect("Failed to open port");
+```
+There are devices which wait for DTR before sending any data. Configure
+automatically setting DTR when opening a port by the builder:
+
+```rust
+let port = serialport::new("/dev/ttyUSB0", 115_200)
+    .dtr_on_open(true)
+    .open()
+    .expect("Failed to open port");
 ```
 
-Writing to a port:
+## Writing to a Port
 
 ```rust
 let output = "This is a test. This is only a test.".as_bytes();
 port.write(output).expect("Write failed!");
 ```
 
-Reading from a port (default is blocking with a 0ms timeout):
+## Reading from a Port
+
+The port operates in blocking mode with a default timeout of 0 ms.
 
 ```rust
 let mut serial_buf: Vec<u8> = vec![0; 32];
 port.read(serial_buf.as_mut_slice()).expect("Found no data!");
 ```
 
-Some platforms expose additional functionality, which is opened using the `open_native()` method:
-
-```rust
-let port = serialport::new("/dev/ttyUSB0", 115_200)
-    .open_native().expect("Failed to open port");
-```
-
-Closing a port:
+## Closing a Port
 
 `serialport-rs` uses the Resource Acquisition Is Initialization (RAII) paradigm and so closing a
 port is done when the `SerialPort` object is `Drop`ed either implicitly or explicitly using
