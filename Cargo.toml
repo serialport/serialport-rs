@@ -1,6 +1,6 @@
 [package]
 name = "serialport"
-version = "4.7.3"
+version = "4.7.4-alpha.0"
 authors = [
     "Bryant Mairs <bryant@mai.rs>",
     "Jesse Braham <jesse@beta7.io>",
