@@ -11,9 +11,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Add support for opening serial ports on windows with an absolute path.
   [#259](https://github.com/serialport/serialport-rs/pull/259)
-* Fix reporting serial numbers with colons on Windows.
-  [#279](https://github.com/serialport/serialport-rs/issues/279)
-  [#282](https://github.com/serialport/serialport-rs/issues/282)
 
 ### Changed
 
@@ -27,6 +24,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+* Fix reporting serial numbers with colons on Windows.
+  [#279](https://github.com/serialport/serialport-rs/issues/279)
+  [#282](https://github.com/serialport/serialport-rs/issues/282)
 * Setting arbitrary baud rates on Linux which resulted in issues when read back
   on Arch recently.
   [#281](https://github.com/serialport/serialport-rs/issues/281)
