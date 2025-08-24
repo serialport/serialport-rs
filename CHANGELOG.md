@@ -26,6 +26,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#29](https://github.com/serialport/serialport-rs/pull/29)
 
 ### Fixed
+
+* Setting arbitrary baud rates on Linux which resulted in issues when read back
+  on Arch recently.
+  [#281](https://github.com/serialport/serialport-rs/issues/281)
+  [#283](https://github.com/serialport/serialport-rs/pull/283)
+
 ### Removed
 
 
