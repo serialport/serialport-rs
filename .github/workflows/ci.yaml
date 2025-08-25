@@ -42,6 +42,15 @@ jobs:
         run: cargo clippy --all-targets --all-features
 
   # --------------------------------------------------------------------------
+  # Licenses
+
+  cargo-deny:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  # --------------------------------------------------------------------------
   # MSRV
   #
   # Check at least once per platform.
