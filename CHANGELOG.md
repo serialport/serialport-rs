@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 ### Changed
+
+* Switch from no longer actively maintained Windows FFI abstractions winapi
+  to active windows-sys crate.
+  [https://github.com/serialport/serialport-rs/pull/280]
+
 ### Fixed
 ### Removed
 
