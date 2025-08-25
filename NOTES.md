@@ -22,7 +22,7 @@ state can always be considered the canonical source.
 
 `iossiospeed` has no official documentation that can be found by searching
 https://developer.apple.com. However
-[IOSerialTestLib.c](https://opensource.apple.com/source/IOSerialFamily/IOSerialFamily-93/tests/IOSerialTestLib.c.auto.html)
+[IOSerialTestLib.c](https://github.com/apple-oss-distributions/IOSerialFamily/blob/1c12ee3d9ec665bb53d0151644408d25e54fe012/tests/IOSerialTestLib.c)
 can be found on Apple's open source code repository and has some example code for using this API.
 
 Experimentation has shown that there are a few key features to using `iossiospeed`:
