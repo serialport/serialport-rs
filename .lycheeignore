@@ -1,0 +1,3 @@
+# Ignore links to issues on GitLab which are no longer reachable since we
+# disabled bug tracking over there.
+https://gitlab.com/susurrus/serialport-rs/(-/)?merge_requests/\d+
