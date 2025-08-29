@@ -352,6 +352,23 @@ impl TTYPort {
         .map_err(|e| e.into())
     }
 
+    /// Set the VMIN and VTIME attributes of the port which determine the behavior
+    /// of the port on read calls.
+    ///
+    /// See [this documentation](http://www.unixwiz.net/techtips/termios-vmin-vtime.html) for
+    /// more details.
+    pub fn set_vmin_vtime(&mut self, vmin: u8, vtime: u8) -> Result<()> {
+        let mut termios = termios::get_termios(self.fd)?;
+        termios.c_cc[nix::sys::termios::SpecialCharacterIndices::VMIN as usize] = vmin;
+        termios.c_cc[nix::sys::termios::SpecialCharacterIndices::VTIME as usize] = vtime;
+        termios::set_termios(self.fd, &termios)
+    }
+
+    /// Set the TTY port non-blocking by setting VMIN and VTIME to 0.
+    pub fn set_non_blocking(&mut self) -> Result<()> {
+        self.set_vmin_vtime(0, 0)
+    }
+
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
