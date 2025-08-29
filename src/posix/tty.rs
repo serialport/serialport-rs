@@ -25,7 +25,10 @@ pub enum ReadMode {
     /// expires without data, zero is returned. A single byte is sufficient to satisfy this read
     /// call, but if more is available in the input queue, it's returned to the caller.
     TimedRead { timeout: u8 },
-    /// Mapped to VMIN > 0, VTIME = 0
+    /// This is a counted read that is satisfied only when at least VMIN characters have been
+    /// transferred to the caller's buffer - there is no timing component involved. This read can
+    /// be satisfied from the driver's input queue (where the call could return immediately), or
+    /// by waiting for new data to arrive: in this respect the call could block indefinitely.
     BlockUntilMinRead { minimal_bytes: u8 },
     /// Read calls are satisfied when either VMIN characters have been transferred to the caller's
     /// buffer, or when VTIME tenths expire between characters. Since this timer is not started
