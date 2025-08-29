@@ -14,6 +14,37 @@ use crate::{
     SerialPortBuilder, StopBits,
 };
 
+/// Read mode enumeration.
+///
+/// The documentation is strongly based on [this documentation](http://www.unixwiz.net/techtips/termios-vmin-vtime.html).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadMode {
+    /// If data are available in the input queue, it's transferred to the caller's buffer up to a
+    /// maximum of nbytes, and returned immediately to the caller. Otherwise the driver blocks
+    /// until data arrives, or when VTIME tenths expire from the start of the call. If the timer
+    /// expires without data, zero is returned. A single byte is sufficient to satisfy this read
+    /// call, but if more is available in the input queue, it's returned to the caller.
+    TimedRead { timeout: u8 },
+    /// Mapped to VMIN > 0, VTIME = 0
+    BlockUntilMinRead { minimal_bytes: u8 },
+    /// Read calls are satisfied when either VMIN characters have been transferred to the caller's
+    /// buffer, or when VTIME tenths expire between characters. Since this timer is not started
+    /// until the first character arrives, this call can block indefinitely if the serial line is
+    /// idle. This is the most common mode of operation, and we consider VTIME to be an
+    /// intercharacter timeout, not an overall one. This call should never return zero bytes read.
+    Blocking {
+        /// VTIME value in tenths of a second.
+        inter_byte_timeout: u8,
+        minimal_bytes: u8,
+    },
+    /// This is a completely non-blocking read - the call is satisfied immediately directly from
+    /// the driver's input queue. If data are available, it's transferred to the caller's buffer up
+    /// to nbytes and returned. Otherwise zero is immediately returned to indicate "no data".
+    /// This essentially polls the serial port and should be used with care. If done
+    /// repeatedly, it can consume enormous amounts of processor time and is highly inefficient.
+    Immediate,
+}
+
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
 fn close(fd: RawFd) {
@@ -364,9 +395,17 @@ impl TTYPort {
         termios::set_termios(self.fd, &termios)
     }
 
-    /// Set the TTY port non-blocking by setting VMIN and VTIME to 0.
-    pub fn set_non_blocking(&mut self) -> Result<()> {
-        self.set_vmin_vtime(0, 0)
+    /// Set the TTY port read mode which configures the VMIN and VTIME parameters.
+    pub fn set_read_mode(&mut self, read_mode: ReadMode) -> Result<()> {
+        match read_mode {
+            ReadMode::TimedRead { timeout } => self.set_vmin_vtime(0, timeout),
+            ReadMode::BlockUntilMinRead { minimal_bytes } => self.set_vmin_vtime(minimal_bytes, 0),
+            ReadMode::Blocking {
+                inter_byte_timeout,
+                minimal_bytes,
+            } => self.set_vmin_vtime(minimal_bytes, inter_byte_timeout),
+            ReadMode::Immediate => self.set_vmin_vtime(0, 0),
+        }
     }
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
