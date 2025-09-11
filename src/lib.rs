@@ -796,7 +796,7 @@ impl fmt::Debug for dyn SerialPort {
 }
 
 /// Contains all possible USB information about a `SerialPort`
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UsbPortInfo {
     /// Vendor ID
@@ -814,6 +814,32 @@ pub struct UsbPortInfo {
     /// interface (as is the case on macOS), so you should recognize both interface numbers.
     #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
+}
+
+struct HexU16(u16);
+
+impl std::fmt::Debug for HexU16 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0x{:04x}", self.0)
+    }
+}
+
+impl std::fmt::Debug for UsbPortInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("UsbPortInfo");
+        d.field("vid", &HexU16(self.vid))
+            .field("pid", &HexU16(self.pid))
+            .field("serial_number", &self.serial_number)
+            .field("manufacturer", &self.manufacturer)
+            .field("product", &self.product);
+
+        #[cfg(feature = "usbportinfo-interface")]
+        {
+            d.field("interface", &self.interface);
+        }
+
+        d.finish()
+    }
 }
 
 /// The physical type of a `SerialPort`
