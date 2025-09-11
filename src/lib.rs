@@ -16,6 +16,7 @@
 //! Using the platform-specific `SerialPort::new().open*()` functions will return the
 //! platform-specific port object which allows access to platform-specific functionality.
 
+#![allow(clippy::uninlined_format_args)]
 #![deny(
     clippy::dbg_macro,
     missing_docs,
