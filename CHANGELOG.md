@@ -12,10 +12,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Switch from no longer actively maintained Windows FFI abstractions winapi
   to active windows-sys crate.
-  [https://github.com/serialport/serialport-rs/pull/280]
+  [#280](https://github.com/serialport/serialport-rs/pull/280)
 * Output USB VID and PID in hexadecimal digits in `UsbPortInfo`'s `Debug`
   representation.
-  [https://github.com/serialport/serialport-rs/pull/290]
+  [#290](https://github.com/serialport/serialport-rs/pull/290)
 
 ### Fixed
 ### Removed
