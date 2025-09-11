@@ -111,7 +111,7 @@ impl TTYPort {
     /// ## Errors
     ///
     /// * `NoDevice` if the device could not be opened. This could indicate that
-    ///    the device is already in use.
+    ///   the device is already in use.
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
