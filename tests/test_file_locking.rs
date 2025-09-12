@@ -4,6 +4,7 @@ use config::{hw_config, HardwareConfig};
 use nix::fcntl::FlockArg;
 use nix::ioctl_none_bad;
 use rstest::rstest;
+use serialport::ErrorKind;
 use std::fs::File;
 use std::os::fd::AsRawFd;
 
@@ -20,6 +21,7 @@ fn second_open_fails_open(hw_config: HardwareConfig) {
     // Now try to open the same port for a second time and check that this fails.
     let second = serialport::new(hw_config.port_1, 115200).open();
     assert!(second.is_err());
+    assert_eq!(second.unwrap_err().kind(), ErrorKind::NoDevice);
 }
 
 #[rstest]
@@ -33,6 +35,7 @@ fn second_open_fails_flock(hw_config: HardwareConfig) {
     // Now try to open the same port for a second time. This is expected to fail.
     let second = serialport::new(&hw_config.port_1, 115200).open();
     assert!(second.is_err());
+    assert_eq!(second.unwrap_err().kind(), ErrorKind::NoDevice);
 }
 
 #[rstest]
@@ -46,6 +49,7 @@ fn second_open_fails_lock(hw_config: HardwareConfig) {
     // Now try to open the same port for a second time. This is expected to fail.
     let second = serialport::new(&hw_config.port_1, 115200).open();
     assert!(second.is_err());
+    assert_eq!(second.unwrap_err().kind(), ErrorKind::NoDevice);
 }
 
 #[rstest]
@@ -60,4 +64,5 @@ fn second_open_fails_tiocexcl(hw_config: HardwareConfig) {
     // Now try to open the same port for a second time. This is expected to fail.
     let second = serialport::new(&hw_config.port_1, 115200).open();
     assert!(second.is_err());
+    assert_eq!(second.unwrap_err().kind(), ErrorKind::NoDevice);
 }
