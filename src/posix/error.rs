@@ -21,6 +21,11 @@ impl From<nix::Error> for Error {
         use nix::errno::Errno as E;
         use ErrorKind as K;
         let kind = match e {
+            // Special treatment for EBUSY: This errno value is used to indicate that TIOCEXCL
+            // failed due to the terminal already being locked by someone else when calling open().
+            // We've got the designated error kind `NoDevice` to report this. Errors from flock are
+            // handled separately in `flock_exclusive` and `flock_shared`.
+            E::EBUSY => K::NoDevice,
             E::ETIMEDOUT => K::Io(IO::TimedOut),
             E::ECONNABORTED => K::Io(IO::ConnectionAborted),
             E::ECONNRESET => K::Io(IO::ConnectionReset),
