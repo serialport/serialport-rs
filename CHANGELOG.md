@@ -8,6 +8,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+* Additionally acquire an advisory lock with `flock` when opening a serial port.
+  [#266](https://github.com/serialport/serialport-rs/pull/266)
+
 ### Changed
 ### Fixed
 ### Removed
