@@ -12,6 +12,17 @@ use std::os::fd::AsRawFd;
 ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
 
 #[rstest]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
+fn opening_multiple_times(hw_config: HardwareConfig) {
+    // Try to open (and close) the same port multiple times in a row to check that acquiring and
+    // releasing loks does not lock out ourselves.
+    for _ in 0..3 {
+        // The port gets immediately dropped and therefor closed immediately.
+        serialport::new(&hw_config.port_1, 115200).open().unwrap();
+    }
+}
+
+#[rstest]
 #[cfg_attr(not(all(unix, feature = "hardware-tests")), ignore)]
 fn second_open_fails_open(hw_config: HardwareConfig) {
     // Open the port for the first time with serialport. This is expected to put some locking in
