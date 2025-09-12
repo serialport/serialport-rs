@@ -1,15 +1,21 @@
 mod config;
 
+use cfg_if::cfg_if;
 use config::{hw_config, HardwareConfig};
-use nix::fcntl::FlockArg;
-use nix::ioctl_none_bad;
 use rstest::rstest;
-use serialport::ErrorKind;
-use std::fs::File;
-use std::os::fd::AsRawFd;
 
-// Locally create a wrapper for the TIOCEXCL ioctl.
-ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
+cfg_if! {
+    if #[cfg(unix)] {
+        use std::os::unix::prelude::*;
+        use nix::fcntl::FlockArg;
+        use nix::ioctl_none_bad;
+        use serialport::ErrorKind;
+        use std::fs::File;
+
+        // Locally create a wrapper for the TIOCEXCL ioctl.
+        ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
+    }
+}
 
 #[rstest]
 #[cfg_attr(not(feature = "hardware-tests"), ignore)]
@@ -23,7 +29,8 @@ fn opening_multiple_times(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(not(all(unix, feature = "hardware-tests")), ignore)]
+#[cfg(unix)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn second_open_fails_open(hw_config: HardwareConfig) {
     // Open the port for the first time with serialport. This is expected to put some locking in
     // place by default.
@@ -36,7 +43,8 @@ fn second_open_fails_open(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(not(all(unix, feature = "hardware-tests")), ignore)]
+#[cfg(unix)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn second_open_fails_flock(hw_config: HardwareConfig) {
     // Open the port for the first time and apply an exclusive flock.
     let first = File::open(&hw_config.port_1).unwrap();
@@ -50,7 +58,8 @@ fn second_open_fails_flock(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(not(all(unix, feature = "hardware-tests")), ignore)]
+#[cfg(unix)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn second_open_fails_lock(hw_config: HardwareConfig) {
     // Open the port for the first time and lock it exclusively with Rust's default file locking
     // mechanism which is expected to be flock.
@@ -64,7 +73,8 @@ fn second_open_fails_lock(hw_config: HardwareConfig) {
 }
 
 #[rstest]
-#[cfg_attr(not(all(unix, feature = "hardware-tests")), ignore)]
+#[cfg(unix)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn second_open_fails_tiocexcl(hw_config: HardwareConfig) {
     // Open the port for the first time and apply locking via TIOCEXL. This is one of the locking
     // mechanisms used by TTYPort.
