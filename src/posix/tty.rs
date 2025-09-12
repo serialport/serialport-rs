@@ -18,8 +18,12 @@ use crate::{
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
 fn close(fd: RawFd) {
-    // remove exclusive access
+    // Remove exclusive access on best-effort. There is no documentation hinting at `TIOCEXCL`
+    // being cleared automatically so explicitly attempt it here.
     let _ = ioctl::tiocnxcl(fd);
+    // However, it's documented for `flock` that the file will be unlocked when all filedescriptors
+    // are `close()`d. So don't bother with releasing the flock - we're going to close the
+    // filedescriptor immediately.
 
     // On Linux and BSD, we don't need to worry about return
     // type as EBADF means the fd was never open or is already closed
