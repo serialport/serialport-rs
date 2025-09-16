@@ -31,7 +31,7 @@ pub(crate) fn lock_shared(fd: RawFd) -> Result<()> {
         if e == nix::errno::Errno::EWOULDBLOCK {
             Error::new(
                 ErrorKind::NoDevice,
-                "Unable to acquire exclusive lock on serial port",
+                "Unable to acquire shared lock on serial port",
             )
         } else {
             e.into()
