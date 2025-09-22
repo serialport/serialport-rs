@@ -338,11 +338,9 @@ pub struct SerialPortBuilder {
 
 impl SerialPortBuilder {
     /// Set the path to the serial port
-    // TODO: Switch to `clone_into` when bumping our MSRV past 1.63 and remove this exemption.
-    #[allow(clippy::assigning_clones)]
     #[must_use]
     pub fn path<'a>(mut self, path: impl Into<std::borrow::Cow<'a, str>>) -> Self {
-        self.path = path.into().as_ref().to_owned();
+        self.path = path.into().into_owned();
         self
     }
 
