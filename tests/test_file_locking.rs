@@ -47,7 +47,16 @@ fn second_open_fails_open(hw_config: HardwareConfig) {
 #[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn second_open_fails_flock(hw_config: HardwareConfig) {
     // Open the port for the first time and apply an exclusive flock.
-    let first = File::open(&hw_config.port_1).unwrap();
+    //
+    // Be gentle on macOS when opening a /dev/tty.* device: When opening in blocking mode it waits
+    // for DCD and will likely stall the test. Our SerialPortBuilder::open already takes care of
+    // that.
+    let first = File::options()
+        .read(true)
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(&hw_config.port_1)
+        .unwrap();
     let fd = first.as_raw_fd();
     nix::fcntl::flock(fd, FlockArg::LockExclusiveNonblock).unwrap();
 
@@ -63,7 +72,16 @@ fn second_open_fails_flock(hw_config: HardwareConfig) {
 fn second_open_fails_lock(hw_config: HardwareConfig) {
     // Open the port for the first time and lock it exclusively with Rust's default file locking
     // mechanism which is expected to be flock.
-    let first = File::open(&hw_config.port_1).unwrap();
+    //
+    // Be gentle on macOS when opening a /dev/tty.* device: When opening in blocking mode it waits
+    // for DCD and will likely stall the test. Our SerialPortBuilder::open already takes care of
+    // that.
+    let first = File::options()
+        .read(true)
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(&hw_config.port_1)
+        .unwrap();
     first.lock().unwrap();
 
     // Now try to open the same port for a second time. This is expected to fail.
@@ -78,7 +96,16 @@ fn second_open_fails_lock(hw_config: HardwareConfig) {
 fn second_open_fails_tiocexcl(hw_config: HardwareConfig) {
     // Open the port for the first time and apply locking via TIOCEXL. This is one of the locking
     // mechanisms used by TTYPort.
-    let first = File::open(&hw_config.port_1).unwrap();
+    //
+    // Be gentle on macOS when opening a /dev/tty.* device: When opening in blocking mode it waits
+    // for DCD and will likely stall the test. Our SerialPortBuilder::open already takes care of
+    // that.
+    let first = File::options()
+        .read(true)
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(&hw_config.port_1)
+        .unwrap();
     let fd = first.as_raw_fd();
     unsafe { tiocexcl(fd).unwrap() };
 
