@@ -8,6 +8,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+### Changed
+### Fixed
+### Removed
+
+## [4.8.0] - 2025-10-06
+
+### Added
 
 * Additionally acquire an advisory lock with `flock` when opening a serial port.
   [#266](https://github.com/serialport/serialport-rs/pull/266)
@@ -21,8 +28,6 @@ project adheres to [Semantic Versioning](https://semver.org/).
   representation.
   [#290](https://github.com/serialport/serialport-rs/pull/290)
 
-### Fixed
-### Removed
 
 ## [4.7.3] - 2025-08-24
 
@@ -551,7 +556,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.7.3...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.8.0...HEAD
+[4.8.0]: https://github.com/serialport/serialport-rs/compare/v4.7.3...v4.8.0
 [4.7.3]: https://github.com/serialport/serialport-rs/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/serialport/serialport-rs/compare/v4.7.1...v4.7.2
 [4.7.1]: https://github.com/serialport/serialport-rs/compare/v4.7.0...v4.7.1
