@@ -27,8 +27,8 @@
 // https://doc.rust-lang.org/rustdoc/unstable-features.html?highlight=doc(cfg#doccfg-recording-what-platforms-or-features-are-required-for-code-to-be-present
 // and
 // https://doc.rust-lang.org/rustdoc/unstable-features.html#doc_auto_cfg-automatically-generate-doccfg
-// for details.
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+// with its latest update https://github.com/rust-lang/rust/pull/138907 for details.
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Don't worry about needing to `unwrap()` or otherwise handle some results in
 // doc tests.
 #![doc(test(attr(allow(unused_must_use))))]
