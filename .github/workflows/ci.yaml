@@ -42,6 +42,25 @@ jobs:
         run: cargo clippy --all-targets --all-features
 
   # --------------------------------------------------------------------------
+  # Rustdoc
+
+  doc:
+    name: documentation
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
+    steps:
+      - name: documentation | install dependencies
+        run: |
+          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
+          sudo apt-get -qq update
+          sudo apt install -qq -y libudev-dev
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: cargo docs-rs
+
+  # --------------------------------------------------------------------------
   # Link checks
 
   links:
