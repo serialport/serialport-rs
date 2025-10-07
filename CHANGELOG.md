@@ -12,6 +12,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 ### Removed
 
+
+## [4.8.1] - 2025-10-07i
+
+### Fixed
+
+* Generating documentation on docs.rs.
+  [#299](https://github.com/serialport/serialport-rs/pull/299)
+
+
 ## [4.8.0] - 2025-10-06
 
 ### Added
@@ -556,7 +565,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.8.0...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.8.1...HEAD
+[4.8.1]: https://github.com/serialport/serialport-rs/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/serialport/serialport-rs/compare/v4.7.3...v4.8.0
 [4.7.3]: https://github.com/serialport/serialport-rs/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/serialport/serialport-rs/compare/v4.7.1...v4.7.2
