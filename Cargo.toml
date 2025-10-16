@@ -1,12 +1,12 @@
 [package]
 name = "serialport"
-version = "4.8.2-alpha.0"
+version = "5.0.0-alpha.0"
 authors = [
     "Bryant Mairs <bryant@mai.rs>",
     "Jesse Braham <jesse@beta7.io>",
 ]
 edition = "2021"
-rust-version = "1.59.0"
+rust-version = "1.75.0"
 description = "A cross-platform low-level serial port library."
 documentation = "https://docs.rs/serialport"
 repository = "https://github.com/serialport/serialport-rs"
