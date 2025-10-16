@@ -86,7 +86,7 @@ jobs:
       disable_extra_builds: true
       disable_tests: true
       target: aarch64-apple-darwin
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   msrv-arm-linux-androideabi:
@@ -95,7 +95,7 @@ jobs:
       disable_extra_builds: true
       disable_tests: true
       target: arm-linux-androideabi
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   msrv-x86_64-unknown-freebsd:
@@ -104,7 +104,7 @@ jobs:
       disable_extra_builds: true
       disable_tests: true
       target: x86_64-unknown-freebsd
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   msrv-x86_64-unknown-linux-gnu:
@@ -114,7 +114,7 @@ jobs:
       disable_tests: true
       extra_packages: libudev-dev
       target: x86_64-unknown-linux-gnu
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   msrv-x86_64-unknown-linux-musl:
@@ -124,7 +124,7 @@ jobs:
       disable_tests: true
       extra_packages: gcc-aarch64-linux-gnu
       target: aarch64-unknown-linux-musl
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   msrv-x86_64-pc-windows-msvc:
@@ -134,7 +134,7 @@ jobs:
       disable_tests: true
       runs_on: windows-2025
       target: x86_64-pc-windows-msvc
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   msrv-x86_64-unknown-netbsd:
@@ -143,7 +143,7 @@ jobs:
       disable_extra_builds: true
       disable_tests: true
       target: x86_64-unknown-netbsd
-      toolchain: "1.59.0"
+      toolchain: "1.75.0"
       pin-incompatible-msrv-bump-dependencies: true
 
   # --------------------------------------------------------------------------
