@@ -85,22 +85,16 @@ jobs:
       - name: Build | rust-cache
         uses: Swatinem/rust-cache@v2
 
-        # Pin some dependencies (for building with MSRV 1.59.0) just here in CI
+        # Pin some dependencies (for building with MSRV 1.75.0) just here in CI
         # and not via Cargo.toml. The latter would enforce them to all users
         # and not just the ones who want to build with an old Rust release. See
         # issue https://github.com/serialport/serialport-rs/issues/324.
-        #
-        # The command line arguments below are for Cargo 1.59.0. The have
-        # changed with newer releases and need to be adjusted when bumbing our
-        # MSRV.
       - name: Build | pin some dependencies for building with MSRV
         if: ${{ inputs.pin-incompatible-msrv-bump-dependencies == true }}
         run: |
-          cargo update --precise 0.10.0 --package core-foundation
-          cargo update --precise 0.2.163 --package libc
-          cargo update --precise 1.0.101 --package proc-macro2
-          cargo update --precise 1.0.40 --package quote
-          cargo update --precise 1.0.22 --package unicode-ident
+          # There is nothing to pin for MSRV builds with Rust 1.75.0 as of now.
+          # See the line below for an example.
+          #cargo update --precise 0.10.0 core-foundation
 
       - name: Build | build library (default features)
         run: cargo build --target=${{ inputs.target }}
