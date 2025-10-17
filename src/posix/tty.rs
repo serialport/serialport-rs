@@ -500,7 +500,7 @@ impl io::Write for TTYPort {
                         ))
                     }
                 }
-                Err(_) => Err(io::Error::new(io::ErrorKind::Other, "flush failed")),
+                Err(_) => Err(io::Error::other("flush failed")),
             };
         }
     }

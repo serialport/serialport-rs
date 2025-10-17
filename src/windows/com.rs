@@ -46,7 +46,7 @@ impl COMPort {
     /// ## Errors
     ///
     /// * `NoDevice` if the device could not be opened. This could indicate that
-    ///    the device is already in use.
+    ///   the device is already in use.
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other I/O error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<COMPort> {
