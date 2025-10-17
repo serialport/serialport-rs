@@ -7,7 +7,7 @@ use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
     SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey,
     CR_SUCCESS, DICS_FLAG_GLOBAL, DIGCF_PRESENT, DIREG_DEV, HDEVINFO, MAX_DEVICE_ID_LEN,
-    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_MFG, SP_DEVINFO_DATA,
+    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_LOCATION_PATHS, SPDRP_MFG, SP_DEVINFO_DATA,
 };
 use windows_sys::Win32::Foundation::{FALSE, FILETIME, INVALID_HANDLE_VALUE, MAX_PATH};
 use windows_sys::Win32::System::Registry::{
@@ -184,16 +184,11 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         serial_number: caps.serial.map(str::to_string),
         manufacturer: None,
         product: None,
-
-        #[cfg(feature = "usbportinfo-location")]
         location: None,
-
-        #[cfg(feature = "usbportinfo-interface")]
         interface,
     })
 }
 
-#[cfg(feature = "usbportinfo-location")]
 fn parse_location_path(s: &str) -> Option<crate::Location> {
     let usbroot = "#USBROOT(";
     let start_i = s.find(usbroot)?;
@@ -415,15 +410,10 @@ impl PortDevice {
             .map(|mut info: UsbPortInfo| {
                 info.manufacturer = self.property(SPDRP_MFG);
                 info.product = self.property(SPDRP_FRIENDLYNAME);
-
-                #[cfg(feature = "usbportinfo-location")]
-                {
-                    use windows_sys::Win32::Devices::DeviceAndDriverInstallation:: SPDRP_LOCATION_PATHS;
-                    let location_paths = self.property_list(SPDRP_LOCATION_PATHS);
-                    info.location = location_paths
-                        .iter()
-                        .find_map(|p| parse_location_path(p));
-                }
+                info.location = self
+                    .property_list(SPDRP_LOCATION_PATHS)
+                    .iter()
+                    .find_map(|p| parse_location_path(p));
 
                 SerialPortType::UsbPort(info)
             })
@@ -463,7 +453,6 @@ impl PortDevice {
 
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
-    #[cfg(feature = "usbportinfo-location")]
     fn property_list(&mut self, property_id: u32) -> Vec<String> {
         use windows_sys::Win32::System::Registry::REG_MULTI_SZ;
         let mut value_type = 0;
@@ -812,7 +801,6 @@ mod tests {
         assert_eq!(info.vid, 0x1D50);
         assert_eq!(info.pid, 0x6018);
         assert_eq!(info.serial_number, Some("85A12F01".to_string()));
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, Some(2));
 
         let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
@@ -821,7 +809,6 @@ mod tests {
         assert_eq!(info.vid, 0x0403);
         assert_eq!(info.pid, 0x6001);
         assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, None);
 
         let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
@@ -830,7 +817,6 @@ mod tests {
         assert_eq!(info.vid, 0xF055);
         assert_eq!(info.pid, 0x9802);
         assert_eq!(info.serial_number, Some("385435603432".to_string()));
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, None);
 
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432&test";

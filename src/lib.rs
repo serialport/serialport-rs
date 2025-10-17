@@ -36,7 +36,6 @@
 use std::error::Error as StdError;
 use std::fmt;
 use std::io;
-#[cfg(feature = "usbportinfo-location")]
 use std::num::{IntErrorKind, ParseIntError};
 use std::str::FromStr;
 use std::time::Duration;
@@ -828,16 +827,13 @@ pub struct UsbPortInfo {
     /// Product name (arbitrary string)
     pub product: Option<String>,
     /// Physical port heirarchy
-    #[cfg(feature = "usbportinfo-location")]
     pub location: Option<Location>,
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
     /// interface (as is the case on macOS), so you should recognize both interface numbers.
-    #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
 }
 
-#[cfg(feature = "usbportinfo-location")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Identify where a particular USB device is on the system.
@@ -846,7 +842,6 @@ pub struct Location {
     port_chain: Vec<u8>,
 }
 
-#[cfg(feature = "usbportinfo-location")]
 impl Location {
     /// Create a new USB device location based on some string identifying the bus number, along with
     /// the path taken to a particular port.
@@ -884,7 +879,6 @@ impl Location {
     }
 }
 
-#[cfg(feature = "usbportinfo-location")]
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         // Use a location format similat to Linux' sysfs 'bus-port.port[....]'.
@@ -901,14 +895,12 @@ impl fmt::Display for Location {
 }
 
 /// An error which can be returned when parsing a USB device location string.
-#[cfg(feature = "usbportinfo-location")]
 // TODO: Derive Hash when our MSRV gives us an `IntErrorKind` implementing it.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseLocationError {
     kind: LocationErrorKind,
 }
 
-#[cfg(feature = "usbportinfo-location")]
 impl ParseLocationError {
     /// Returns the detailed cause for parsing a USB device location failing.
     pub fn kind(&self) -> &LocationErrorKind {
@@ -917,7 +909,6 @@ impl ParseLocationError {
 }
 
 /// Enum to store the various types of errors that can cause parsing a USB device locaiton to fail.
-#[cfg(feature = "usbportinfo-location")]
 // TODO: Derive Hash when our MSRV gives us an `IntErrorKind` implementing it.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -928,7 +919,6 @@ pub enum LocationErrorKind {
     TopLevel,
 }
 
-#[cfg(feature = "usbportinfo-location")]
 impl From<ParseIntError> for ParseLocationError {
     fn from(error: ParseIntError) -> ParseLocationError {
         // TODO: Switch to copying instead of cloning of ParseIntError once this is supported on our
@@ -940,7 +930,6 @@ impl From<ParseIntError> for ParseLocationError {
     }
 }
 
-#[cfg(feature = "usbportinfo-location")]
 impl FromStr for Location {
     type Err = ParseLocationError;
 
@@ -986,19 +975,10 @@ impl std::fmt::Debug for UsbPortInfo {
             .field("pid", &HexU16(self.pid))
             .field("serial_number", &self.serial_number)
             .field("manufacturer", &self.manufacturer)
-            .field("product", &self.product);
-
-        #[cfg(feature = "usbportinfo-location")]
-        {
-            d.field("location", &self.location);
-        }
-
-        #[cfg(feature = "usbportinfo-interface")]
-        {
-            d.field("interface", &self.interface);
-        }
-
-        d.finish()
+            .field("product", &self.product)
+            .field("location", &self.location)
+            .field("interface", &self.interface)
+            .finish()
     }
 }
 
@@ -1121,33 +1101,18 @@ mod test {
             pid: 0xaffe,
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
-            #[cfg(feature = "usbportinfo-location")]
             location: Some(Location::new(String::from("001"), vec![1, 2, 3])),
-            #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
         };
         let formatted = format!("{:?}", info);
 
         // Set the expectiation for the debug representation basend on a "snapshot" of the current
         // one, manually cross-checked to contain a VID and PID in hexadecimal digits.
-        //
-        // Due to having multiple configuration variants, we are building the expectation depending
-        // on the currently selected preview features.
-        let mut expected = String::from("UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\")");
-        #[cfg(feature = "usbportinfo-location")]
-        {
-            expected += ", location: Some(Location { bus_id: \"001\", port_chain: [1, 2, 3] })";
-        }
-        #[cfg(feature = "usbportinfo-interface")]
-        {
-            expected += ", interface: Some(42)";
-        }
-        expected += " }";
+        let expected = String::from("UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\"), location: Some(Location { bus_id: \"001\", port_chain: [1, 2, 3] }), interface: Some(42) }");
 
         assert_eq!(formatted, expected);
     }
 
-    #[cfg(feature = "usbportinfo-location")]
     mod usbportinfo_location {
         use super::*;
 
