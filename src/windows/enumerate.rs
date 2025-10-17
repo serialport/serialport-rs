@@ -184,8 +184,6 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         serial_number: caps.serial.map(str::to_string),
         manufacturer: None,
         product: None,
-
-        #[cfg(feature = "usbportinfo-interface")]
         interface,
     })
 }
@@ -746,7 +744,6 @@ mod tests {
         assert_eq!(info.vid, 0x1D50);
         assert_eq!(info.pid, 0x6018);
         assert_eq!(info.serial_number, Some("85A12F01".to_string()));
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, Some(2));
 
         let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
@@ -755,7 +752,6 @@ mod tests {
         assert_eq!(info.vid, 0x0403);
         assert_eq!(info.pid, 0x6001);
         assert_eq!(info.serial_number, Some("A702TB52A".to_string()));
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, None);
 
         let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
@@ -764,7 +760,6 @@ mod tests {
         assert_eq!(info.vid, 0xF055);
         assert_eq!(info.pid, 0x9802);
         assert_eq!(info.serial_number, Some("385435603432".to_string()));
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, None);
 
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432&test";

@@ -20,7 +20,6 @@ fn main() {
                         println!("        Type: USB");
                         println!("        VID: {:04x}", info.vid);
                         println!("        PID: {:04x}", info.pid);
-                        #[cfg(feature = "usbportinfo-interface")]
                         println!(
                             "        Interface: {}",
                             info.interface
