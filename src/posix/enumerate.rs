@@ -129,7 +129,6 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 serial_number,
                 manufacturer,
                 product,
-                #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
                     .ok(),
             }))
@@ -160,7 +159,6 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
                     manufacturer,
                     product,
-                    #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
                         d,
                         "ID_USB_INTERFACE_NUM",
@@ -253,8 +251,6 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         serial_number: None,
         manufacturer: None,
         product: None,
-        // Only attempt to find the interface if the feature is enabled.
-        #[cfg(feature = "usbportinfo-interface")]
         interface: mod_tail.get(pid_start + 4..).and_then(|mod_tail| {
             mod_tail.find("in").and_then(|i_start| {
                 mod_tail
@@ -368,7 +364,6 @@ fn port_type(service: io_object_t) -> SerialPortType {
             //
             // https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_developer_driverkit_transport_usb
             // https://developer.apple.com/library/archive/documentation/DeviceDrivers/Conceptual/USBBook/USBOverview/USBOverview.html#//apple_ref/doc/uid/TP40002644-BBCEACAJ
-            #[cfg(feature = "usbportinfo-interface")]
             interface: get_int_property(usb_device, "bInterfaceNumber")
                 .map(|x| x as u8)
                 .ok(),
@@ -562,7 +557,6 @@ cfg_if! {
             u16::from_str_radix(&read_file_to_trimmed_string(dir, file)?, 16).ok()
         }
 
-        #[cfg(feature = "usbportinfo-interface")]
         fn read_file_to_u8(dir: &Path, file: &str) -> Option<u8> {
             u8::from_str_radix(&read_file_to_trimmed_string(dir, file)?, 16).ok()
         }
@@ -596,7 +590,6 @@ cfg_if! {
 
             let vid = read_file_to_u16(&device_path, "idVendor")?;
             let pid = read_file_to_u16(&device_path, "idProduct")?;
-            #[cfg(feature = "usbportinfo-interface")]
             let interface = read_file_to_u8(&interface_path, &"bInterfaceNumber");
             let serial_number = read_file_to_trimmed_string(&device_path, &"serial");
             let product = read_file_to_trimmed_string(&device_path, &"product");
@@ -608,7 +601,6 @@ cfg_if! {
                 serial_number,
                 manufacturer,
                 product,
-                #[cfg(feature = "usbportinfo-interface")]
                 interface,
             })
         }
@@ -721,8 +713,6 @@ mod tests {
 
         assert_eq!(port_info.vid, 0x303A, "vendor parse invalid");
         assert_eq!(port_info.pid, 0x1001, "product parse invalid");
-
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(port_info.interface, Some(0x0C), "interface parse invalid");
     }
 
@@ -738,14 +728,12 @@ mod tests {
         let info = parse_modalias("usb:vdcdcpabcd").unwrap();
         assert_eq!(info.vid, 0xdcdc);
         assert_eq!(info.pid, 0xabcd);
-        #[cfg(feature = "usbportinfo-interface")]
         assert!(info.interface.is_none());
 
         // Vendor and product ID plus an interface number.
         let info = parse_modalias("usb:v1234p5678indc").unwrap();
         assert_eq!(info.vid, 0x1234);
         assert_eq!(info.pid, 0x5678);
-        #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, Some(0xdc));
     }
 }

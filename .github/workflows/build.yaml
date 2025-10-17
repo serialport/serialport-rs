@@ -135,8 +135,8 @@ jobs:
 
       - name: Build | build tests (selected features)
         if: ${{ inputs.disable_extra_builds == false }}
-        run: cargo build --tests --features libudev,usbportinfo-interface --target=${{ inputs.target }}
+        run: cargo build --tests --features libudev --target=${{ inputs.target }}
 
       - name: Build | run tests (selected features)
         if: ${{ inputs.disable_tests == false }}
-        run: cargo test --no-fail-fast --features libudev,usbportinfo-interface --target=${{ inputs.target }}
+        run: cargo test --no-fail-fast --features libudev --target=${{ inputs.target }}

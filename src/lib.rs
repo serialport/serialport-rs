@@ -813,7 +813,6 @@ pub struct UsbPortInfo {
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
     /// interface (as is the case on macOS), so you should recognize both interface numbers.
-    #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
 }
 
@@ -832,14 +831,9 @@ impl std::fmt::Debug for UsbPortInfo {
             .field("pid", &HexU16(self.pid))
             .field("serial_number", &self.serial_number)
             .field("manufacturer", &self.manufacturer)
-            .field("product", &self.product);
-
-        #[cfg(feature = "usbportinfo-interface")]
-        {
-            d.field("interface", &self.interface);
-        }
-
-        d.finish()
+            .field("product", &self.product)
+            .field("interface", &self.interface)
+            .finish()
     }
 }
 
@@ -944,16 +938,12 @@ mod test {
             pid: 0xaffe,
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
-            #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
         };
         let formatted = format!("{:?}", info);
 
         // Set the expectiation for the debug representation basend on a "snapshot" of the current
         // one, manually cross-checked to contain a VID and PID in hexadecimal digits.
-        #[cfg(not(feature = "usbportinfo-interface"))]
-        let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\") }";
-        #[cfg(feature = "usbportinfo-interface")]
         let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\"), interface: Some(42) }";
 
         assert_eq!(formatted, expected);
