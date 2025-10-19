@@ -13,11 +13,11 @@ use nix::sys::signal::SigSet;
 use nix::sys::time::TimeSpec;
 
 pub fn wait_read_fd<Fd: AsFd>(fd: Fd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd.as_fd(), PollFlags::POLLIN, timeout)
+    wait_fd(fd, PollFlags::POLLIN, timeout)
 }
 
 pub fn wait_write_fd<Fd: AsFd>(fd: Fd, timeout: Duration) -> io::Result<()> {
-    wait_fd(fd.as_fd(), PollFlags::POLLOUT, timeout)
+    wait_fd(fd, PollFlags::POLLOUT, timeout)
 }
 
 fn wait_fd<Fd: AsFd>(fd: Fd, events: PollFlags, timeout: Duration) -> io::Result<()> {
