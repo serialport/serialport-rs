@@ -430,6 +430,12 @@ impl TTYPort {
     }
 
     /// Set the TTY port read mode which configures the VMIN and VTIME parameters.
+    ///
+    /// It should be noted that the regular [std::io::Read] implementation
+    /// still relies on the `ppoll` API to determine whether a serial port is readable.
+    /// This means that a read might still return a timeout error even if the read mode
+    /// is set to [ReadMode::Immediate]. This can be circumvented by using [Self::read_raw]
+    /// directly.
     pub fn set_read_mode(&mut self, read_mode: ReadMode) -> Result<()> {
         match read_mode {
             ReadMode::TimedRead { timeout } => self.set_vmin_vtime(0, timeout),
@@ -470,6 +476,9 @@ impl TTYPort {
 
     /// Raw read call which directly calls [nix::unistd::read] without polling the file
     /// descriptor first.
+    ///
+    /// Can be used with [Self::set_read_mode] to use the
+    /// [read mode specified by VMIN and VTIME](http://www.unixwiz.net/techtips/termios-vmin-vtime.html).
     pub fn read_raw(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
