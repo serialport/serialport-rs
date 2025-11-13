@@ -400,6 +400,42 @@ impl TTYPort {
             baud_rate: self.baud_rate,
         })
     }
+
+    /// Raw read call which directly calls [nix::unistd::read] without polling the file
+    /// descriptor first.
+    pub fn read_raw(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+    }
+
+    /// Raw read call which directly calls [nix::unistd::write] without polling the file
+    /// descriptor first.
+    pub fn write_raw(&mut self, buf: &[u8]) -> io::Result<usize> {
+        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+    }
+
+    /// Read implementation which is also used by [std::io::Read].
+    ///
+    /// This implementation uses the OS `ppoll` mechanism to determine whether bytes are available.
+    /// It will return an IO error with [io::ErrorKind::TimedOut] if no bytes are available.
+    pub fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
+            return Err(io::Error::from(Error::from(e)));
+        }
+
+        self.read_raw(buf)
+    }
+
+    /// Write implementation which is also used by [std::io::Write].
+    ///
+    /// This implementation uses the OS `ppoll` mechanism to determine whether bytes can be
+    /// written.
+    pub fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
+            return Err(io::Error::from(Error::from(e)));
+        }
+
+        self.write_raw(buf)
+    }
 }
 
 impl Drop for TTYPort {
@@ -466,21 +502,13 @@ impl FromRawFd for TTYPort {
 
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(Error::from(e)));
-        }
-
-        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        self.read(buf)
     }
 }
 
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(Error::from(e)));
-        }
-
-        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        self.write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
