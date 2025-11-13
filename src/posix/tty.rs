@@ -25,12 +25,19 @@ pub enum ReadMode {
     /// until data arrives, or when VTIME tenths expire from the start of the call. If the timer
     /// expires without data, zero is returned. A single byte is sufficient to satisfy this read
     /// call, but if more is available in the input queue, it's returned to the caller.
-    TimedRead { timeout: u8 },
+    TimedRead {
+        /// Timeout value VTIME in tenths of a second.
+        timeout: u8,
+    },
     /// This is a counted read that is satisfied only when at least VMIN characters have been
     /// transferred to the caller's buffer - there is no timing component involved. This read can
     /// be satisfied from the driver's input queue (where the call could return immediately), or
     /// by waiting for new data to arrive: in this respect the call could block indefinitely.
-    BlockUntilMinRead { minimal_bytes: u8 },
+    BlockUntilMinRead {
+        /// VMIN character. This is the minimum number of character required to satisfy a read
+        /// operation.
+        minimal_bytes: u8,
+    },
     /// Read calls are satisfied when either VMIN characters have been transferred to the caller's
     /// buffer, or when VTIME tenths expire between characters. Since this timer is not started
     /// until the first character arrives, this call can block indefinitely if the serial line is
@@ -39,6 +46,7 @@ pub enum ReadMode {
     Blocking {
         /// VTIME value in tenths of a second.
         inter_byte_timeout: u8,
+        /// VMIN character. Receiving this number of chracters satisfies the read operation.
         minimal_bytes: u8,
     },
     /// This is a completely non-blocking read - the call is satisfied immediately directly from
