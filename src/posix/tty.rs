@@ -15,6 +15,48 @@ use crate::{
     SerialPortBuilder, StopBits,
 };
 
+/// Read mode enumeration.
+///
+/// The documentation is strongly based on [this documentation](http://www.unixwiz.net/techtips/termios-vmin-vtime.html).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadMode {
+    /// If data are available in the input queue, it's transferred to the caller's buffer up to a
+    /// maximum of nbytes, and returned immediately to the caller. Otherwise the driver blocks
+    /// until data arrives, or when VTIME tenths expire from the start of the call. If the timer
+    /// expires without data, zero is returned. A single byte is sufficient to satisfy this read
+    /// call, but if more is available in the input queue, it's returned to the caller.
+    TimedRead {
+        /// Timeout value VTIME in tenths of a second.
+        timeout: u8,
+    },
+    /// This is a counted read that is satisfied only when at least VMIN characters have been
+    /// transferred to the caller's buffer - there is no timing component involved. This read can
+    /// be satisfied from the driver's input queue (where the call could return immediately), or
+    /// by waiting for new data to arrive: in this respect the call could block indefinitely.
+    BlockUntilMinRead {
+        /// VMIN character. This is the minimum number of character required to satisfy a read
+        /// operation.
+        minimal_bytes: u8,
+    },
+    /// Read calls are satisfied when either VMIN characters have been transferred to the caller's
+    /// buffer, or when VTIME tenths expire between characters. Since this timer is not started
+    /// until the first character arrives, this call can block indefinitely if the serial line is
+    /// idle. This is the most common mode of operation, and we consider VTIME to be an
+    /// intercharacter timeout, not an overall one. This call should never return zero bytes read.
+    Blocking {
+        /// VTIME value in tenths of a second.
+        inter_byte_timeout: u8,
+        /// VMIN character. Receiving this number of chracters satisfies the read operation.
+        minimal_bytes: u8,
+    },
+    /// This is a completely non-blocking read - the call is satisfied immediately directly from
+    /// the driver's input queue. If data are available, it's transferred to the caller's buffer up
+    /// to nbytes and returned. Otherwise zero is immediately returned to indicate "no data".
+    /// This essentially polls the serial port and should be used with care. If done
+    /// repeatedly, it can consume enormous amounts of processor time and is highly inefficient.
+    Immediate,
+}
+
 /// Convenience method for removing exclusive access from
 /// a fd and closing it.
 fn close(fd: RawFd) {
@@ -375,6 +417,31 @@ impl TTYPort {
         .map_err(|e| e.into())
     }
 
+    /// Set the VMIN and VTIME attributes of the port which determine the behavior
+    /// of the port on read calls.
+    ///
+    /// See [this documentation](http://www.unixwiz.net/techtips/termios-vmin-vtime.html) for
+    /// more details.
+    pub fn set_vmin_vtime(&mut self, vmin: u8, vtime: u8) -> Result<()> {
+        let mut termios = termios::get_termios(self.fd)?;
+        termios.c_cc[nix::sys::termios::SpecialCharacterIndices::VMIN as usize] = vmin;
+        termios.c_cc[nix::sys::termios::SpecialCharacterIndices::VTIME as usize] = vtime;
+        termios::set_termios(self.fd, &termios)
+    }
+
+    /// Set the TTY port read mode which configures the VMIN and VTIME parameters.
+    pub fn set_read_mode(&mut self, read_mode: ReadMode) -> Result<()> {
+        match read_mode {
+            ReadMode::TimedRead { timeout } => self.set_vmin_vtime(0, timeout),
+            ReadMode::BlockUntilMinRead { minimal_bytes } => self.set_vmin_vtime(minimal_bytes, 0),
+            ReadMode::Blocking {
+                inter_byte_timeout,
+                minimal_bytes,
+            } => self.set_vmin_vtime(minimal_bytes, inter_byte_timeout),
+            ReadMode::Immediate => self.set_vmin_vtime(0, 0),
+        }
+    }
+
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
@@ -399,6 +466,42 @@ impl TTYPort {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: self.baud_rate,
         })
+    }
+
+    /// Raw read call which directly calls [nix::unistd::read] without polling the file
+    /// descriptor first.
+    pub fn read_raw(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+    }
+
+    /// Raw read call which directly calls [nix::unistd::write] without polling the file
+    /// descriptor first.
+    pub fn write_raw(&mut self, buf: &[u8]) -> io::Result<usize> {
+        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+    }
+
+    /// Read implementation which is also used by [std::io::Read].
+    ///
+    /// This implementation uses the OS `ppoll` mechanism to determine whether bytes are available.
+    /// It will return an IO error with [io::ErrorKind::TimedOut] if no bytes are available.
+    pub fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
+            return Err(io::Error::from(Error::from(e)));
+        }
+
+        self.read_raw(buf)
+    }
+
+    /// Write implementation which is also used by [std::io::Write].
+    ///
+    /// This implementation uses the OS `ppoll` mechanism to determine whether bytes can be
+    /// written.
+    pub fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
+            return Err(io::Error::from(Error::from(e)));
+        }
+
+        self.write_raw(buf)
     }
 }
 
@@ -466,21 +569,13 @@ impl FromRawFd for TTYPort {
 
 impl io::Read for TTYPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_read_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(Error::from(e)));
-        }
-
-        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        self.read(buf)
     }
 }
 
 impl io::Write for TTYPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if let Err(e) = super::poll::wait_write_fd(self.fd, self.timeout) {
-            return Err(io::Error::from(Error::from(e)));
-        }
-
-        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        self.write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
