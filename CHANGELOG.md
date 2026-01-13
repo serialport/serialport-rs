@@ -9,6 +9,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 ### Changed
+
+* Enumerate serial-base subsystem on Linux without libudev support too. Some of
+  these newly enumerated ports may show up with a different type than with
+  libudev, but they will be finally enumerated at all.
+  [#311](https://github.com/serialport/serialport-rs/pull/311)
+
 ### Fixed
 ### Removed
 
