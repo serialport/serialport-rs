@@ -579,9 +579,9 @@ cfg_if! {
                 "amba" => Some(SerialPortType::Unknown),
                 "pci" => Some(SerialPortType::PciPort),
                 "pnp" => Some(SerialPortType::Unknown),
+                "serial-base" => Some(SerialPortType::Unknown),
                 "usb" => usb_port_type(&path),
                 "usb-serial" => usb_port_type(path.parent()?),
-                "serial-base" => Some(SerialPortType::Unknown),
                 _ => None,
             }
         }
