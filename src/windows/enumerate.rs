@@ -201,7 +201,7 @@ impl PortDevices {
     // Ports class (given by `guid`).
     pub fn new(guid: &GUID) -> Self {
         PortDevices {
-            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), 0, DIGCF_PRESENT) },
+            hdi: unsafe { SetupDiGetClassDevsW(guid, ptr::null(), ptr::null_mut(), DIGCF_PRESENT) },
             dev_idx: 0,
         }
     }
@@ -439,7 +439,7 @@ fn get_registry_com_ports() -> HashSet<String> {
 
     let reg_key = as_utf16("HARDWARE\\DEVICEMAP\\SERIALCOMM");
     let key_ptr = reg_key.as_ptr();
-    let mut ports_key: HKEY = 0;
+    let mut ports_key: HKEY = ptr::null_mut();
 
     // SAFETY: ffi, all inputs are correct
     let open_res =
