@@ -16,6 +16,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#311](https://github.com/serialport/serialport-rs/pull/311)
 
 ### Fixed
+
+* Enable arbitrary baud rates for Linux musl targets by using the `termios2`
+  (`TCGETS2`/`TCSETS2` + `BOTHER`) path now that required `libc` symbols are
+  available.
+  [#316](https://github.com/serialport/serialport-rs/pull/316)
 ### Removed
 
 
