@@ -74,7 +74,10 @@ mod builder {
     #[cfg_attr(
         any(
             not(feature = "hardware-tests"),
-            not(all(target_os = "linux", target_env = "musl")),
+            not(all(
+                target_os = "linux",
+                any(target_arch = "powerpc", target_arch = "powerpc64")
+            )),
         ),
         ignore
     )]
@@ -92,7 +95,10 @@ mod builder {
     #[cfg_attr(
         any(
             not(feature = "hardware-tests"),
-            all(target_os = "linux", target_env = "musl"),
+            all(
+                target_os = "linux",
+                any(target_arch = "powerpc", target_arch = "powerpc64")
+            ),
         ),
         ignore
     )]
@@ -168,7 +174,10 @@ mod new {
     #[cfg_attr(
         any(
             not(feature = "hardware-tests"),
-            not(all(target_os = "linux", target_env = "musl")),
+            not(all(
+                target_os = "linux",
+                any(target_arch = "powerpc", target_arch = "powerpc64")
+            )),
         ),
         ignore
     )]
@@ -183,7 +192,10 @@ mod new {
     #[cfg_attr(
         any(
             not(feature = "hardware-tests"),
-            all(target_os = "linux", target_env = "musl"),
+            all(
+                target_os = "linux",
+                any(target_arch = "powerpc", target_arch = "powerpc64")
+            ),
         ),
         ignore
     )]
@@ -257,7 +269,10 @@ mod set_baud {
     #[cfg_attr(
         any(
             not(feature = "hardware-tests"),
-            not(all(target_os = "linux", target_env = "musl")),
+            not(all(
+                target_os = "linux",
+                any(target_arch = "powerpc", target_arch = "powerpc64")
+            )),
         ),
         ignore
     )]
@@ -278,7 +293,10 @@ mod set_baud {
     #[cfg_attr(
         any(
             not(feature = "hardware-tests"),
-            all(target_os = "linux", target_env = "musl"),
+            all(
+                target_os = "linux",
+                any(target_arch = "powerpc", target_arch = "powerpc64")
+            ),
         ),
         ignore
     )]
