@@ -9,7 +9,8 @@ use windows_sys::Win32::Foundation::{
     INVALID_HANDLE_VALUE, TRUE,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING,
+    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ,
+    FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
@@ -59,11 +60,17 @@ impl COMPort {
         name.extend(builder.path.encode_utf16());
         name.push(0);
 
+        let share_mode = if builder.exclusive {
+            0
+        } else {
+            FILE_SHARE_READ | FILE_SHARE_WRITE
+        };
+
         let handle = unsafe {
             CreateFileW(
                 name.as_ptr(),
                 GENERIC_READ | GENERIC_WRITE,
-                0,
+                share_mode,
                 ptr::null_mut(),
                 OPEN_EXISTING,
                 FILE_ATTRIBUTE_NORMAL,
