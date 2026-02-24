@@ -130,14 +130,15 @@ impl TTYPort {
             nix::sys::stat::Mode::empty(),
         )?);
 
-        // Try to claim exclusive access to the port. This is performed even
-        // if the port will later be set as non-exclusive, in order to respect
-        // other applications that may have an exclusive port lock.
-        ioctl::tiocexcl(fd.0)?;
-
-        // Also use flock to lock the port
-        flock::lock_exclusive(fd.0)?;
-
+        // Set the requested access mode on the port. In exclusive mode use
+        // TIOCEXCL and an exclusive flock to prevent other openers. In shared
+        // mode we only need a shared flock to allow concurrent access.
+        if builder.exclusive {
+            ioctl::tiocexcl(fd.0)?;
+            flock::lock_exclusive(fd.0)?;
+        } else {
+            flock::lock_shared(fd.0)?;
+        }
         let mut termios = MaybeUninit::uninit();
         nix::errno::Errno::result(unsafe { tcgetattr(fd.0, termios.as_mut_ptr()) })?;
         let mut termios = unsafe { termios.assume_init() };
@@ -194,7 +195,7 @@ impl TTYPort {
         let mut port = TTYPort {
             fd: fd.into_raw(),
             timeout: builder.timeout,
-            exclusive: true,
+            exclusive: builder.exclusive,
             port_name: Some(builder.path.clone()),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             baud_rate: builder.baud_rate,
