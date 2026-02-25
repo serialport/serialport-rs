@@ -7,7 +7,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
+    if #[cfg(target_vendor = "apple")] {
         use core_foundation::base::CFType;
         use core_foundation::base::TCFType;
         use core_foundation::dictionary::CFDictionary;
@@ -26,22 +26,16 @@ cfg_if! {
     }
 }
 
-#[cfg(any(
-    target_os = "freebsd",
-    target_os = "ios",
-    target_os = "linux",
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "freebsd", target_os = "linux", target_vendor = "apple"))]
 use crate::SerialPortType;
-#[cfg(any(target_os = "ios", target_os = "linux", target_os = "macos"))]
+#[cfg(any(target_os = "linux", target_vendor = "apple"))]
 use crate::UsbPortInfo;
 #[cfg(any(
     target_os = "android",
-    target_os = "ios",
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
-    target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_vendor = "apple",
 ))]
 use crate::{Error, ErrorKind};
 use crate::{Result, SerialPortInfo};
@@ -265,7 +259,7 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
     })
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 fn get_parent_device_by_type(
     device: io_object_t,
     parent_type: *const c_char,
@@ -292,7 +286,7 @@ fn get_parent_device_by_type(
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
 fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<u32> {
@@ -321,7 +315,7 @@ fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<
         ))
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 /// Returns a specific property of the given device as a string.
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Result<String> {
     let cf_property = CFString::new(property);
@@ -345,7 +339,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Resu
         .ok_or(Error::new(ErrorKind::Unknown, "Failed to get string value"))
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> SerialPortType {
@@ -381,7 +375,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
 }
 
 cfg_if! {
-    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
+    if #[cfg(target_vendor = "apple")] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {

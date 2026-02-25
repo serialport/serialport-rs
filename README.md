@@ -152,7 +152,7 @@ demand.
   - `i686-unknown-linux-musl`
   - `x86_64-unknown-linux-gnu`
   - `x86_64-unknown-linux-musl`
-- macOS/iOS
+- macOS/iOS/tvOS/watchOS/visionOS
   - `aarch64-apple-darwin`
   - `aarch64-apple-ios`
   - `x86_64-apple-darwin`

@@ -33,8 +33,8 @@ The BSDs basically **only** have the Termios2 API, but they call it Termios. It 
 
  * https://man.openbsd.org/tty.4
 
-## macOS and iOS
+## Darwin
 
-While macOS and iOS have the heritage of a BSD, their support is slightly different. In theory, they support arbitrary baud rates in their Termios API much like the BSDs, but in practice this doesn't work with many hardware devices, as it's dependent on driver support. Instead, Apple added the `IOSSIOSPEED` ioctl in Mac OS X 10.4, which can set the baud rate to an arbitrary value. As the oldest macOS version supported by Rust is 10.7, it's available on all Mac platforms.
+While macOS, iOS, and similar Apple platforms have the heritage of a BSD, their support is slightly different. In theory, they support arbitrary baud rates in their Termios API much like the BSDs, but in practice this doesn't work with many hardware devices, as it's dependent on driver support. Instead, Apple added the `IOSSIOSPEED` ioctl in Mac OS X 10.4, which can set the baud rate to an arbitrary value. As the oldest macOS version supported by Rust is 10.7, it's available on all Mac platforms.
 
 This API requires the port to be set into raw mode with `cfmakeraw`, and must be done after every call to `tcsetattr`, as that will reset the baud rate. Additionally, there is no way to retrieve the actual baud rate from the OS. This is therefore the clunkiest API of any platform.
