@@ -7,41 +7,47 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
-        use core_foundation::base::CFType;
-        use core_foundation::base::TCFType;
-        use core_foundation::dictionary::CFDictionary;
-        use core_foundation::dictionary::CFMutableDictionary;
-        use core_foundation::number::CFNumber;
-        use core_foundation::string::CFString;
-        use core_foundation_sys::base::{kCFAllocatorDefault, CFRetain};
-        use io_kit_sys::*;
-        use io_kit_sys::keys::*;
-        use io_kit_sys::serial::keys::*;
-        use io_kit_sys::types::*;
-        use io_kit_sys::usb::lib::*;
-        use nix::libc::{c_char, c_void};
-        use std::ffi::CStr;
-        use std::mem::MaybeUninit;
+    if #[cfg(target_vendor = "apple")] {
+        use core::ffi::{c_char, c_int, c_uint, CStr};
+        use core::mem::MaybeUninit;
+
+        use objc2_core_foundation::{
+            kCFAllocatorDefault, CFMutableDictionary, CFNumber, CFRetained, CFString, CFType,
+        };
+        #[allow(deprecated)]
+        use objc2_io_kit::{kIOMasterPortDefault, IOMasterPort};
+        use objc2_io_kit::{
+            io_object_t, io_registry_entry_t, kIOServiceClass, kIOUSBDeviceClassName,
+            kIOUSBHostInterfaceClassName, IOIteratorNext, IOObjectGetClass, IOObjectRelease,
+            IORegistryEntryCreateCFProperties, IORegistryEntryCreateCFProperty,
+            IORegistryEntryGetParentEntry, IOServiceGetMatchingServices, IOServiceMatching,
+            kIOSerialBSDServiceValue, kIOSerialBSDTypeKey, kIOSerialBSDAllTypes,
+        };
+
+        // NOTE: Do not use `mach` nor `mach2` crates, they're unmaintained,
+        // and don't work on tvOS/watchOS/visionOS.
+        //
+        // Instead, define the types ourselves, we use sufficiently little
+        // that this is not a very hard task.
+        #[allow(non_camel_case_types)]
+        type kern_return_t = c_int;
+        #[allow(non_camel_case_types)]
+        type mach_port_t = c_uint;
+        const KERN_SUCCESS: kern_return_t = 0;
+        const MACH_PORT_NULL: mach_port_t = 0;
     }
 }
 
-#[cfg(any(
-    target_os = "freebsd",
-    target_os = "ios",
-    target_os = "linux",
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "freebsd", target_os = "linux", target_vendor = "apple"))]
 use crate::SerialPortType;
-#[cfg(any(target_os = "ios", target_os = "linux", target_os = "macos"))]
+#[cfg(any(target_os = "linux", target_vendor = "apple"))]
 use crate::UsbPortInfo;
 #[cfg(any(
     target_os = "android",
-    target_os = "ios",
     all(target_os = "linux", not(target_env = "musl"), feature = "libudev"),
-    target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_vendor = "apple",
 ))]
 use crate::{Error, ErrorKind};
 use crate::{Result, SerialPortInfo};
@@ -265,17 +271,15 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
     })
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 fn get_parent_device_by_type(
     device: io_object_t,
-    parent_type: *const c_char,
+    parent_type: &CStr,
 ) -> Option<io_registry_entry_t> {
-    let parent_type = unsafe { CStr::from_ptr(parent_type) };
-    use mach2::kern_return::KERN_SUCCESS;
     let mut device = device;
     loop {
         let mut class_name = MaybeUninit::<[c_char; 128]>::uninit();
-        unsafe { IOObjectGetClass(device, class_name.as_mut_ptr() as *mut c_char) };
+        unsafe { IOObjectGetClass(device, class_name.as_mut_ptr()) };
         let class_name = unsafe { class_name.assume_init() };
         let name = unsafe { CStr::from_ptr(&class_name[0]) };
         if name == parent_type {
@@ -283,8 +287,11 @@ fn get_parent_device_by_type(
         }
         let mut parent = MaybeUninit::uninit();
         if unsafe {
-            IORegistryEntryGetParentEntry(device, kIOServiceClass, parent.as_mut_ptr())
-                != KERN_SUCCESS
+            IORegistryEntryGetParentEntry(
+                device,
+                kIOServiceClass.as_ptr() as _,
+                parent.as_mut_ptr(),
+            ) != KERN_SUCCESS
         } {
             return None;
         }
@@ -292,28 +299,21 @@ fn get_parent_device_by_type(
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 #[allow(non_upper_case_globals)]
 /// Returns a specific property of the given device as an integer.
 fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<u32> {
-    let cf_property = CFString::new(property);
+    let cf_property = CFString::from_str(property);
 
-    let cf_type_ref = unsafe {
-        IORegistryEntryCreateCFProperty(
-            device_type,
-            cf_property.as_concrete_TypeRef(),
-            kCFAllocatorDefault,
-            0,
-        )
-    };
-    if cf_type_ref.is_null() {
-        return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
+    let cf_type = unsafe {
+        IORegistryEntryCreateCFProperty(device_type, Some(&cf_property), kCFAllocatorDefault, 0)
     }
+    .ok_or_else(|| Error::new(ErrorKind::Unknown, "Failed to get property"))?;
 
-    let cf_type = unsafe { CFType::wrap_under_create_rule(cf_type_ref) };
     cf_type
         .downcast::<CFNumber>()
-        .and_then(|n| n.to_i64())
+        .ok()
+        .and_then(|n| n.as_i64())
         .map(|n| n as u32)
         .ok_or(Error::new(
             ErrorKind::Unknown,
@@ -321,36 +321,30 @@ fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<
         ))
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 /// Returns a specific property of the given device as a string.
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Result<String> {
-    let cf_property = CFString::new(property);
+    let cf_property = CFString::from_str(property);
 
-    let cf_type_ref = unsafe {
-        IORegistryEntryCreateCFProperty(
-            device_type,
-            cf_property.as_concrete_TypeRef(),
-            kCFAllocatorDefault,
-            0,
-        )
-    };
-    if cf_type_ref.is_null() {
-        return Err(Error::new(ErrorKind::Unknown, "Failed to get property"));
+    let cf_type = unsafe {
+        IORegistryEntryCreateCFProperty(device_type, Some(&cf_property), kCFAllocatorDefault, 0)
     }
+    .ok_or_else(|| Error::new(ErrorKind::Unknown, "Failed to get property"))?;
 
-    let cf_type = unsafe { CFType::wrap_under_create_rule(cf_type_ref) };
     cf_type
         .downcast::<CFString>()
+        .ok()
         .map(|s| s.to_string())
         .ok_or(Error::new(ErrorKind::Unknown, "Failed to get string value"))
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
 fn port_type(service: io_object_t) -> SerialPortType {
-    let bluetooth_device_class_name = b"IOBluetoothSerialClient\0".as_ptr() as *const c_char;
-    let usb_device_class_name = b"IOUSBHostInterface\0".as_ptr() as *const c_char;
+    let bluetooth_device_class_name =
+        CStr::from_bytes_with_nul(b"IOBluetoothSerialClient\0").unwrap();
+    let usb_device_class_name = kIOUSBHostInterfaceClassName;
     let legacy_usb_device_class_name = kIOUSBDeviceClassName;
 
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
@@ -381,35 +375,27 @@ fn port_type(service: io_object_t) -> SerialPortType {
 }
 
 cfg_if! {
-    if #[cfg(any(target_os = "ios", target_os = "macos"))] {
+    if #[cfg(target_vendor = "apple")] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
+        #[allow(deprecated)]
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
-            use mach2::kern_return::KERN_SUCCESS;
-            use mach2::port::{mach_port_t, MACH_PORT_NULL};
-
             let mut vec = Vec::new();
             unsafe {
                 // Create a dictionary for specifying the search terms against the IOService
-                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue);
-                if classes_to_match.is_null() {
-                    return Err(Error::new(
-                        ErrorKind::Unknown,
-                        "IOServiceMatching returned a NULL dictionary.",
-                    ));
-                }
-                let mut classes_to_match = CFMutableDictionary::wrap_under_create_rule(classes_to_match);
+                let classes_to_match = IOServiceMatching(kIOSerialBSDServiceValue.as_ptr())
+                .ok_or_else(|| Error::new(ErrorKind::Unknown, "IOServiceMatching returned a NULL dictionary."))?;
+                let classes_to_match = classes_to_match.cast_unchecked::<CFString, CFType>();
 
                 // Populate the search dictionary with a single key/value pair indicating that we're
                 // searching for serial devices matching the RS232 device type.
-                let search_key = CStr::from_ptr(kIOSerialBSDTypeKey);
-                let search_key = CFString::from_static_string(search_key.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
-                let search_value = CStr::from_ptr(kIOSerialBSDAllTypes);
-                let search_value = CFString::from_static_string(search_value.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
-                classes_to_match.set(search_key, search_value);
+                let search_key = CFString::from_static_str(kIOSerialBSDTypeKey.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
+                let search_value = CFString::from_static_str(kIOSerialBSDAllTypes.to_str().map_err(|_| Error::new(ErrorKind::Unknown, "Failed to convert search key string"))?);
+                classes_to_match.set(&search_key, &search_value);
 
                 // Get an interface to IOKit
                 let mut master_port: mach_port_t = MACH_PORT_NULL;
+                #[allow(deprecated)]
                 let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
                 if kern_result != KERN_SUCCESS {
                     return Err(Error::new(
@@ -418,17 +404,11 @@ cfg_if! {
                     ));
                 }
 
-                // Run the search. IOServiceGetMatchingServices consumes one reference count of
-                // classes_to_match, so explicitly retain.
-                //
-                // TODO: We could also just mem::forget classes_to_match like in
-                // TCFType::into_CFType. Is there a special reason that there is no
-                // TCFType::into_concrete_TypeRef()?
-                CFRetain(classes_to_match.as_CFTypeRef());
+                // Run the search.
                 let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
-                    classes_to_match.as_concrete_TypeRef(),
+                    Some(classes_to_match.as_opaque().into()),
                     matching_services.as_mut_ptr(),
                 );
                 if kern_result != KERN_SUCCESS {
@@ -466,15 +446,15 @@ cfg_if! {
                         // properties dict has been allocated and we as the caller are in charge of
                         // releasing it.
                         let props = props.assume_init();
-                        let props: CFDictionary<CFString, *const c_void> = CFDictionary::wrap_under_create_rule(props);
+                        let props: CFRetained<CFMutableDictionary> = CFRetained::from_raw(core::ptr::NonNull::new(props).unwrap());
+                        let props = props.cast_unchecked::<CFString, CFType>();
 
                         for key in ["IOCalloutDevice", "IODialinDevice"].iter() {
-                            let cf_key = CFString::new(key);
+                            let cf_key = CFString::from_str(key);
 
-                            if let Some(cf_ref) = props.find(cf_key) {
-                                let cf_type = CFType::wrap_under_get_rule(*cf_ref);
+                            if let Some(cf_type) = props.get(&cf_key) {
                                 match cf_type
-                                     .downcast::<CFString>()
+                                     .downcast_ref::<CFString>()
                                      .map(|s| s.to_string())
                                 {
                                     Some(path) => {

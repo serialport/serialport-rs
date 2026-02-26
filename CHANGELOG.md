@@ -42,6 +42,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 * Output USB VID and PID in hexadecimal digits in `UsbPortInfo`'s `Debug`
   representation.
   [#290](https://github.com/serialport/serialport-rs/pull/290)
+* Migrated away from unmaintainted dependency `mach2`.
+* Migrated from `io-kit-sys` to `objc2-io-kit`.
+* Migrated from `core-foundation` to `objc2-core-foundation`.
 
 
 ## [4.7.3] - 2025-08-24

@@ -91,7 +91,7 @@ fn test_ttyport_timeout() {
 }
 
 #[test]
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 fn test_osx_pty_pair() {
     #![allow(unused_variables)]
     let (mut master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
@@ -116,7 +116,7 @@ fn test_osx_pty_pair() {
 // On Mac this should work (in fact used to in b77768a) but now fails. It's not functionality that
 // should be required, and the ptys work otherwise. So going to just disable this test instead.
 #[test]
-#[cfg_attr(any(target_os = "ios", target_os = "macos"), ignore)]
+#[cfg_attr(target_vendor = "apple", ignore)]
 fn test_ttyport_set_standard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once
@@ -133,15 +133,10 @@ fn test_ttyport_set_standard_baud() {
     assert_eq!(slave.baud_rate().unwrap(), 115_200);
 }
 
-// On mac this fails because you can't set nonstandard baud rates for these virtual ports
 #[test]
 #[cfg_attr(
-    any(
-        target_os = "ios",
-        all(target_os = "linux", target_env = "musl"),
-        target_os = "macos"
-    ),
-    ignore
+    any(all(target_os = "linux", target_env = "musl"), target_vendor = "apple"),
+    ignore = "fails on Mac because you can't set nonstandard baud rates for these virtual ports"
 )]
 fn test_ttyport_set_nonstandard_baud() {
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
