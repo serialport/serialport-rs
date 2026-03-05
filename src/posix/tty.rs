@@ -151,12 +151,12 @@ impl TTYPort {
         // available.
         unsafe { cfmakeraw(&mut termios) };
 
-        // write settings to TTY
-        unsafe { tcsetattr(fd.0, libc::TCSANOW, &termios) };
+        // write settings to TTY and handle potential errors
+        nix::errno::Errno::result(unsafe { tcsetattr(fd.0, libc::TCSANOW, &termios) })?;
 
         // Read back settings from port and confirm they were applied correctly
         let mut actual_termios = MaybeUninit::uninit();
-        unsafe { tcgetattr(fd.0, actual_termios.as_mut_ptr()) };
+        nix::errno::Errno::result(unsafe { tcgetattr(fd.0, actual_termios.as_mut_ptr()) })?;
         let actual_termios = unsafe { actual_termios.assume_init() };
 
         if actual_termios.c_iflag != termios.c_iflag
@@ -172,7 +172,8 @@ impl TTYPort {
 
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         if builder.baud_rate > 0 {
-            unsafe { libc::tcflush(fd.0, libc::TCIOFLUSH) };
+            // handle tcflush errors
+            nix::errno::Errno::result(unsafe { libc::tcflush(fd.0, libc::TCIOFLUSH) })?;
         }
 
         // clear O_NONBLOCK flag
@@ -321,30 +322,33 @@ impl TTYPort {
         // Open the slave port
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         let baud_rate = 9600;
-        let fd = nix::fcntl::open(
+
+        // Wrap the slave fd in `OwnedFd` immediately so it auto-closes on error
+        let fd = OwnedFd(nix::fcntl::open(
             Path::new(&ptty_name),
             OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
             nix::sys::stat::Mode::empty(),
-        )?;
+        )?);
 
         // Set the port to a raw state. Using these ports will not work without this.
         let mut termios = MaybeUninit::uninit();
-        let res = unsafe { crate::posix::tty::libc::tcgetattr(fd, termios.as_mut_ptr()) };
-        if let Err(e) = nix::errno::Errno::result(res) {
-            close(fd);
-            return Err(e.into());
-        }
+        nix::errno::Errno::result(unsafe {
+            crate::posix::tty::libc::tcgetattr(fd.0, termios.as_mut_ptr())
+        })?;
+
         let mut termios = unsafe { termios.assume_init() };
         unsafe { crate::posix::tty::libc::cfmakeraw(&mut termios) };
-        unsafe { crate::posix::tty::libc::tcsetattr(fd, libc::TCSANOW, &termios) };
+        nix::errno::Errno::result(unsafe {
+            crate::posix::tty::libc::tcsetattr(fd.0, libc::TCSANOW, &termios)
+        })?;
 
         fcntl(
-            fd,
+            fd.0,
             nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
         )?;
 
         let slave_tty = TTYPort {
-            fd,
+            fd: fd.into_raw(), // Relinquish OwnedFd, port takes ownership
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: Some(ptty_name),
