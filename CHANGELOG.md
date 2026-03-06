@@ -14,13 +14,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
   these newly enumerated ports may show up with a different type than with
   libudev, but they will be finally enumerated at all.
   [#311](https://github.com/serialport/serialport-rs/pull/311)
+* Enable arbitrary baud rates for Linux musl targets by directly using
+  `termios2` and the corresponding `ioctl`s `TCGETS2` and `TCSETS2` from nix
+  and the libc crate. There is no support form musl for `termios2` and we are
+  directly talking to the kernel and bypassing it here.
+  [#316](https://github.com/serialport/serialport-rs/pull/316)
 
 ### Fixed
-
-* Enable arbitrary baud rates for Linux musl targets by using the `termios2`
-  (`TCGETS2`/`TCSETS2` + `BOTHER`) path now that required `libc` symbols are
-  available.
-  [#316](https://github.com/serialport/serialport-rs/pull/316)
 ### Removed
 
 
