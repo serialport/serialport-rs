@@ -8,6 +8,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+* Add `exclusive` configuration option to `SerialPortBuilder` to control
+  whether ports are opened with exclusive access locks.
+  [#319](https://github.com/serialport/serialport-rs/pull/319)
+
 ### Changed
 
 * Enumerate serial-base subsystem on Linux without libudev support too. Some of
