@@ -948,7 +948,20 @@ mod test {
         assert_eq!(builder.stop_bits, StopBits::One);
         assert_eq!(builder.timeout, Duration::ZERO);
         assert_eq!(builder.dtr_on_open, None);
-        assert_eq!(builder.exclusive, true);
+        assert!(builder.exclusive);
+    }
+
+    // Checks that the builder's exclusive methot changes the state accordingly.
+    #[rstest]
+    fn builder_exclusive() {
+        let builder = new("port_test_dummy", 12345);
+        assert!(builder.exclusive);
+
+        let builder = builder.exclusive(false);
+        assert!(!builder.exclusive);
+
+        let builder = builder.exclusive(true);
+        assert!(builder.exclusive);
     }
 
     #[rstest]
