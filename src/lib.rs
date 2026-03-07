@@ -42,7 +42,7 @@ use std::time::Duration;
 #[cfg(unix)]
 mod posix;
 #[cfg(unix)]
-pub use posix::{BreakDuration, TTYPort};
+pub use posix::{BreakDuration, ReadMode, TTYPort};
 
 #[cfg(windows)]
 mod windows;
