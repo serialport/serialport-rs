@@ -1,3 +1,12 @@
+// NOTE: The tests is this file use conditonal execution and parametrization. This requires some
+// bespoke treatment to get all cases of a parametrized test to be actually ignored depending on a
+// feature flag:
+//
+// 1. The `cfg_attr` needs to be present for each `case`
+// 2. `cfg_attr` needs to put before `case`
+//
+// Otherwise only a single case will be ignored.
+
 mod config;
 
 use cfg_if::cfg_if;
@@ -94,6 +103,7 @@ mod checks {
 #[rstest]
 #[cfg_attr(not(feature = "hardware-tests"), ignore)]
 #[case(LockMode::Exclusive)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
 #[case(LockMode::Shared)]
 fn opening_multiple_times(hw_config: HardwareConfig, #[case] exclusivity: LockMode) {
     // Try to open (and close) the same port multiple times in a row to check that acquiring and
@@ -110,6 +120,7 @@ mod second_exclusive_open {
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Shared)]
     fn fails_after_open(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port for the first time and keep it open.
@@ -123,6 +134,7 @@ mod second_exclusive_open {
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Shared)]
     fn fails_after_lock(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port for the first time, keep it open, and lock it with Rust's default locking
@@ -142,6 +154,7 @@ mod second_exclusive_open {
     #[cfg(unix)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(FlockArg::LockExclusiveNonblock)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(FlockArg::LockSharedNonblock)]
     fn fails_after_flock(hw_config: HardwareConfig, #[case] first_mode: FlockArg) {
         // Open the port file for the first time, keep it open, and flock it in the specified mode.
@@ -194,6 +207,7 @@ mod second_non_exclusive_open {
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Shared)]
     fn after_open(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port for the first time and keep it open.
@@ -211,6 +225,7 @@ mod second_non_exclusive_open {
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Shared)]
     fn after_lock(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port for the first time, keep it open, and lock it with Rust's default locking
@@ -233,6 +248,7 @@ mod second_non_exclusive_open {
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Shared)]
     fn after_flock(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port file for the first time, keep it open, and flock it in the specified mode.
