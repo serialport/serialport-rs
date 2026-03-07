@@ -3,15 +3,15 @@ mod config;
 use cfg_if::cfg_if;
 use config::{hw_config, HardwareConfig};
 use rstest::rstest;
+use serialport::ErrorKind;
 use serialport::SerialPort;
+use std::fs::File;
 
 cfg_if! {
     if #[cfg(unix)] {
         use std::os::unix::prelude::*;
         use nix::fcntl::FlockArg;
         use nix::ioctl_none_bad;
-        use serialport::ErrorKind;
-        use std::fs::File;
 
         // Locally create a wrapper for the TIOCEXCL and TIOCNXCL ioctl.
         ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
@@ -48,6 +48,7 @@ impl From<LockMode> for FlockArg {
 mod checks {
     use super::*;
 
+    #[cfg(unix)]
     #[must_use]
     pub fn open_file_successful(hw_config: &HardwareConfig) -> File {
         // Be gentle on macOS when opening a /dev/tty.* device: When opening in blocking mode it waits
@@ -57,6 +58,15 @@ mod checks {
             .read(true)
             .write(true)
             .custom_flags(libc::O_NONBLOCK)
+            .open(&hw_config.port_1)
+            .unwrap()
+    }
+
+    #[cfg(windows)]
+    pub fn open_file_successful(hw_config: &HardwareConfig) -> File {
+        File::options()
+            .read(true)
+            .write(true)
             .open(&hw_config.port_1)
             .unwrap()
     }
@@ -170,6 +180,14 @@ mod second_exclusive_open {
     }
 }
 
+// Opening a serial port in shared mode is only supported for POSIX systems. It is not supported on
+// on Windows and using the `CreateFile` function for a serial port requires the sharing mode to be
+// always exclusive.
+//
+// See
+// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea#communications-resources
+// for more details.
+#[cfg(unix)]
 mod second_non_exclusive_open {
     use super::*;
 
@@ -213,7 +231,6 @@ mod second_non_exclusive_open {
     }
 
     #[rstest]
-    #[cfg(unix)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
     #[case(LockMode::Shared)]
@@ -232,7 +249,6 @@ mod second_non_exclusive_open {
     }
 
     #[rstest]
-    #[cfg(unix)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn fails_after_tiocexcl(hw_config: HardwareConfig) {
         // Open the port file for the first time, keep it open, and apply locking via TIOCEXL.
@@ -244,7 +260,6 @@ mod second_non_exclusive_open {
     }
 
     #[rstest]
-    #[cfg(unix)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn succeeds_after_tiocnxcl(hw_config: HardwareConfig) {
         // Open the port file for the first time, keep it open, and unlock it via TIOCNXCL.
