@@ -80,23 +80,29 @@ mod checks {
             .unwrap()
     }
 
-    pub fn open_port_fails(hw_config: &HardwareConfig, exclusivity: LockMode) {
+    pub fn open_port_fails(hw_config: &HardwareConfig, _exclusivity: LockMode) {
+        #[cfg(unix)]
         let port = serialport::new(&hw_config.port_1, 115200)
-            .exclusive(exclusivity.is_exclusive())
+            .exclusive(_exclusivity.is_exclusive())
             .open();
+        #[cfg(not(unix))]
+        let port = serialport::new(&hw_config.port_1, 115200).open();
+
         assert!(port.is_err());
         assert_eq!(port.unwrap_err().kind(), ErrorKind::NoDevice);
     }
 
-    #[must_use]
     pub fn open_port_successful(
         hw_config: &HardwareConfig,
-        exclusivity: LockMode,
+        _exclusivity: LockMode,
     ) -> Box<dyn SerialPort> {
-        serialport::new(&hw_config.port_1, 115200)
-            .exclusive(exclusivity.is_exclusive())
-            .open()
-            .unwrap()
+        #[cfg(unix)]
+        let builder =
+            serialport::new(&hw_config.port_1, 115200).exclusive(_exclusivity.is_exclusive());
+        #[cfg(not(unix))]
+        let builder = serialport::new(&hw_config.port_1, 115200);
+
+        builder.open().unwrap()
     }
 }
 

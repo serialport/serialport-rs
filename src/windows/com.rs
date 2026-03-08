@@ -60,11 +60,7 @@ impl COMPort {
         name.extend(builder.path.encode_utf16());
         name.push(0);
 
-        let share_mode = if builder.exclusive {
-            0
-        } else {
-            FILE_SHARE_READ | FILE_SHARE_WRITE
-        };
+        let share_mode = 0;
 
         let handle = unsafe {
             CreateFileW(

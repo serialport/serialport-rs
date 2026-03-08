@@ -335,6 +335,7 @@ pub struct SerialPortBuilder {
     /// The state to set DTR to when opening the device
     dtr_on_open: Option<bool>,
     /// Whether to enforce exclusive access to the port
+    #[cfg(unix)]
     exclusive: bool,
 }
 
@@ -423,6 +424,7 @@ impl SerialPortBuilder {
     /// By default, ports are opened with exclusive access. This is what you typically want as
     /// opening and accessing the very same port multiple times results in garbled data on or from
     /// the wire.
+    #[cfg(unix)]
     #[must_use]
     pub fn exclusive(mut self, exclusive: bool) -> Self {
         self.exclusive = exclusive;
@@ -907,6 +909,7 @@ pub fn new<'a>(path: impl Into<std::borrow::Cow<'a, str>>, baud_rate: u32) -> Se
         // substantially larger area than the one benefitting from it, I finally decided to revert
         // this. Sorry for this back and forth, Christian.
         dtr_on_open: None,
+        #[cfg(unix)]
         exclusive: true,
     }
 }
@@ -948,10 +951,12 @@ mod test {
         assert_eq!(builder.stop_bits, StopBits::One);
         assert_eq!(builder.timeout, Duration::ZERO);
         assert_eq!(builder.dtr_on_open, None);
+        #[cfg(unix)]
         assert!(builder.exclusive);
     }
 
     // Checks that the builder's exclusive methot changes the state accordingly.
+    #[cfg(unix)]
     #[rstest]
     fn builder_exclusive() {
         let builder = new("port_test_dummy", 12345);
