@@ -955,7 +955,7 @@ mod test {
         assert!(builder.exclusive);
     }
 
-    // Checks that the builder's exclusive methot changes the state accordingly.
+    // Checks that the builder's exclusive method changes the state accordingly.
     #[cfg(unix)]
     #[rstest]
     fn builder_exclusive() {
