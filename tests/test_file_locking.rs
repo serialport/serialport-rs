@@ -113,7 +113,7 @@ mod checks {
 #[case(LockMode::Shared)]
 fn opening_multiple_times(hw_config: HardwareConfig, #[case] exclusivity: LockMode) {
     // Try to open (and close) the same port multiple times in a row to check that acquiring and
-    // releasing loks does not lock out ourselves.
+    // releasing locks does not lock out ourselves.
     for _ in 0..3 {
         // The port gets closed by dropping it before the next iteration step.
         let _ = checks::open_port_successful(&hw_config, exclusivity);
@@ -177,7 +177,7 @@ mod second_exclusive_open {
     #[cfg(unix)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn fails_after_tiocexcl(hw_config: HardwareConfig) {
-        // Open the port file for the first time, keep it open, and apply locking via TIOCEXL.
+        // Open the port file for the first time, keep it open, and apply locking via TIOCEXCL.
         let first = checks::open_file_successful(&hw_config);
         unsafe { tiocexcl(first.as_raw_fd()).unwrap() };
 
@@ -273,7 +273,7 @@ mod second_non_exclusive_open {
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     fn fails_after_tiocexcl(hw_config: HardwareConfig) {
-        // Open the port file for the first time, keep it open, and apply locking via TIOCEXL.
+        // Open the port file for the first time, keep it open, and apply locking via TIOCEXCL.
         let first = checks::open_file_successful(&hw_config);
         unsafe { tiocexcl(first.as_raw_fd()).unwrap() };
 
