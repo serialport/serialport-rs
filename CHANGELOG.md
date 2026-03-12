@@ -14,6 +14,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#319](https://github.com/serialport/serialport-rs/pull/319)
 
 ### Changed
+### Fixed
+### Removed
+
+
+## [4.9.0] -- 2026-03-12
+
+### Changed
 
 * Enumerate serial-base subsystem on Linux without libudev support too. Some of
   these newly enumerated ports may show up with a different type than with
@@ -43,10 +50,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#300](https://github.com/serialport/serialport-rs/issues/300)
   [#231](https://github.com/serialport/serialport-rs/issues/231)
 
-### Removed
 
-
-## [4.8.1] - 2025-10-07i
+## [4.8.1] - 2025-10-07
 
 ### Fixed
 
@@ -598,7 +603,8 @@ Unreleased, happened due to a user error using `cargo-release`.
 * Initial release.
 
 
-[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.8.1...HEAD
+[Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.9.0...HEAD
+[4.9.0]: https://github.com/serialport/serialport-rs/compare/v4.8.1...v4.9.0
 [4.8.1]: https://github.com/serialport/serialport-rs/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/serialport/serialport-rs/compare/v4.7.3...v4.8.0
 [4.7.3]: https://github.com/serialport/serialport-rs/compare/v4.7.2...v4.7.3
