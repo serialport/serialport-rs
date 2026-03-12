@@ -23,8 +23,7 @@ libudev = { version = "0.3.0", optional = true }
 unescaper = "0.1.3"
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
-# TODO: Remove pinning this dependency when we are bumping our MSRV.
-core-foundation = "=0.10.0"
+core-foundation = "0.10.0"
 core-foundation-sys = "0.8.4"
 io-kit-sys = "0.4.0"
 mach2 = "0.4.1"
@@ -49,23 +48,11 @@ cfg-if = "1.0.0"
 scopeguard = "1.1"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
-# TODO: Remove pinning this subdependency when we are bumping our MSRV.
-quote = ">=1, <=1.0.40"
-
 [dev-dependencies]
 assert_hex = "0.4.1"
 clap = { version = "3.1.6", features = ["derive"] }
 envconfig = "0.10.0"
-# TODES Remove pinning this subdependency (of clap) when we are bumping our
-# MSRV (libc raised its MSRV with a patch release 0.2.167 from 1.19.0 to
-# 1.63.0). Trick the resolver into picking a compatible release of libc by
-# adding it as a direct dependency meanwhile.
-libc = ">=0.2.0, <=0.2.163"
-# TODO: Remove pinning this subdependency of clap when we are bumping our MSRV.
-# (There has been an incompatible change with the MSRV of os_str_bytes with
-# 6.6.0) Until then we are tricking the dependency resolver into using a
-# compatible version by adding it as a direct dependency here.
-os_str_bytes = ">=6.0, <6.6.0"
+libc = "0.2.163"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 rstest = { version = "0.12.0", default-features = false }
