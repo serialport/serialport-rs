@@ -131,9 +131,9 @@ impl COMPort {
                 DUPLICATE_SAME_ACCESS,
             )
         };
-        if duplicated && cloned_handle != INVALID_HANDLE_VALUE {
+        if duplicated == 0 && cloned_handle != INVALID_HANDLE_VALUE {
             Ok(COMPort {
-                handle: OwnedHandle::from_raw_handle(cloned_handle),
+                handle: unsafe { OwnedHandle::from_raw_handle(cloned_handle) },
                 port_name: self.port_name.clone(),
                 timeout: self.timeout,
             })
