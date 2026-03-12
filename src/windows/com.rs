@@ -131,7 +131,7 @@ impl COMPort {
             );
             if cloned_handle != INVALID_HANDLE_VALUE {
                 Ok(COMPort {
-                    handle: OwnedHandle::from_raw_handle(cloned_handle as RawHandle),
+                    handle: OwnedHandle::from_raw_handle(cloned_handle),
                     port_name: self.port_name.clone(),
                     timeout: self.timeout,
                 })
