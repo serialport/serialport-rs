@@ -81,7 +81,7 @@ impl COMPort {
 
         // create the COMPort here so the handle is getting closed
         // if one of the calls to `get_dcb()` or `set_dcb()` fails
-        let mut com = COMPort::open_from_raw_handle(handle as RawHandle);
+        let mut com = COMPort::open_from_raw_handle(handle);
 
         let mut dcb = dcb::get_dcb(com.raw_handle())?;
         dcb::init(&mut dcb);
