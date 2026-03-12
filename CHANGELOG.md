@@ -27,13 +27,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-
 * Always propagate errors out of termios getter/setter implementations.
 * Wrap slave port file descriptors in `TTYPort::pair` in a `Drop`-safe `OwnedFd` to avoid file descriptor leaks on early returns.
 * Enable arbitrary baud rates for Linux musl targets by using the `termios2`
   (`TCGETS2`/`TCSETS2` + `BOTHER`) path now that required `libc` symbols are
   available.
   [#316](https://github.com/serialport/serialport-rs/pull/316)
+* Unpin dependencies with MSRV incompatible Rust version bump. This caused
+  issues with dependency resolution for many users building with newer Rust
+  versions. See [Dependencies](README.md#dependencies) on how to pin them in
+  your project when building with older Rust versions.
+  [#324](https://github.com/serialport/serialport-rs/issues/324)
+  [#307](https://github.com/serialport/serialport-rs/issues/307)
+  [#304](https://github.com/serialport/serialport-rs/issues/304)
+  [#300](https://github.com/serialport/serialport-rs/issues/300)
+  [#231](https://github.com/serialport/serialport-rs/issues/231)
 
 ### Removed
 
