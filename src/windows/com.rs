@@ -119,7 +119,8 @@ impl COMPort {
     pub fn try_clone_native(&self) -> Result<COMPort> {
         let process_handle: HANDLE = unsafe { GetCurrentProcess() };
         let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
-        unsafe {
+
+        let duplicated = unsafe {
             DuplicateHandle(
                 process_handle,
                 self.raw_handle(),
@@ -128,16 +129,16 @@ impl COMPort {
                 0,
                 TRUE,
                 DUPLICATE_SAME_ACCESS,
-            );
-            if cloned_handle != INVALID_HANDLE_VALUE {
-                Ok(COMPort {
-                    handle: OwnedHandle::from_raw_handle(cloned_handle),
-                    port_name: self.port_name.clone(),
-                    timeout: self.timeout,
-                })
-            } else {
-                Err(super::error::last_os_error())
-            }
+            )
+        };
+        if duplicated && cloned_handle != INVALID_HANDLE_VALUE {
+            Ok(COMPort {
+                handle: OwnedHandle::from_raw_handle(cloned_handle),
+                port_name: self.port_name.clone(),
+                timeout: self.timeout,
+            })
+        } else {
+            Err(super::error::last_os_error())
         }
     }
 
