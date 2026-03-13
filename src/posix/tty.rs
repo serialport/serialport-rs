@@ -1,4 +1,5 @@
 use std::mem::MaybeUninit;
+use std::os::fd::{AsFd, BorrowedFd};
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -120,6 +121,14 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
+        Self::open_internal(builder, false)
+    }
+
+    pub(super) fn open_nonblocking(builder: &SerialPortBuilder) -> Result<TTYPort> {
+        Self::open_internal(builder, true)
+    }
+
+    fn open_internal(builder: &SerialPortBuilder, nonblocking: bool) -> Result<TTYPort> {
         use nix::fcntl::FcntlArg::F_SETFL;
         use nix::libc::{cfmakeraw, tcgetattr, tcsetattr};
 
@@ -174,8 +183,10 @@ impl TTYPort {
             unsafe { libc::tcflush(fd.0, libc::TCIOFLUSH) };
         }
 
-        // clear O_NONBLOCK flag
-        fcntl(fd.0, F_SETFL(nix::fcntl::OFlag::empty()))?;
+        if !nonblocking {
+            // clear O_NONBLOCK flag
+            fcntl(fd.0, F_SETFL(nix::fcntl::OFlag::empty()))?;
+        }
 
         // Configure the low-level port settings
         let mut termios = termios::get_termios(fd.0)?;
@@ -209,6 +220,14 @@ impl TTYPort {
         }
 
         Ok(port)
+    }
+
+    pub(super) fn read_nonblocking(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+    }
+
+    pub(super) fn write_nonblocking(&mut self, buf: &[u8]) -> io::Result<usize> {
+        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 
     /// Returns the exclusivity of the port
@@ -411,6 +430,14 @@ impl Drop for TTYPort {
 impl AsRawFd for TTYPort {
     fn as_raw_fd(&self) -> RawFd {
         self.fd
+    }
+}
+
+impl AsFd for TTYPort {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        // SAFETY: `TTYPort` does not close or replace the fd
+        // except on drop or by consuming `self`.
+        unsafe { BorrowedFd::borrow_raw(self.fd) }
     }
 }
 
