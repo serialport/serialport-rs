@@ -17,13 +17,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - name: Fmt | install dependencies
         # TODO: Harmonize with build.yaml
-        run: |
-          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
-          sudo apt-get -qq update
-          sudo apt install -qq -y libudev-dev
-
       - name: Fmt | checkout
         uses: actions/checkout@v6
 
@@ -64,7 +58,7 @@ jobs:
       - run: |
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
-          sudo apt-get -qq -y install build-essential curl git pkg-config libudev-dev
+          sudo apt install -qq -y libudev-dev
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
