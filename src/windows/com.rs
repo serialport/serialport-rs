@@ -9,8 +9,7 @@ use windows_sys::Win32::Foundation::{
     INVALID_HANDLE_VALUE, TRUE,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, OPEN_EXISTING,
+    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
