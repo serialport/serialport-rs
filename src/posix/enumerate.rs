@@ -674,13 +674,13 @@ cfg_if! {
                 let path = path?;
                 let filename = path.file_name();
                 let filename_string = filename.to_string_lossy();
-                if filename_string.starts_with("cuaU") || filename_string.starts_with("cuau") || filename_string.starts_with("cuad") {
-                    if !filename_string.ends_with(".init") && !filename_string.ends_with(".lock") {
-                        vec.push(SerialPortInfo {
-                            port_name: path.path().to_string_lossy().to_string(),
-                            port_type: SerialPortType::Unknown,
-                        });
-                    }
+                if (filename_string.starts_with("cuaU") || filename_string.starts_with("cuau") || filename_string.starts_with("cuad"))
+                    && !filename_string.ends_with(".init") && !filename_string.ends_with(".lock")
+                {
+                    vec.push(SerialPortInfo {
+                        port_name: path.path().to_string_lossy().to_string(),
+                        port_type: SerialPortType::Unknown,
+                    });
                 }
             }
             Ok(vec)
