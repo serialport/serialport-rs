@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Lint | install dependencies
         run: |
+          # TODO: Harmonize with build.yaml
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt install -qq -y libudev-dev
@@ -52,6 +53,7 @@ jobs:
     steps:
       - name: documentation | install dependencies
         run: |
+          # TODO: Harmonize with build.yaml
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt install -qq -y libudev-dev
