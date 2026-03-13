@@ -12,34 +12,58 @@ on:
 
 jobs:
   # --------------------------------------------------------------------------
-  # LINT
+  # Formatting
 
-  lint:
+  fmt:
     runs-on: ubuntu-latest
     steps:
-      - name: Lint | install dependencies
-        run: |
-          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
-          sudo apt-get -qq update
-          sudo apt install -qq -y libudev-dev
-
-      - name: Lint | checkout
+        # TODO: Harmonize with build.yaml
+      - name: Fmt | checkout
         uses: actions/checkout@v6
 
-      - name: Lint | install toolchain
+      - name: Fmt | install toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: clippy, rustfmt
 
-      - name: Lint | rust-cache
+      - name: Fmt | rust-cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Lint | check formatting
+      - name: Fmt | check formatting
         run: cargo fmt -- --check
 
-      - name: Lint | clippy
-        run: cargo clippy --all-targets --all-features
+  # --------------------------------------------------------------------------
+  # Clippy lints
+
+  clippy:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    strategy:
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - arm-linux-androideabi
+          - x86_64-pc-windows-msvc
+          - x86_64-unknown-freebsd
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-netbsd
+      fail-fast: false
+    steps:
+      # TODO: Harmonize with build.yaml
+      - run: |
+          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
+          sudo apt-get -qq update
+          sudo apt install -qq -y libudev-dev
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+      - run: cargo clippy --target ${{ matrix.target }}
+      - run: cargo clippy --target ${{ matrix.target }} --all-features
+
 
   # --------------------------------------------------------------------------
   # Rustdoc
@@ -51,6 +75,7 @@ jobs:
       RUSTDOCFLAGS: -Dwarnings
     steps:
       - name: documentation | install dependencies
+        # TODO: Harmonize with build.yaml
         run: |
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
@@ -161,20 +186,20 @@ jobs:
           - "only-explicit-features"
           - "all-features"
     steps:
-    - run: |
-        # TODO: Harmonize with build.yaml
-        sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
-        sudo apt-get -qq update
-        sudo apt-get -qq -y install build-essential curl git pkg-config libudev-dev
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        target: ${{ matrix.target }}
-    - uses: Swatinem/rust-cache@v2
-    - uses: obi1kenobi/cargo-semver-checks-action@v2
-      with:
-        rust-target: ${{ matrix.target }}
-        feature-group: ${{ matrix.feature-group }}
+      # TODO: Harmonize with build.yaml
+      - run: |
+          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
+          sudo apt-get -qq update
+          sudo apt-get -qq -y install build-essential curl git pkg-config libudev-dev
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          rust-target: ${{ matrix.target }}
+          feature-group: ${{ matrix.feature-group }}
 
   # --------------------------------------------------------------------------
   # cargo-deny

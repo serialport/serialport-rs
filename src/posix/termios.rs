@@ -204,7 +204,7 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()>
     target_os = "openbsd"
 ))]
 pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
-    let res = unsafe { libc::cfsetspeed(termios, baud_rate.into()) };
+    let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
     nix::errno::Errno::result(res)?;
     Ok(())
 }
