@@ -132,6 +132,15 @@ feature):
 - Ubuntu: `sudo apt install libudev-dev`
 - Fedora: `sudo dnf install systemd-devel`
 
+We no longer pin dependencies of to versions compatible with our MSRV. This has
+created issues with failing dependency resolution for many users building with
+newer Rust versions (see issue
+[#324](https://github.com/serialport/serialport-rs/issues/324) for details). If
+you are building with and older Rust version down to our MSRV, you might want
+to pin such dependencies in your project to a working version with `cargo
+update --precise`. See [`build.yaml`](.github/workflows/build.yaml#L99) of an
+actual list of dependencies for our CI builds.
+
 # Platform Support
 
 Builds and some tests (not requiring actual hardware) for major targets are run
