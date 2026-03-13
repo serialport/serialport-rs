@@ -24,6 +24,8 @@ With two devices connected to each other:
      $ export SERIALPORT_TEST_PORT_2=$(realpath /dev/ttyY)
      $ cargo test --features hardware-tests
      ```
+ * Please use the `/dev/cu.*` flavor of a serial device on macOS as the file
+   locking tests seem to block with the `/dev/tty.*` flavor
 
 Can also verify trickier settings (like non-standard baud rates) using serial terminal programs
 like:

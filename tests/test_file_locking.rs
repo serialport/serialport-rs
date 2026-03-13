@@ -6,6 +6,9 @@
 // 2. `cfg_attr` needs to put before `case`
 //
 // Otherwise only a single case will be ignored.
+//
+// On macOS, `/dev/tty.*` device variants seem to block when trying to open the same device for as
+// second time. Use the `/dev/cu.*` variants on this operating system instead.
 
 mod config;
 
@@ -14,7 +17,6 @@ use config::{hw_config, HardwareConfig};
 use rstest::rstest;
 use serialport::ErrorKind;
 use serialport::SerialPort;
-use std::fs::File;
 
 cfg_if! {
     if #[cfg(unix)] {
@@ -29,12 +31,14 @@ cfg_if! {
 }
 
 /// Abstract lock mode for making intent more clearly visible than with a `bool`.
+#[cfg(unix)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LockMode {
     Exclusive,
     Shared,
 }
 
+#[cfg(unix)]
 impl LockMode {
     pub fn is_exclusive(&self) -> bool {
         match self {
@@ -54,25 +58,19 @@ impl From<LockMode> for FlockArg {
     }
 }
 
+// Helpers for performing and checking the result of common operations fot tests. Use the wildcard
+// use directive `use checks::*;` to conveniently import all the checks available for the current
+// platform.
 mod checks {
     use super::*;
+
+    // Conditionally provide using the file along with the methods returning it.
+    #[cfg(unix)]
+    pub use std::fs::File;
 
     #[cfg(unix)]
     #[must_use]
     pub fn open_file_successful(hw_config: &HardwareConfig) -> File {
-        // Be gentle on macOS when opening a /dev/tty.* device: When opening in blocking mode it waits
-        // for DCD and will likely stall the test. Our SerialPortBuilder::open already takes care of
-        // that.
-        File::options()
-            .read(true)
-            .write(true)
-            .custom_flags(libc::O_NONBLOCK)
-            .open(&hw_config.port_1)
-            .unwrap()
-    }
-
-    #[cfg(windows)]
-    pub fn open_file_successful(hw_config: &HardwareConfig) -> File {
         File::options()
             .read(true)
             .write(true)
@@ -80,43 +78,64 @@ mod checks {
             .unwrap()
     }
 
-    pub fn open_port_fails(hw_config: &HardwareConfig, _exclusivity: LockMode) {
-        #[cfg(unix)]
-        let port = serialport::new(&hw_config.port_1, 115200)
-            .exclusive(_exclusivity.is_exclusive())
-            .open();
-        #[cfg(not(unix))]
+    pub fn open_port_fails(hw_config: &HardwareConfig) {
         let port = serialport::new(&hw_config.port_1, 115200).open();
 
         assert!(port.is_err());
         assert_eq!(port.unwrap_err().kind(), ErrorKind::NoDevice);
     }
 
-    pub fn open_port_successful(
-        hw_config: &HardwareConfig,
-        _exclusivity: LockMode,
-    ) -> Box<dyn SerialPort> {
-        #[cfg(unix)]
-        let builder =
-            serialport::new(&hw_config.port_1, 115200).exclusive(_exclusivity.is_exclusive());
-        #[cfg(not(unix))]
-        let builder = serialport::new(&hw_config.port_1, 115200);
+    #[cfg(unix)]
+    pub fn open_port_with_lock_mode_fails(hw_config: &HardwareConfig, lock_mode: LockMode) {
+        let port = serialport::new(&hw_config.port_1, 115200)
+            .exclusive(lock_mode.is_exclusive())
+            .open();
 
-        builder.open().unwrap()
+        assert!(port.is_err());
+        assert_eq!(port.unwrap_err().kind(), ErrorKind::NoDevice);
+    }
+
+    #[must_use]
+    pub fn open_port_successful(hw_config: &HardwareConfig) -> Box<dyn SerialPort> {
+        serialport::new(&hw_config.port_1, 115200).open().unwrap()
+    }
+
+    #[cfg(unix)]
+    #[must_use]
+    pub fn open_port_with_lock_mode_successful(
+        hw_config: &HardwareConfig,
+        lock_mode: LockMode,
+    ) -> Box<dyn SerialPort> {
+        serialport::new(&hw_config.port_1, 115200)
+            .exclusive(lock_mode.is_exclusive())
+            .open()
+            .unwrap()
     }
 }
 
 #[rstest]
 #[cfg_attr(not(feature = "hardware-tests"), ignore)]
-#[case(LockMode::Exclusive)]
-#[cfg_attr(not(feature = "hardware-tests"), ignore)]
-#[case(LockMode::Shared)]
-fn opening_multiple_times(hw_config: HardwareConfig, #[case] exclusivity: LockMode) {
+fn opening_multiple_times(hw_config: HardwareConfig) {
     // Try to open (and close) the same port multiple times in a row to check that acquiring and
     // releasing locks does not lock out ourselves.
     for _ in 0..3 {
         // The port gets closed by dropping it before the next iteration step.
-        let _ = checks::open_port_successful(&hw_config, exclusivity);
+        let _ = checks::open_port_successful(&hw_config);
+    }
+}
+
+#[cfg(unix)]
+#[rstest]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
+#[case(LockMode::Exclusive)]
+#[cfg_attr(not(feature = "hardware-tests"), ignore)]
+#[case(LockMode::Shared)]
+fn opening_multiple_times_with_lock_mode(hw_config: HardwareConfig, #[case] lock_mode: LockMode) {
+    // Try to open (and close) the same port multiple times in a row to check that acquiring and
+    // releasing locks does not lock out ourselves.
+    for _ in 0..3 {
+        // The port gets closed by dropping it before the next iteration step.
+        let _ = checks::open_port_with_lock_mode_successful(&hw_config, lock_mode);
     }
 }
 
@@ -125,19 +144,32 @@ mod second_exclusive_open {
 
     #[rstest]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
-    #[case(LockMode::Exclusive)]
-    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
-    #[case(LockMode::Shared)]
-    fn fails_after_open(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
+    fn fails_after_open(hw_config: HardwareConfig) {
         // Open the port for the first time and keep it open.
-        let _first = checks::open_port_successful(&hw_config, first_mode);
+        let _first = checks::open_port_successful(&hw_config);
 
         // Opening the same port exclusively for a second time is expected to fail regardless of
         // the previous locking mode.
-        checks::open_port_fails(&hw_config, LockMode::Exclusive);
+        checks::open_port_fails(&hw_config);
     }
 
     #[rstest]
+    #[cfg(unix)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
+    #[case(LockMode::Exclusive)]
+    #[cfg_attr(not(feature = "hardware-tests"), ignore)]
+    #[case(LockMode::Shared)]
+    fn fails_after_open_with_lock_mode(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
+        // Open the port for the first time and keep it open.
+        let _first = checks::open_port_with_lock_mode_successful(&hw_config, first_mode);
+
+        // Opening the same port exclusively for a second time is expected to fail regardless of
+        // the previous locking mode.
+        checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Exclusive);
+    }
+
+    #[rstest]
+    #[cfg(unix)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
     #[case(LockMode::Exclusive)]
     #[cfg_attr(not(feature = "hardware-tests"), ignore)]
@@ -153,7 +185,7 @@ mod second_exclusive_open {
 
         // Opening the same port exclusively for a second time is expected to fail regardless of
         // the previous mode.
-        checks::open_port_fails(&hw_config, LockMode::Exclusive);
+        checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Exclusive);
     }
 
     #[rstest]
@@ -170,7 +202,7 @@ mod second_exclusive_open {
 
         // Opening the same port exclusively for a second time is expected to fail regardless of
         // the previous mode.
-        checks::open_port_fails(&hw_config, LockMode::Exclusive);
+        checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Exclusive);
     }
 
     #[rstest]
@@ -182,7 +214,7 @@ mod second_exclusive_open {
         unsafe { tiocexcl(first.as_raw_fd()).unwrap() };
 
         // Opening a port locked with TIOCEXCL for a second time is expected to fail.
-        checks::open_port_fails(&hw_config, LockMode::Exclusive);
+        checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Exclusive);
     }
 
     #[rstest]
@@ -195,7 +227,7 @@ mod second_exclusive_open {
 
         // Opening the same port again is expected to succeed as only TIOCEXCL prevents opening
         // this terminal again.
-        let _second = checks::open_port_successful(&hw_config, LockMode::Exclusive);
+        let _second = checks::open_port_with_lock_mode_successful(&hw_config, LockMode::Exclusive);
     }
 }
 
@@ -217,13 +249,15 @@ mod second_non_exclusive_open {
     #[case(LockMode::Shared)]
     fn after_open(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port for the first time and keep it open.
-        let _first = checks::open_port_successful(&hw_config, first_mode);
+        let _first = checks::open_port_with_lock_mode_successful(&hw_config, first_mode);
 
         // Open the same port a second time.
         match first_mode {
-            LockMode::Exclusive => checks::open_port_fails(&hw_config, LockMode::Shared),
+            LockMode::Exclusive => {
+                checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Shared)
+            }
             LockMode::Shared => {
-                let _ = checks::open_port_successful(&hw_config, LockMode::Shared);
+                let _ = checks::open_port_with_lock_mode_successful(&hw_config, LockMode::Shared);
             }
         }
     }
@@ -244,9 +278,11 @@ mod second_non_exclusive_open {
 
         // Open the same port for a second time.
         match first_mode {
-            LockMode::Exclusive => checks::open_port_fails(&hw_config, LockMode::Shared),
+            LockMode::Exclusive => {
+                checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Shared)
+            }
             LockMode::Shared => {
-                let _ = checks::open_port_successful(&hw_config, LockMode::Shared);
+                let _ = checks::open_port_with_lock_mode_successful(&hw_config, LockMode::Shared);
             }
         }
     }
@@ -263,9 +299,11 @@ mod second_non_exclusive_open {
 
         // Open the same port for a second time.
         match first_mode {
-            LockMode::Exclusive => checks::open_port_fails(&hw_config, LockMode::Shared),
+            LockMode::Exclusive => {
+                checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Shared)
+            }
             LockMode::Shared => {
-                let _ = checks::open_port_successful(&hw_config, LockMode::Shared);
+                let _ = checks::open_port_with_lock_mode_successful(&hw_config, LockMode::Shared);
             }
         }
     }
@@ -278,7 +316,7 @@ mod second_non_exclusive_open {
         unsafe { tiocexcl(first.as_raw_fd()).unwrap() };
 
         // Opening a port locked with TIOCEXCL for a second time is expected to fail.
-        checks::open_port_fails(&hw_config, LockMode::Exclusive);
+        checks::open_port_with_lock_mode_fails(&hw_config, LockMode::Exclusive);
     }
 
     #[rstest]
@@ -290,6 +328,6 @@ mod second_non_exclusive_open {
 
         // Opening the same port again is expected to succeed as only TIOCEXCL prevents opening
         // this terminal again.
-        let _second = checks::open_port_successful(&hw_config, LockMode::Exclusive);
+        let _second = checks::open_port_with_lock_mode_successful(&hw_config, LockMode::Exclusive);
     }
 }
