@@ -26,6 +26,15 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#316](https://github.com/serialport/serialport-rs/pull/316)
 
 ### Fixed
+
+
+* Always propagate errors out of termios getter/setter implementations.
+* Wrap slave port file descriptors in `TTYPort::pair` in a `Drop`-safe `OwnedFd` to avoid file descriptor leaks on early returns.
+* Enable arbitrary baud rates for Linux musl targets by using the `termios2`
+  (`TCGETS2`/`TCSETS2` + `BOTHER`) path now that required `libc` symbols are
+  available.
+  [#316](https://github.com/serialport/serialport-rs/pull/316)
+
 ### Removed
 
 
