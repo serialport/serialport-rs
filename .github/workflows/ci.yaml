@@ -83,8 +83,8 @@ jobs:
       RUSTDOCFLAGS: -Dwarnings
     steps:
       - name: documentation | install dependencies
+        # TODO: Harmonize with build.yaml
         run: |
-          # TODO: Harmonize with build.yaml
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt install -qq -y libudev-dev
