@@ -41,6 +41,8 @@ use std::time::Duration;
 
 #[cfg(unix)]
 mod posix;
+#[cfg(all(unix, feature = "async"))]
+pub use posix::AsyncSerialPort;
 #[cfg(unix)]
 pub use posix::{BreakDuration, TTYPort};
 
@@ -441,6 +443,12 @@ impl SerialPortBuilder {
     #[cfg(windows)]
     pub fn open_native(self) -> Result<COMPort> {
         windows::COMPort::open(&self)
+    }
+
+    /// Open a runtime-agnostic asynchronous interface to the port with the specified settings.
+    #[cfg(all(unix, feature = "async"))]
+    pub fn open_async(self) -> Result<AsyncSerialPort> {
+        AsyncSerialPort::open(&self)
     }
 }
 
