@@ -164,6 +164,20 @@ impl fmt::Display for DataBits {
     }
 }
 
+impl FromStr for DataBits {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "Five" | "five" | "5" => Ok(Self::Five),
+            "Six" | "six" | "6" => Ok(Self::Six),
+            "Seven" | "seven" | "7" => Ok(Self::Seven),
+            "Eight" | "eight" | "8" => Ok(Self::Eight),
+            _ => Err(()),
+        }
+    }
+}
+
 impl From<DataBits> for u8 {
     fn from(value: DataBits) -> Self {
         match value {
@@ -221,6 +235,19 @@ impl fmt::Display for Parity {
     }
 }
 
+impl FromStr for Parity {
+    type Err = ();
+
+    fn from_str(s: &str) -> std::result::Result::<Self, Self::Err> {
+        match s {
+            "None" | "none" => Ok(Self::None),
+            "Odd" | "odd" => Ok(Self::Odd),
+            "Even" | "even" => Ok(Self::Even),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Number of stop bits
 ///
 /// Stop bits are transmitted after every character.
@@ -239,6 +266,18 @@ impl fmt::Display for StopBits {
         match *self {
             StopBits::One => write!(f, "One"),
             StopBits::Two => write!(f, "Two"),
+        }
+    }
+}
+
+impl FromStr for StopBits {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "One" | "one" | "1" => Ok(Self::One),
+            "Two" | "two" | "2" => Ok(Self::Two),
+            _ => Err(()),
         }
     }
 }
