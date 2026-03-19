@@ -153,6 +153,11 @@ pub enum DataBits {
     Eight,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for DataBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
@@ -160,6 +165,20 @@ impl fmt::Display for DataBits {
             DataBits::Six => write!(f, "Six"),
             DataBits::Seven => write!(f, "Seven"),
             DataBits::Eight => write!(f, "Eight"),
+        }
+    }
+}
+
+impl FromStr for DataBits {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "Five" | "five" | "5" => Ok(DataBits::Five),
+            "Six" | "six" | "6" => Ok(DataBits::Six),
+            "Seven" | "seven" | "7" => Ok(DataBits::Seven),
+            "Eight" | "eight" | "8" => Ok(DataBits::Eight),
+            _ => Err(()),
         }
     }
 }
@@ -211,12 +230,30 @@ pub enum Parity {
     Even,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for Parity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Parity::None => write!(f, "None"),
             Parity::Odd => write!(f, "Odd"),
             Parity::Even => write!(f, "Even"),
+        }
+    }
+}
+
+impl FromStr for Parity {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "None" | "none" | "N" | "n" => Ok(Parity::None),
+            "Odd" | "odd" | "O" | "o" => Ok(Parity::Odd),
+            "Even" | "even" | "E" | "e" => Ok(Parity::Even),
+            _ => Err(()),
         }
     }
 }
@@ -234,11 +271,28 @@ pub enum StopBits {
     Two,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for StopBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             StopBits::One => write!(f, "One"),
             StopBits::Two => write!(f, "Two"),
+        }
+    }
+}
+
+impl FromStr for StopBits {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "One" | "one" | "1" => Ok(StopBits::One),
+            "Two" | "two" | "2" => Ok(StopBits::Two),
+            _ => Err(()),
         }
     }
 }
@@ -278,6 +332,11 @@ pub enum FlowControl {
     Hardware,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for FlowControl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
