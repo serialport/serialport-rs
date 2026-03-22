@@ -398,6 +398,22 @@ impl TTYPort {
             baud_rate: self.baud_rate,
         })
     }
+
+    /// Attempts to split the `TTYPort` into independent read and write halves.
+    ///
+    /// This allows you to write and read simultaneously from the same serial
+    /// connection on different threads without synchronization overhead.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the serial port couldn't be cloned using `try_clone_native`.
+    pub fn split(self) -> Result<(crate::ReadHalf<TTYPort>, crate::WriteHalf<TTYPort>)> {
+        let cloned = self.try_clone_native()?;
+        Ok((
+            crate::ReadHalf { inner: self },
+            crate::WriteHalf { inner: cloned },
+        ))
+    }
 }
 
 impl Drop for TTYPort {

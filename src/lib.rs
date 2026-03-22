@@ -870,6 +870,58 @@ impl fmt::Debug for dyn SerialPort {
     }
 }
 
+/// A half of a `SerialPort` that can only be used for reading.
+///
+/// This is typically created by splitting a port into its read and write halves.
+#[derive(Debug)]
+pub struct ReadHalf<T> {
+    pub(crate) inner: T,
+}
+
+impl<T: io::Read> io::Read for ReadHalf<T> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buf)
+    }
+}
+
+/// A half of a `SerialPort` that can only be used for writing.
+///
+/// This is typically created by splitting a port into its read and write halves.
+#[derive(Debug)]
+pub struct WriteHalf<T> {
+    pub(crate) inner: T,
+}
+
+impl<T: io::Write> io::Write for WriteHalf<T> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+impl dyn SerialPort {
+    /// Attempts to split the `SerialPort` into independent read and write halves.
+    ///
+    /// This allows you to write and read simultaneously from the same serial
+    /// connection on different threads without synchronization overhead.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the serial port couldn't be cloned using `try_clone`.
+    pub fn split(
+        self: Box<Self>,
+    ) -> Result<(ReadHalf<Box<dyn SerialPort>>, WriteHalf<Box<dyn SerialPort>>)> {
+        let cloned = self.try_clone()?;
+        Ok((
+            ReadHalf { inner: self },
+            WriteHalf { inner: cloned },
+        ))
+    }
+}
+
 /// Contains all possible USB information about a `SerialPort`
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
