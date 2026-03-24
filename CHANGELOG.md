@@ -8,17 +8,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-
-* Add `exclusive` configuration option to `SerialPortBuilder` to control
-  whether ports are opened with exclusive access locks.
-  [#319](https://github.com/serialport/serialport-rs/pull/319)
-
 ### Changed
 ### Fixed
 ### Removed
 
 
-## [4.9.0] -- 2026-03-12
+## [4.9.0] - 2026-03-12
+
+### Added
+
+* Add `exclusive` configuration option to `SerialPortBuilder` to control
+  whether ports are opened with exclusive access locks.
+  [#319](https://github.com/serialport/serialport-rs/pull/319)
 
 ### Changed
 
