@@ -472,6 +472,22 @@ pub trait SerialPort: Send + io::Read + io::Write {
     /// Additionally it may not exist for virtual ports.
     fn name(&self) -> Option<String>;
 
+    /// Returns the [`SerialPortInfo`] for this port by matching its name against
+    /// the results of [`available_ports()`].
+    ///
+    /// This may be slow on some platforms as it enumerates all available ports.
+    /// Returns an error if the port has no name, if enumeration fails, or if the
+    /// port is not found among the available ports (e.g. virtual or pseudo-terminal ports).
+    fn port_info(&self) -> Result<SerialPortInfo> {
+        let name = self
+            .name()
+            .ok_or_else(|| Error::new(ErrorKind::Unknown, "port has no name"))?;
+        available_ports()?
+            .into_iter()
+            .find(|info| info.port_name == name)
+            .ok_or_else(|| Error::new(ErrorKind::Unknown, "port not found in available ports"))
+    }
+
     /// Returns the current baud rate.
     ///
     /// This may return a value different from the last specified baud rate depending on the
