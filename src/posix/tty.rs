@@ -125,6 +125,7 @@ impl TTYPort {
         Self::open_internal(builder, false)
     }
 
+    #[cfg(feature = "async-io")]
     pub(super) fn open_nonblocking(builder: &SerialPortBuilder) -> Result<TTYPort> {
         Self::open_internal(builder, true)
     }
@@ -224,10 +225,12 @@ impl TTYPort {
         Ok(port)
     }
 
+    #[cfg(feature = "async-io")]
     pub(super) fn read_nonblocking(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 
+    #[cfg(feature = "async-io")]
     pub(super) fn write_nonblocking(&mut self, buf: &[u8]) -> io::Result<usize> {
         nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
@@ -397,8 +400,7 @@ impl TTYPort {
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
-    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
-    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    /// should look at [`SerialPortBuilder::open_async`].
     ///
     /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different

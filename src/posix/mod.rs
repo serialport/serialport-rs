@@ -1,9 +1,9 @@
-#[cfg(feature = "async")]
-pub use self::asynchronous::*;
-pub use self::enumerate::*;
-pub use self::tty::*;
+#[cfg(any(feature = "async-io", feature = "tokio"))]
+pub use asynchronous::*;
+pub use enumerate::*;
+pub use tty::*;
 
-#[cfg(feature = "async")]
+#[cfg(any(feature = "async-io", feature = "tokio"))]
 mod asynchronous;
 mod enumerate;
 mod error;

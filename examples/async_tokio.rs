@@ -2,7 +2,7 @@
 //
 // USAGE:
 //
-// `cargo run --features async --example async_tokio <device> <baudrate>`
+// `cargo run --features async-io --example async_tokio <device> <baudrate>`
 
 use futures::io::AsyncReadExt;
 use std::env;

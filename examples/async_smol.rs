@@ -2,7 +2,7 @@
 //
 // USAGE:
 //
-// `cargo run --features async --example async_smol <device> <baudrate>`
+// `cargo run --features async-io --example async_smol <device> <baudrate>`
 
 use futures::io::AsyncReadExt;
 use smol_macros::main;

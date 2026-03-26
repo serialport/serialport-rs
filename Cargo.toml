@@ -68,7 +68,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = ["libudev"]
-async = ["dep:futures-io", "dep:async-io", "dep:blocking"]
+async-io = ["dep:futures-io", "dep:async-io", "dep:blocking"]
+tokio = ["dep:futures-io"]
 hardware-tests = []
 # TODO: Make the feature unconditionally available with the next major release
 # (5.0) and remove this feature gate.
