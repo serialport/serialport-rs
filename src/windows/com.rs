@@ -102,8 +102,7 @@ impl COMPort {
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
-    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
-    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    /// should look at [`SerialPortBuilder::open_async`].
     ///
     /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
