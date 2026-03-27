@@ -1,12 +1,12 @@
 [package]
 name = "serialport"
-version = "4.9.1-alpha0"
+version = "5.0.0-alpha.0"
 authors = [
     "Bryant Mairs <bryant@mai.rs>",
     "Jesse Braham <jesse@beta7.io>",
 ]
 edition = "2021"
-rust-version = "1.59.0"
+rust-version = "1.75.0"
 description = "A cross-platform low-level serial port library."
 documentation = "https://docs.rs/serialport"
 repository = "https://github.com/serialport/serialport-rs"
@@ -29,7 +29,7 @@ io-kit-sys = "0.4.0"
 mach2 = "0.4.1"
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.52.0"
+version = "0.61.2"
 features = [
     "Win32_Devices_Communication",
     "Win32_Foundation",
@@ -47,6 +47,7 @@ features = [
 cfg-if = "1.0.0"
 scopeguard = "1.1"
 serde = { version = "1.0", features = ["derive"], optional = true }
+schemars = { package = "schemars", version = "1.2.1", features = ["derive"], optional = true }
 
 [dev-dependencies]
 assert_hex = "0.4.1"
@@ -65,3 +66,4 @@ hardware-tests = []
 # TODO: Make the feature unconditionally available with the next major release
 # (5.0) and remove this feature gate.
 usbportinfo-interface = []
+schemars = ["schemars"]

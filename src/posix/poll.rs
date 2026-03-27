@@ -48,7 +48,7 @@ fn wait_fd(fd: RawFd, events: PollFlags, timeout: Duration) -> io::Result<()> {
         Some(_) | None => (),
     }
 
-    Err(io::Error::new(io::ErrorKind::Other, EIO.desc()))
+    Err(io::Error::other(EIO.desc()))
 }
 
 /// Poll with a duration clamped to the maximum value representable by the `TimeSpec` used by
