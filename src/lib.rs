@@ -139,6 +139,7 @@ impl From<Error> for io::Error {
 /// Number of bits per character
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum DataBits {
     /// 5 bits per character
     Five,
@@ -200,6 +201,7 @@ impl TryFrom<u8> for DataBits {
 /// transmitted.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -226,6 +228,7 @@ impl fmt::Display for Parity {
 /// Stop bits are transmitted after every character.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum StopBits {
     /// One stop bit.
     One,
@@ -267,6 +270,7 @@ impl TryFrom<u8> for StopBits {
 /// Flow control modes
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum FlowControl {
     /// No flow control.
     None,
@@ -306,6 +310,7 @@ impl FromStr for FlowControl {
 /// [`clear`]: trait.SerialPort.html#tymethod.clear
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum ClearBuffer {
     /// Specify to clear data received but not read
     Input,
@@ -317,6 +322,7 @@ pub enum ClearBuffer {
 
 /// A struct containing all serial port settings
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct SerialPortBuilder {
     /// The port name, usually the device path
     path: String,
@@ -463,7 +469,7 @@ impl SerialPortBuilder {
 ///
 /// This trait is all that's necessary to implement a new serial port driver
 /// for a new platform.
-pub trait SerialPort: Send + io::Read + io::Write {
+pub trait SerialPort: Send + Sync + io::Read + io::Write {
     // Port settings getters
 
     /// Returns the name of this port if it exists.
@@ -814,6 +820,7 @@ impl fmt::Debug for dyn SerialPort {
 /// Contains all possible USB information about a `SerialPort`
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct UsbPortInfo {
     /// Vendor ID
     pub vid: u16,
@@ -828,7 +835,6 @@ pub struct UsbPortInfo {
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
     /// interface (as is the case on macOS), so you should recognize both interface numbers.
-    #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
 }
 
@@ -847,20 +853,16 @@ impl std::fmt::Debug for UsbPortInfo {
             .field("pid", &HexU16(self.pid))
             .field("serial_number", &self.serial_number)
             .field("manufacturer", &self.manufacturer)
-            .field("product", &self.product);
-
-        #[cfg(feature = "usbportinfo-interface")]
-        {
-            d.field("interface", &self.interface);
-        }
-
-        d.finish()
+            .field("product", &self.product)
+            .field("interface", &self.interface)
+            .finish()
     }
 }
 
 /// The physical type of a `SerialPort`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum SerialPortType {
     /// The serial port is connected via USB
     UsbPort(UsbPortInfo),
@@ -875,6 +877,7 @@ pub enum SerialPortType {
 /// A device-independent implementation of serial port information
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct SerialPortInfo {
     /// The short name of the serial port
     pub port_name: String,
@@ -977,16 +980,12 @@ mod test {
             pid: 0xaffe,
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
-            #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
         };
         let formatted = format!("{:?}", info);
 
         // Set the expectiation for the debug representation basend on a "snapshot" of the current
         // one, manually cross-checked to contain a VID and PID in hexadecimal digits.
-        #[cfg(not(feature = "usbportinfo-interface"))]
-        let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\") }";
-        #[cfg(feature = "usbportinfo-interface")]
         let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\"), interface: Some(42) }";
 
         assert_eq!(formatted, expected);
