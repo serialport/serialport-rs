@@ -322,6 +322,7 @@ pub enum ClearBuffer {
 
 /// A struct containing all serial port settings
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct SerialPortBuilder {
     /// The port name, usually the device path
     path: String,
