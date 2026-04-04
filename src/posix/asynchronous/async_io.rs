@@ -1,7 +1,7 @@
 //! async-io backend for async serial ports on Unix.
 
 use std::fmt;
-use std::future::{poll_fn, Future};
+use std::future::Future;
 use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -44,25 +44,6 @@ impl AsyncSerialPort {
             info,
             flush_task: None,
         })
-    }
-
-    /// Deregisters from the reactor and returns the underlying [`TTYPort`].
-    pub fn into_inner(mut self) -> Result<TTYPort> {
-        let async_tty = self
-            .tty
-            .take()
-            .ok_or_else(|| Error::new(ErrorKind::NoDevice, "port is closed"))?;
-        async_tty.into_inner().map_err(|e| {
-            Error::new(
-                ErrorKind::Io(e.kind()),
-                format!("failed to deregister from reactor: {e}"),
-            )
-        })
-    }
-
-    /// Waits until all buffered output has been sent.
-    pub async fn drain(&mut self) -> io::Result<()> {
-        poll_fn(|cx| self.poll_flush_impl(cx, false)).await
     }
 
     fn async_tty(&self) -> io::Result<&Async<TTYPort>> {
