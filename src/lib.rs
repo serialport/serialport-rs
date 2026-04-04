@@ -51,6 +51,8 @@ pub use posix::{BreakDuration, TTYPort};
 
 #[cfg(windows)]
 mod windows;
+#[cfg(all(windows, feature = "async-io"))]
+pub use windows::AsyncSerialPort;
 #[cfg(windows)]
 pub use windows::COMPort;
 
@@ -464,7 +466,7 @@ impl SerialPortBuilder {
     }
 
     /// Open an asynchronous interface to the port with the specified settings.
-    #[cfg(all(unix, feature = "async-io"))]
+    #[cfg(all(any(unix, windows), feature = "async-io"))]
     pub fn open_async(self) -> Result<AsyncSerialPort> {
         AsyncSerialPort::open(&self)
     }
