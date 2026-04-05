@@ -39,6 +39,9 @@ use std::io;
 use std::str::FromStr;
 use std::time::Duration;
 
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+extern crate libudev_rs as libudev;
+
 #[cfg(unix)]
 mod posix;
 #[cfg(unix)]
