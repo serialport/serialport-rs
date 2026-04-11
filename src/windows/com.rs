@@ -1,5 +1,7 @@
 use std::mem::MaybeUninit;
-use std::os::windows::prelude::*;
+use std::os::windows::io::{
+    AsHandle, AsRawHandle, BorrowedHandle, FromRawHandle, IntoRawHandle, OwnedHandle, RawHandle,
+};
 use std::time::Duration;
 use std::{io, ptr};
 
@@ -83,17 +85,22 @@ impl COMPort {
 
         // create the COMPort here so the handle is getting closed
         // if one of the calls to `get_dcb()` or `set_dcb()` fails
-        let mut com = COMPort::open_from_raw_handle(handle);
+        let owned_handle = unsafe { OwnedHandle::from_raw_handle(handle as RawHandle) };
 
-        let mut dcb = dcb::get_dcb(com.raw_handle())?;
+        let mut dcb = dcb::get_dcb(owned_handle.as_raw_handle())?;
         dcb::init(&mut dcb);
         dcb::set_baud_rate(&mut dcb, builder.baud_rate);
         dcb::set_data_bits(&mut dcb, builder.data_bits);
         dcb::set_parity(&mut dcb, builder.parity);
         dcb::set_stop_bits(&mut dcb, builder.stop_bits);
         dcb::set_flow_control(&mut dcb, builder.flow_control);
-        dcb::set_dcb(com.raw_handle(), dcb)?;
+        dcb::set_dcb(owned_handle.as_raw_handle(), dcb)?;
 
+        let mut com = COMPort {
+            handle: owned_handle,
+            timeout: builder.timeout,
+            port_name: Some(builder.path.clone()),
+        };
         // Try to set DTR on best-effort.
         if let Some(dtr) = builder.dtr_on_open {
             let _ = com.write_data_terminal_ready(dtr);
@@ -119,13 +126,13 @@ impl COMPort {
     ///
     /// This function returns an error if the serial port couldn't be cloned.
     pub(crate) fn try_clone(&self) -> Result<COMPort> {
-        let process_handle: HANDLE = unsafe { GetCurrentProcess() };
+        let process_handle = unsafe { GetCurrentProcess() };
         let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
 
         let duplicated = unsafe {
             DuplicateHandle(
                 process_handle,
-                self.raw_handle(),
+                self.handle.as_raw_handle(),
                 process_handle,
                 &mut cloned_handle,
                 0,
@@ -145,7 +152,7 @@ impl COMPort {
     }
 
     fn escape_comm_function(&mut self, function: u32) -> Result<()> {
-        match unsafe { EscapeCommFunction(self.raw_handle(), function) } {
+        match unsafe { EscapeCommFunction(self.handle.as_raw_handle(), function) } {
             0 => Err(super::error::last_os_error()),
             _ => Ok(()),
         }
@@ -154,24 +161,20 @@ impl COMPort {
     fn read_pin(&mut self, pin: u32) -> Result<bool> {
         let mut status: u32 = 0;
 
-        match unsafe { GetCommModemStatus(self.raw_handle(), &mut status) } {
+        match unsafe { GetCommModemStatus(self.handle.as_raw_handle(), &mut status) } {
             0 => Err(super::error::last_os_error()),
             _ => Ok(status & pin != 0),
         }
     }
 
-    fn open_from_raw_handle(handle: RawHandle) -> Self {
+    fn open_from_raw_handle(raw_handle: RawHandle) -> Self {
         // It is not trivial to get the file path corresponding to a handle.
         // We'll punt and set it `None` here.
         COMPort {
-            handle: unsafe { OwnedHandle::from_raw_handle(handle) },
+            handle: unsafe { OwnedHandle::from_raw_handle(raw_handle) },
             timeout: Duration::from_millis(100),
             port_name: None,
         }
-    }
-
-    fn raw_handle(&self) -> HANDLE {
-        self.handle.as_raw_handle() as HANDLE
     }
 
     fn timeout_constant(duration: Duration) -> u32 {
@@ -217,7 +220,7 @@ impl io::Read for COMPort {
 
         match unsafe {
             ReadFile(
-                self.raw_handle(),
+                self.handle.as_raw_handle(),
                 buf.as_mut_ptr(),
                 buf.len() as u32,
                 &mut len,
@@ -245,7 +248,7 @@ impl io::Write for COMPort {
 
         match unsafe {
             WriteFile(
-                self.raw_handle(),
+                self.handle.as_raw_handle(),
                 buf.as_ptr(),
                 buf.len() as u32,
                 &mut len,
@@ -258,7 +261,7 @@ impl io::Write for COMPort {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        match unsafe { FlushFileBuffers(self.raw_handle()) } {
+        match unsafe { FlushFileBuffers(self.handle.as_raw_handle()) } {
             0 => Err(io::Error::last_os_error()),
             _ => Ok(()),
         }
@@ -285,7 +288,7 @@ impl COMPort {
             WriteTotalTimeoutConstant: timeout_constant,
         };
 
-        if unsafe { SetCommTimeouts(self.raw_handle(), &timeouts) } == 0 {
+        if unsafe { SetCommTimeouts(self.handle.as_raw_handle(), &timeouts) } == 0 {
             return Err(super::error::last_os_error());
         }
 
@@ -326,12 +329,12 @@ impl COMPort {
     }
 
     pub fn baud_rate(&self) -> Result<u32> {
-        let dcb = dcb::get_dcb(self.raw_handle())?;
+        let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         Ok(dcb.BaudRate)
     }
 
     pub fn data_bits(&self) -> Result<DataBits> {
-        let dcb = dcb::get_dcb(self.raw_handle())?;
+        let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         match dcb.ByteSize {
             5 => Ok(DataBits::Five),
             6 => Ok(DataBits::Six),
@@ -345,7 +348,7 @@ impl COMPort {
     }
 
     pub fn parity(&self) -> Result<Parity> {
-        let dcb = dcb::get_dcb(self.raw_handle())?;
+        let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         match dcb.Parity {
             ODDPARITY => Ok(Parity::Odd),
             EVENPARITY => Ok(Parity::Even),
@@ -358,7 +361,7 @@ impl COMPort {
     }
 
     pub fn stop_bits(&self) -> Result<StopBits> {
-        let dcb = dcb::get_dcb(self.raw_handle())?;
+        let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         match dcb.StopBits {
             TWOSTOPBITS => Ok(StopBits::Two),
             ONESTOPBIT => Ok(StopBits::One),
@@ -370,7 +373,7 @@ impl COMPort {
     }
 
     pub fn flow_control(&self) -> Result<FlowControl> {
-        let dcb = dcb::get_dcb(self.raw_handle())?;
+        let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         if dcb.fOutxCtsFlow() || dcb.fRtsControl() != dcb::RtsControl::Disable {
             Ok(FlowControl::Hardware)
         } else if dcb.fOutX() || dcb.fInX() {
@@ -381,40 +384,46 @@ impl COMPort {
     }
 
     pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
-        let mut dcb = dcb::get_dcb(self.raw_handle())?;
+        let mut dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         dcb::set_baud_rate(&mut dcb, baud_rate);
-        dcb::set_dcb(self.raw_handle(), dcb)
+        dcb::set_dcb(self.handle.as_raw_handle(), dcb)
     }
 
     pub fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
-        let mut dcb = dcb::get_dcb(self.raw_handle())?;
+        let mut dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         dcb::set_data_bits(&mut dcb, data_bits);
-        dcb::set_dcb(self.raw_handle(), dcb)
+        dcb::set_dcb(self.handle.as_raw_handle(), dcb)
     }
 
     pub fn set_parity(&mut self, parity: Parity) -> Result<()> {
-        let mut dcb = dcb::get_dcb(self.raw_handle())?;
+        let mut dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         dcb::set_parity(&mut dcb, parity);
-        dcb::set_dcb(self.raw_handle(), dcb)
+        dcb::set_dcb(self.handle.as_raw_handle(), dcb)
     }
 
     pub fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
-        let mut dcb = dcb::get_dcb(self.raw_handle())?;
+        let mut dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         dcb::set_stop_bits(&mut dcb, stop_bits);
-        dcb::set_dcb(self.raw_handle(), dcb)
+        dcb::set_dcb(self.handle.as_raw_handle(), dcb)
     }
 
     pub fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
-        let mut dcb = dcb::get_dcb(self.raw_handle())?;
+        let mut dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         dcb::set_flow_control(&mut dcb, flow_control);
-        dcb::set_dcb(self.raw_handle(), dcb)
+        dcb::set_dcb(self.handle.as_raw_handle(), dcb)
     }
 
     pub fn bytes_to_read(&self) -> Result<u32> {
         let mut errors: u32 = 0;
         let mut comstat = MaybeUninit::uninit();
 
-        if unsafe { ClearCommError(self.raw_handle(), &mut errors, comstat.as_mut_ptr()) != 0 } {
+        if unsafe {
+            ClearCommError(
+                self.handle.as_raw_handle(),
+                &mut errors,
+                comstat.as_mut_ptr(),
+            ) != 0
+        } {
             unsafe { Ok(comstat.assume_init().cbInQue) }
         } else {
             Err(super::error::last_os_error())
@@ -425,7 +434,13 @@ impl COMPort {
         let mut errors: u32 = 0;
         let mut comstat = MaybeUninit::uninit();
 
-        if unsafe { ClearCommError(self.raw_handle(), &mut errors, comstat.as_mut_ptr()) != 0 } {
+        if unsafe {
+            ClearCommError(
+                self.handle.as_raw_handle(),
+                &mut errors,
+                comstat.as_mut_ptr(),
+            ) != 0
+        } {
             unsafe { Ok(comstat.assume_init().cbOutQue) }
         } else {
             Err(super::error::last_os_error())
@@ -439,7 +454,7 @@ impl COMPort {
             ClearBuffer::All => PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR,
         };
 
-        if unsafe { PurgeComm(self.raw_handle(), buffer_flags) != 0 } {
+        if unsafe { PurgeComm(self.handle.as_raw_handle(), buffer_flags) != 0 } {
             Ok(())
         } else {
             Err(super::error::last_os_error())
@@ -447,7 +462,7 @@ impl COMPort {
     }
 
     pub fn set_break(&self) -> Result<()> {
-        if unsafe { SetCommBreak(self.raw_handle()) != 0 } {
+        if unsafe { SetCommBreak(self.handle.as_raw_handle()) != 0 } {
             Ok(())
         } else {
             Err(super::error::last_os_error())
@@ -455,7 +470,7 @@ impl COMPort {
     }
 
     pub fn clear_break(&self) -> Result<()> {
-        if unsafe { ClearCommBreak(self.raw_handle()) != 0 } {
+        if unsafe { ClearCommBreak(self.handle.as_raw_handle()) != 0 } {
             Ok(())
         } else {
             Err(super::error::last_os_error())
