@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use std::{io, mem};
 
 use nix::errno::Errno;
-use nix::fcntl::{fcntl, FcntlArg, OFlag};
+use nix::fcntl::{fcntl, OFlag};
 use nix::{libc, unistd};
 
 use crate::posix::flock;
@@ -132,7 +132,6 @@ impl TTYPort {
 
     fn open_internal(builder: &SerialPortBuilder, nonblocking: bool) -> Result<TTYPort> {
         use nix::fcntl::FcntlArg::F_SETFL;
-        use nix::libc::{cfmakeraw, tcgetattr, tcsetattr};
 
         let path = Path::new(&builder.path);
         let fd = OwnedFd(nix::fcntl::open(
