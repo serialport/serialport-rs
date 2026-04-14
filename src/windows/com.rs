@@ -308,7 +308,7 @@ impl SerialPort for COMPort {
         } else {
             0
         };
-        
+
         let timeouts = COMMTIMEOUTS {
             ReadIntervalTimeout: self.read_interval_timeout,
             ReadTotalTimeoutMultiplier: read_total_timeout_multiplier,
@@ -525,4 +525,12 @@ mod tests {
     fn timeout_constant_zero_is_zero() {
         assert_eq!(0, COMPort::timeout_constant(Duration::ZERO));
     }
+
+    #[test]
+    fn default_read_interval_timeout_is_max() {
+        let port = COMPort::open_from_raw_handle(std::ptr::null_mut());
+        assert_eq!(port.read_interval_timeout(), u32::MAX);
+    }
+
+    
 }
