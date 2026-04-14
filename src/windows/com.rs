@@ -303,9 +303,15 @@ impl SerialPort for COMPort {
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         let timeout_constant = Self::timeout_constant(timeout);
 
+        let read_total_timeout_multiplier = if self.read_interval_timeout == u32::MAX {
+            u32::MAX
+        } else {
+            0
+        };
+        
         let timeouts = COMMTIMEOUTS {
             ReadIntervalTimeout: self.read_interval_timeout,
-            ReadTotalTimeoutMultiplier: u32::MAX,
+            ReadTotalTimeoutMultiplier: read_total_timeout_multiplier,
             ReadTotalTimeoutConstant: timeout_constant,
             WriteTotalTimeoutMultiplier: 0,
             WriteTotalTimeoutConstant: timeout_constant,
