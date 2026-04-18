@@ -17,6 +17,8 @@
 //! platform-specific port object which allows access to platform-specific functionality.
 
 #![allow(clippy::uninlined_format_args)]
+// Clippy's MSRV lint can disagree with macro-expanded code from dependencies (e.g. nix ioctl helpers) even when `cargo build` at the crate MSRV still succeeds. See CI `clippy` jobs.
+#![allow(clippy::incompatible_msrv)]
 #![deny(
     clippy::dbg_macro,
     missing_docs,
@@ -913,12 +915,12 @@ impl dyn SerialPort {
     /// This function returns an error if the serial port couldn't be cloned using `try_clone`.
     pub fn split(
         self: Box<Self>,
-    ) -> Result<(ReadHalf<Box<dyn SerialPort>>, WriteHalf<Box<dyn SerialPort>>)> {
+    ) -> Result<(
+        ReadHalf<Box<dyn SerialPort>>,
+        WriteHalf<Box<dyn SerialPort>>,
+    )> {
         let cloned = self.try_clone()?;
-        Ok((
-            ReadHalf { inner: self },
-            WriteHalf { inner: cloned },
-        ))
+        Ok((ReadHalf { inner: self }, WriteHalf { inner: cloned }))
     }
 }
 
