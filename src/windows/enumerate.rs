@@ -137,7 +137,14 @@ impl<'hwid> HwidMatches<'hwid> {
                     })
                     .map(|(index, _)| index)
                     .unwrap_or(tail.len());
-                tail.get(..index)
+                let s = tail.get(..index)?;
+                let rest = tail.get(index..).unwrap_or("");
+                // Reject "serials" that are just a prefix of a composite instance-id tail
+                // (e.g. `...PID_6018+6&A694CA9&0&0000` should not yield serial `6`).
+                if rest.starts_with('&') && rest.matches('&').count() >= 2 {
+                    return None;
+                }
+                Some(s)
             })
         } else {
             None
@@ -304,7 +311,7 @@ impl PortDevice {
 
             current_devinst = parent_devinst;
         }
-        
+
         ancestors
     }
 
