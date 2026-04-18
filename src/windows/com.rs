@@ -110,19 +110,19 @@ impl COMPort {
 
     /// Set the `ReadIntervalTimeout` in milliseconds
     ///
-    /// `ReadIntervalTimeout` is the maximum time allowed to elapse before the arrival 
-    /// of the next byte on the communications line, in milliseconds. If the interval 
-    /// between the arrival of any two bytes exceeds this amount, the `ReadFile` operation 
+    /// `ReadIntervalTimeout` is the maximum time allowed to elapse before the arrival
+    /// of the next byte on the communications line, in milliseconds. If the interval
+    /// between the arrival of any two bytes exceeds this amount, the `ReadFile` operation
     /// is completed and any buffered data is returned.
     ///
-    /// A value of zero indicates that interval time-outs are not used. 
-    /// A value of `u32::MAX`, combined with zero values for both the 
-    /// `ReadTotalTimeoutConstant` and `ReadTotalTimeoutMultiplier` members, specifies 
-    /// that the read operation is to return immediately with the bytes that have already 
+    /// A value of zero indicates that interval time-outs are not used.
+    /// A value of `u32::MAX`, combined with zero values for both the
+    /// `ReadTotalTimeoutConstant` and `ReadTotalTimeoutMultiplier` members, specifies
+    /// that the read operation is to return immediately with the bytes that have already
     /// been received, even if no bytes have been received.
     ///
     /// By default, this is set to `u32::MAX` for maximum responsiveness, mimicking Unix-like
-    /// `VMIN=0`, `VTIME=0` non-blocking behavior. However, for certain use cases, modifying 
+    /// `VMIN=0`, `VTIME=0` non-blocking behavior. However, for certain use cases, modifying
     /// this value can significantly increase transfer rates on Windows.
     pub fn set_read_interval_timeout(&mut self, timeout: u32) -> Result<()> {
         self.read_interval_timeout = timeout;
