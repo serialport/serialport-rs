@@ -7,12 +7,12 @@ use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
     SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey,
     CR_SUCCESS, DICS_FLAG_GLOBAL, DIGCF_PRESENT, DIREG_DEV, HDEVINFO, MAX_DEVICE_ID_LEN,
-    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_MFG, SP_DEVINFO_DATA,
+    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_LOCATION_PATHS, SPDRP_MFG, SP_DEVINFO_DATA,
 };
 use windows_sys::Win32::Foundation::{FALSE, FILETIME, INVALID_HANDLE_VALUE, MAX_PATH};
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegEnumValueW, RegOpenKeyExW, RegQueryInfoKeyW, RegQueryValueExW, HKEY,
-    HKEY_LOCAL_MACHINE, KEY_READ, REG_SZ,
+    HKEY_LOCAL_MACHINE, KEY_READ, REG_MULTI_SZ, REG_SZ,
 };
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
@@ -185,9 +185,32 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         manufacturer: None,
         product: None,
 
+        #[cfg(feature = "port-chain")]
+        bus_id: Default::default(),
+        #[cfg(feature = "port-chain")]
+        port_chain: Default::default(),
+
         #[cfg(feature = "usbportinfo-interface")]
         interface,
     })
+}
+
+#[cfg(feature = "port-chain")]
+fn parse_location_path(s: &str) -> Option<(String, Vec<u8>)> {
+    let usbroot = "#USBROOT(";
+    let start_i = s.find(usbroot)?;
+    let close_i = s[start_i + usbroot.len()..].find(')')?;
+    let (bus, mut s) = s.split_at(start_i + usbroot.len() + close_i + 1);
+
+    let mut path = vec![];
+
+    while let Some((_, next)) = s.split_once("#USB(") {
+        let (port_num, next) = next.split_once(")")?;
+        path.push(port_num.parse().ok()?);
+        s = next;
+    }
+
+    Some((bus.to_owned(), path))
 }
 
 struct PortDevices {
@@ -394,6 +417,19 @@ impl PortDevice {
             .map(|mut info: UsbPortInfo| {
                 info.manufacturer = self.property(SPDRP_MFG);
                 info.product = self.property(SPDRP_FRIENDLYNAME);
+
+                #[cfg(feature = "port-chain")]
+                {
+                    let location_paths = self.property_list(SPDRP_LOCATION_PATHS);
+                    eprintln!("Location paths: {location_paths:?}");
+                    let (bus_id, port_chain) = location_paths
+                        .iter()
+                        .find_map(|p| parse_location_path(p))
+                        .unwrap_or_default();
+                    info.bus_id = bus_id;
+                    info.port_chain = port_chain;
+                }
+
                 SerialPortType::UsbPort(info)
             })
             .unwrap_or(SerialPortType::Unknown)
@@ -428,6 +464,39 @@ impl PortDevice {
             .split(';')
             .next_back()
             .map(str::to_string)
+    }
+
+    // Retrieves a device property and returns it, if it exists. Returns None if the property
+    // doesn't exist.
+    fn property_list(&mut self, property_id: u32) -> Vec<String> {
+        let mut value_type = 0;
+        let mut property_buf = [0u16; MAX_PATH as usize];
+
+        let res = unsafe {
+            SetupDiGetDeviceRegistryPropertyW(
+                self.hdi,
+                &self.devinfo_data,
+                property_id,
+                &mut value_type,
+                property_buf.as_mut_ptr() as *mut u8,
+                property_buf.len() as u32,
+                ptr::null_mut(),
+            )
+        };
+
+        if res == FALSE || value_type != REG_MULTI_SZ {
+            return vec![];
+        }
+
+        let mut out = vec![];
+        for chunk in property_buf.split(|c| *c == 0) {
+            // A NULL value indicates the end of the list
+            if chunk.len() == 0 {
+                break;
+            }
+            out.push(from_utf16_lossy_trimmed(chunk));
+        }
+        out
     }
 }
 

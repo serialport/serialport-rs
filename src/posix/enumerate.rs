@@ -345,6 +345,20 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Resu
         .ok_or(Error::new(ErrorKind::Unknown, "Failed to get string value"))
 }
 
+#[cfg(all(any(target_os = "ios", target_os = "macos"), feature = "port-chain"))]
+fn parse_location_id(id: u32) -> Vec<u8> {
+    let mut chain = vec![];
+    let mut shift = id << 8;
+
+    while shift != 0 {
+        let port = shift >> 28;
+        chain.push(port as u8);
+        shift <<= 4;
+    }
+
+    chain
+}
+
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 /// Determine the serial port type based on the service object (like that returned by
 /// `IOIteratorNext`). Specific properties are extracted for USB devices.
@@ -356,12 +370,18 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
+        #[cfg(feature = "port-chain")]
+        let location_id = get_int_property(usb_device, "locationID").unwrap_or_default();
         SerialPortType::UsbPort(UsbPortInfo {
             vid: get_int_property(usb_device, "idVendor").unwrap_or_default() as u16,
             pid: get_int_property(usb_device, "idProduct").unwrap_or_default() as u16,
             serial_number: get_string_property(usb_device, "USB Serial Number").ok(),
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
+            #[cfg(feature = "port-chain")]
+            bus_id: format!("{:02x}", (location_id >> 24) as u8),
+            #[cfg(feature = "port-chain")]
+            port_chain: parse_location_id(location_id),
             // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
             // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
             // we will lookup the interface number using the same method. See:
@@ -602,12 +622,35 @@ cfg_if! {
             let product = read_file_to_trimmed_string(&device_path, &"product");
             let manufacturer = read_file_to_trimmed_string(&device_path, &"manufacturer");
 
+            #[cfg(feature = "port-chain")]
+            let bus_id = if let Some(busnum) = read_file_to_trimmed_string(&device_path, "busnum") {
+                u32::from_str_radix(&busnum, 10)
+                .map(|n| format!("{n:03}"))
+                .unwrap_or_default()
+            } else {
+                "000".to_owned()
+            };
+
+            #[cfg(feature = "port-chain")]
+            let port_chain = read_file_to_trimmed_string(&device_path, "devpath")
+                .filter(|p| p != "0") // root hub should be empty but devpath is 0
+                .and_then(|p| {
+                    p.split('.')
+                        .map(|v| v.parse::<u8>().ok())
+                        .collect::<Option<Vec<u8>>>()
+                })
+                .unwrap_or_default();
+
             Some(UsbPortInfo {
                 vid,
                 pid,
                 serial_number,
                 manufacturer,
                 product,
+                #[cfg(feature = "port-chain")]
+                bus_id,
+                #[cfg(feature = "port-chain")]
+                port_chain,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface,
             })
