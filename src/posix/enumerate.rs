@@ -614,13 +614,13 @@ cfg_if! {
         fn read_usb_port_info(interface_path: &Path) -> Option<UsbPortInfo> {
             let device_path = interface_path.parent()?;
 
-            let vid = read_file_to_u16(&device_path, "idVendor")?;
-            let pid = read_file_to_u16(&device_path, "idProduct")?;
+            let vid = read_file_to_u16(device_path, "idVendor")?;
+            let pid = read_file_to_u16(device_path, "idProduct")?;
             #[cfg(feature = "usbportinfo-interface")]
             let interface = read_file_to_u8(&interface_path, &"bInterfaceNumber");
-            let serial_number = read_file_to_trimmed_string(&device_path, &"serial");
-            let product = read_file_to_trimmed_string(&device_path, &"product");
-            let manufacturer = read_file_to_trimmed_string(&device_path, &"manufacturer");
+            let serial_number = read_file_to_trimmed_string(device_path, "serial");
+            let product = read_file_to_trimmed_string(device_path, "product");
+            let manufacturer = read_file_to_trimmed_string(device_path, "manufacturer");
 
             #[cfg(feature = "port-chain")]
             let bus_id = if let Some(busnum) = read_file_to_trimmed_string(&device_path, "busnum") {
