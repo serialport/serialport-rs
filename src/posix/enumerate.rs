@@ -123,13 +123,19 @@ fn bus_num_and_port_chain(device: &libudev::Device) -> (String, Vec<u8>) {
         let devpath = d.devpath().and_then(OsStr::to_str);
         device = d.parent();
 
-        let Some(busnum) = busnum else {
+        // TODO: Replace this with `if let Some(busnum) = busnum else { continue };`
+        // when MSRV is updated.
+        if busnum.is_none() {
             continue;
-        };
+        }
+        let busnum = busnum.unwrap();
 
-        let Some(devpath) = devpath else {
+        // TODO: Replace this with `if let Some(devpath) = devpath else { continue };`
+        // when MSRV is updated.
+        if devpath.is_none() {
             continue;
         };
+        let devpath = devpath.unwrap();
 
         let bus_num = u32::from_str_radix(&busnum, 10)
             .map(|n| format!("{n:03}"))
