@@ -109,6 +109,47 @@ fn udev_restore_spaces(source: String) -> String {
     source.replace('_', " ")
 }
 
+#[cfg(all(
+    target_os = "linux",
+    not(target_env = "musl"),
+    all(feature = "libudev", feature = "port-chain")
+))]
+/// Get the bus number and port chain out of the first parent device that
+/// has a defined bus number.
+fn bus_num_and_port_chain(device: &libudev::Device) -> (String, Vec<u8>) {
+    let mut device = device.parent();
+    while let Some(d) = device.take() {
+        let busnum = udev_property_as_string(&d, "BUSNUM");
+        let devpath = d.devpath().and_then(OsStr::to_str);
+        device = d.parent();
+
+        let Some(busnum) = busnum else {
+            continue;
+        };
+
+        let Some(devpath) = devpath else {
+            continue;
+        };
+
+        let bus_num = u32::from_str_radix(&busnum, 10)
+            .map(|n| format!("{n:03}"))
+            .unwrap_or_default();
+
+        let port_chain = devpath
+            .rsplit_once("-")
+            .map(|s| s.1)
+            .filter(|p| *p != "0") // root hub should be empty but devpath is 0
+            .and_then(|p| {
+                p.split('.')
+                    .map(|v| v.parse::<u8>().ok())
+                    .collect::<Option<Vec<u8>>>()
+            })
+            .unwrap_or_default();
+        return (bus_num, port_chain);
+    }
+    return ("000".to_owned(), vec![]);
+}
+
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
 fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
     match d.property_value("ID_BUS").and_then(OsStr::to_str) {
@@ -123,12 +164,20 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
             let product =
                 udev_property_encoded_or_replaced_as_string(d, "ID_MODEL_ENC", "ID_MODEL")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
+
+            #[cfg(feature = "port-chain")]
+            let (bus_id, port_chain) = bus_num_and_port_chain(d);
+
             Ok(SerialPortType::UsbPort(UsbPortInfo {
                 vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
                 pid: udev_hex_property_as_int(d, "ID_MODEL_ID", &u16::from_str_radix)?,
                 serial_number,
                 manufacturer,
                 product,
+                #[cfg(feature = "port-chain")]
+                bus_id,
+                #[cfg(feature = "port-chain")]
+                port_chain,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
                     .ok(),
@@ -154,12 +203,20 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     "ID_USB_MODEL_ENC",
                     "ID_USB_MODEL",
                 );
+
+                #[cfg(feature = "port-chain")]
+                let (bus_id, port_chain) = bus_num_and_port_chain(d);
+
                 Ok(SerialPortType::UsbPort(UsbPortInfo {
                     vid: udev_hex_property_as_int(d, "ID_USB_VENDOR_ID", &u16::from_str_radix)?,
                     pid: udev_hex_property_as_int(d, "ID_USB_MODEL_ID", &u16::from_str_radix)?,
                     serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
                     manufacturer,
                     product,
+                    #[cfg(feature = "port-chain")]
+                    bus_id,
+                    #[cfg(feature = "port-chain")]
+                    port_chain,
                     #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
                         d,
@@ -253,6 +310,10 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         serial_number: None,
         manufacturer: None,
         product: None,
+        #[cfg(feature = "port-chain")]
+        bus_id: Default::default(),
+        #[cfg(feature = "port-chain")]
+        port_chain: Default::default(),
         // Only attempt to find the interface if the feature is enabled.
         #[cfg(feature = "usbportinfo-interface")]
         interface: mod_tail.get(pid_start + 4..).and_then(|mod_tail| {
@@ -617,13 +678,13 @@ cfg_if! {
             let vid = read_file_to_u16(device_path, "idVendor")?;
             let pid = read_file_to_u16(device_path, "idProduct")?;
             #[cfg(feature = "usbportinfo-interface")]
-            let interface = read_file_to_u8(&interface_path, &"bInterfaceNumber");
+            let interface = read_file_to_u8(interface_path, "bInterfaceNumber");
             let serial_number = read_file_to_trimmed_string(device_path, "serial");
             let product = read_file_to_trimmed_string(device_path, "product");
             let manufacturer = read_file_to_trimmed_string(device_path, "manufacturer");
 
             #[cfg(feature = "port-chain")]
-            let bus_id = if let Some(busnum) = read_file_to_trimmed_string(&device_path, "busnum") {
+            let bus_id = if let Some(busnum) = read_file_to_trimmed_string(device_path, "busnum") {
                 u32::from_str_radix(&busnum, 10)
                 .map(|n| format!("{n:03}"))
                 .unwrap_or_default()
@@ -632,7 +693,7 @@ cfg_if! {
             };
 
             #[cfg(feature = "port-chain")]
-            let port_chain = read_file_to_trimmed_string(&device_path, "devpath")
+            let port_chain = read_file_to_trimmed_string(device_path, "devpath")
                 .filter(|p| p != "0") // root hub should be empty but devpath is 0
                 .and_then(|p| {
                     p.split('.')
