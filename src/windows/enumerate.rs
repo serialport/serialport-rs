@@ -7,12 +7,12 @@ use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
     SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey,
     CR_SUCCESS, DICS_FLAG_GLOBAL, DIGCF_PRESENT, DIREG_DEV, HDEVINFO, MAX_DEVICE_ID_LEN,
-    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_LOCATION_PATHS, SPDRP_MFG, SP_DEVINFO_DATA,
+    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_MFG, SP_DEVINFO_DATA,
 };
 use windows_sys::Win32::Foundation::{FALSE, FILETIME, INVALID_HANDLE_VALUE, MAX_PATH};
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegEnumValueW, RegOpenKeyExW, RegQueryInfoKeyW, RegQueryValueExW, HKEY,
-    HKEY_LOCAL_MACHINE, KEY_READ, REG_MULTI_SZ, REG_SZ,
+    HKEY_LOCAL_MACHINE, KEY_READ, REG_SZ,
 };
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
@@ -420,6 +420,7 @@ impl PortDevice {
 
                 #[cfg(feature = "port-chain")]
                 {
+                    use windows_sys::Win32::Devices::DeviceAndDriverInstallation:: SPDRP_LOCATION_PATHS;
                     let location_paths = self.property_list(SPDRP_LOCATION_PATHS);
                     eprintln!("Location paths: {location_paths:?}");
                     let (bus_id, port_chain) = location_paths
@@ -468,7 +469,9 @@ impl PortDevice {
 
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
+    #[cfg(feature = "port-chain")]
     fn property_list(&mut self, property_id: u32) -> Vec<String> {
+        use windows_sys::Win32::System::Registry::REG_MULTI_SZ;
         let mut value_type = 0;
         let mut property_buf = [0u16; MAX_PATH as usize];
 
@@ -491,7 +494,7 @@ impl PortDevice {
         let mut out = vec![];
         for chunk in property_buf.split(|c| *c == 0) {
             // A NULL value indicates the end of the list
-            if chunk.len() == 0 {
+            if chunk.is_empty() {
                 break;
             }
             out.push(from_utf16_lossy_trimmed(chunk));
