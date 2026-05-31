@@ -13,7 +13,7 @@ use crate::posix::flock;
 use crate::posix::ioctl::{self, SerialLines};
 use crate::posix::termios;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPort,
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result,
     SerialPortBuilder, StopBits,
 };
 
@@ -371,13 +371,14 @@ impl TTYPort {
     /// # Errors
     ///
     /// This function returns an error if the serial port couldn't be cloned.
-    pub fn try_clone_native(&self) -> Result<TTYPort> {
+    pub fn try_clone(&self) -> Result<TTYPort> {
         let fd_cloned = self.fd.try_clone()?;
         let fd_cloned = if self.exclusive {
             flock::lock_exclusive(fd_cloned)
         } else {
             flock::lock_shared(fd_cloned)
         }?;
+
         Ok(TTYPort {
             fd: fd_cloned,
             exclusive: self.exclusive,
@@ -497,8 +498,10 @@ impl io::Write for TTYPort {
     }
 }
 
-impl SerialPort for TTYPort {
-    fn name(&self) -> Option<String> {
+#[allow(missing_docs)]
+#[allow(missing_docs)]
+impl TTYPort {
+    pub fn name(&self) -> Option<String> {
         self.port_name.clone()
     }
 
@@ -513,7 +516,7 @@ impl SerialPort for TTYPort {
             not(any(target_arch = "powerpc", target_arch = "powerpc64"))
         )
     ))]
-    fn baud_rate(&self) -> Result<u32> {
+    pub fn baud_rate(&self) -> Result<u32> {
         let termios2 = ioctl::tcgets2(self.fd.as_raw_fd())?;
 
         assert!(termios2.c_ospeed == termios2.c_ispeed);
@@ -531,7 +534,7 @@ impl SerialPort for TTYPort {
         target_os = "netbsd",
         target_os = "openbsd"
     ))]
-    fn baud_rate(&self) -> Result<u32> {
+    pub fn baud_rate(&self) -> Result<u32> {
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
 
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
@@ -547,7 +550,7 @@ impl SerialPort for TTYPort {
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    fn baud_rate(&self) -> Result<u32> {
+    pub fn baud_rate(&self) -> Result<u32> {
         Ok(self.baud_rate)
     }
 
@@ -559,7 +562,7 @@ impl SerialPort for TTYPort {
         target_os = "linux",
         any(target_arch = "powerpc", target_arch = "powerpc64")
     ))]
-    fn baud_rate(&self) -> Result<u32> {
+    pub fn baud_rate(&self) -> Result<u32> {
         use libc::{
             B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000,
             B460800, B500000, B576000, B921600,
@@ -612,7 +615,7 @@ impl SerialPort for TTYPort {
         Ok(res)
     }
 
-    fn data_bits(&self) -> Result<DataBits> {
+    pub fn data_bits(&self) -> Result<DataBits> {
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
         match termios.c_cflag & libc::CSIZE {
             libc::CS8 => Ok(DataBits::Eight),
@@ -626,7 +629,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn flow_control(&self) -> Result<FlowControl> {
+    pub fn flow_control(&self) -> Result<FlowControl> {
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
         if termios.c_cflag & libc::CRTSCTS == libc::CRTSCTS {
             Ok(FlowControl::Hardware)
@@ -637,7 +640,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn parity(&self) -> Result<Parity> {
+    pub fn parity(&self) -> Result<Parity> {
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
         if termios.c_cflag & libc::PARENB == libc::PARENB {
             if termios.c_cflag & libc::PARODD == libc::PARODD {
@@ -650,7 +653,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn stop_bits(&self) -> Result<StopBits> {
+    pub fn stop_bits(&self) -> Result<StopBits> {
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
         if termios.c_cflag & libc::CSTOPB == libc::CSTOPB {
             Ok(StopBits::Two)
@@ -659,7 +662,7 @@ impl SerialPort for TTYPort {
         }
     }
 
-    fn timeout(&self) -> Duration {
+    pub fn timeout(&self) -> Duration {
         self.timeout
     }
 
@@ -671,7 +674,7 @@ impl SerialPort for TTYPort {
         target_os = "openbsd",
         target_os = "linux"
     ))]
-    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
+    pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_baud_rate(&mut termios, baud_rate)?;
         termios::set_termios(self.fd.as_raw_fd(), &termios)
@@ -679,13 +682,13 @@ impl SerialPort for TTYPort {
 
     // Mac OS needs special logic for setting arbitrary baud rates.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
+    pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         ioctl::iossiospeed(self.fd.as_raw_fd(), &(baud_rate as libc::speed_t))?;
         self.baud_rate = baud_rate;
         Ok(())
     }
 
-    fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
+    pub fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_flow_control(&mut termios, flow_control);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -694,7 +697,7 @@ impl SerialPort for TTYPort {
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
-    fn set_parity(&mut self, parity: Parity) -> Result<()> {
+    pub fn set_parity(&mut self, parity: Parity) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_parity(&mut termios, parity);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -703,7 +706,7 @@ impl SerialPort for TTYPort {
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
-    fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
+    pub fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_data_bits(&mut termios, data_bits);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -712,7 +715,7 @@ impl SerialPort for TTYPort {
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
-    fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
+    pub fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()> {
         let mut termios = termios::get_termios(self.fd.as_raw_fd())?;
         termios::set_stop_bits(&mut termios, stop_bits);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -721,44 +724,44 @@ impl SerialPort for TTYPort {
         return termios::set_termios(self.fd.as_raw_fd(), &termios);
     }
 
-    fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
+    pub fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         self.timeout = timeout;
         Ok(())
     }
 
-    fn write_request_to_send(&mut self, level: bool) -> Result<()> {
+    pub fn write_request_to_send(&mut self, level: bool) -> Result<()> {
         self.set_pin(SerialLines::REQUEST_TO_SEND, level)
     }
 
-    fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
+    pub fn write_data_terminal_ready(&mut self, level: bool) -> Result<()> {
         self.set_pin(SerialLines::DATA_TERMINAL_READY, level)
     }
 
-    fn read_clear_to_send(&mut self) -> Result<bool> {
+    pub fn read_clear_to_send(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::CLEAR_TO_SEND)
     }
 
-    fn read_data_set_ready(&mut self) -> Result<bool> {
+    pub fn read_data_set_ready(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::DATA_SET_READY)
     }
 
-    fn read_ring_indicator(&mut self) -> Result<bool> {
+    pub fn read_ring_indicator(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::RING)
     }
 
-    fn read_carrier_detect(&mut self) -> Result<bool> {
+    pub fn read_carrier_detect(&mut self) -> Result<bool> {
         self.read_pin(SerialLines::DATA_CARRIER_DETECT)
     }
 
-    fn bytes_to_read(&self) -> Result<u32> {
+    pub fn bytes_to_read(&self) -> Result<u32> {
         ioctl::fionread(self.fd.as_raw_fd())
     }
 
-    fn bytes_to_write(&self) -> Result<u32> {
+    pub fn bytes_to_write(&self) -> Result<u32> {
         ioctl::tiocoutq(self.fd.as_raw_fd())
     }
 
-    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()> {
+    pub fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()> {
         let buffer_id = match buffer_to_clear {
             ClearBuffer::Input => libc::TCIFLUSH,
             ClearBuffer::Output => libc::TCOFLUSH,
@@ -770,18 +773,11 @@ impl SerialPort for TTYPort {
             .map_err(|e| e.into())
     }
 
-    fn try_clone(&self) -> Result<Box<dyn SerialPort>> {
-        match self.try_clone_native() {
-            Ok(p) => Ok(Box::new(p)),
-            Err(e) => Err(e),
-        }
-    }
-
-    fn set_break(&self) -> Result<()> {
+    pub fn set_break(&self) -> Result<()> {
         ioctl::tiocsbrk(self.fd.as_raw_fd())
     }
 
-    fn clear_break(&self) -> Result<()> {
+    pub fn clear_break(&self) -> Result<()> {
         ioctl::tioccbrk(self.fd.as_raw_fd())
     }
 }
