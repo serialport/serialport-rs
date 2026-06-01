@@ -16,6 +16,7 @@
 //! 3) `cargo run --example loopback /dev/ttyUSB0 -i 100 -l 32 -b 9600`
 //!
 //! 4) `cargo run --example loopback /dev/ttyUSB8 --bytes 222,173,190,239`
+use std::io::{Read, Write};
 
 use std::time::{Duration, Instant};
 
@@ -161,7 +162,7 @@ impl<'a> Stats<'a> {
 }
 
 fn loopback_standard<'a>(
-    port: &mut Box<dyn SerialPort>,
+    port: &mut SerialPort,
     read_stats: &mut Stats<'a>,
     write_stats: &mut Stats<'a>,
 ) {
@@ -194,7 +195,7 @@ fn loopback_standard<'a>(
 }
 
 fn loopback_split<'a>(
-    port: &mut Box<dyn SerialPort>,
+    port: &mut SerialPort,
     read_stats: &mut Stats<'a>,
     write_stats: &mut Stats<'a>,
 ) {
