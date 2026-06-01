@@ -731,7 +731,7 @@ impl SerialPort {
     ///
     /// This function returns an error if the serial port couldn't be cloned.
     pub fn try_clone(&self) -> Result<SerialPort> {
-        self.0.try_clone().map(|p| SerialPort(p))
+        self.0.try_clone().map(SerialPort)
     }
 
     /// Start transmitting a break
