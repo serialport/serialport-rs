@@ -15,7 +15,7 @@
 //
 
 use std::error::Error;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::panic::panic_any;
 use std::sync::mpsc;
 use std::thread;

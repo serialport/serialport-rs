@@ -11,6 +11,7 @@
 //! To test this, have a physical or virtual loopback device connected as the
 //! only port in the system.
 
+use std::io::Read;
 use std::io::Write;
 use std::time::Duration;
 use std::{io, thread};
