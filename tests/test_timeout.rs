@@ -4,6 +4,7 @@ use config::{hw_config, HardwareConfig};
 use rstest::rstest;
 use serialport::*;
 use std::io::Read;
+use std::io::Write;
 use std::thread;
 use std::time::{Duration, Instant};
 

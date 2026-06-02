@@ -96,7 +96,7 @@ mod checks {
     }
 
     #[must_use]
-    pub fn open_port_successful(hw_config: &HardwareConfig) -> Box<dyn SerialPort> {
+    pub fn open_port_successful(hw_config: &HardwareConfig) -> SerialPort {
         serialport::new(&hw_config.port_1, 115200).open().unwrap()
     }
 
@@ -105,7 +105,7 @@ mod checks {
     pub fn open_port_with_lock_mode_successful(
         hw_config: &HardwareConfig,
         lock_mode: LockMode,
-    ) -> Box<dyn SerialPort> {
+    ) -> SerialPort {
         serialport::new(&hw_config.port_1, 115200)
             .exclusive(lock_mode.is_exclusive())
             .open()
