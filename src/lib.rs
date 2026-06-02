@@ -448,10 +448,7 @@ impl SerialPortBuilder {
             "open() not implemented for platform",
         ))
     }
-
-
 }
-
 
 #[cfg(unix)]
 pub(crate) mod sys {
