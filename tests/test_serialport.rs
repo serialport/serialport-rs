@@ -34,9 +34,7 @@ fn test_opening_port(hw_config: HardwareConfig) {
 #[rstest]
 #[cfg_attr(not(feature = "hardware-tests"), ignore)]
 fn test_opening_native_port(hw_config: HardwareConfig) {
-    serialport::new(hw_config.port_1, 9600)
-        .open()
-        .unwrap();
+    serialport::new(hw_config.port_1, 9600).open().unwrap();
 }
 
 #[rstest]

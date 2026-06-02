@@ -38,7 +38,6 @@ const _: fn() = || {
     assert_send_sync::<COMPort>();
 };
 
-
 impl COMPort {
     /// Opens a COM port as a serial device.
     ///
