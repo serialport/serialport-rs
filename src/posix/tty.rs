@@ -13,8 +13,8 @@ use crate::posix::flock;
 use crate::posix::ioctl::{self, SerialLines};
 use crate::posix::termios;
 use crate::{
-    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result,
-    SerialPortBuilder, StopBits,
+    ClearBuffer, DataBits, Error, ErrorKind, FlowControl, Parity, Result, SerialPortBuilder,
+    StopBits,
 };
 
 /// Convenience method for removing exclusive access from
@@ -497,8 +497,6 @@ impl io::Write for TTYPort {
         }
     }
 }
-
-#[allow(missing_docs)]
 #[allow(missing_docs)]
 impl TTYPort {
     pub(crate) fn name(&self) -> Option<String> {
