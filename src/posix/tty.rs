@@ -56,13 +56,14 @@ fn close(fd: RawFd) {
 /// that would otherwise happen via an `ioctl` command.
 ///
 /// ```no_run
-/// use serialport::{TTYPort, SerialPort};
+/// use serialport::SerialPort;
+/// use serialport::SerialPortExt;
 ///
-/// let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+/// let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 /// # let _ = &mut master;
 /// # let _ = &mut slave;
 /// // ... elsewhere
-/// let mut port = TTYPort::open(&serialport::new(slave.name().unwrap(), 0)).expect("Unable to open");
+/// let mut port = serialport::new(slave.name().unwrap(), 0).open().expect("Unable to open");
 /// # let _ = &mut port;
 /// ```
 #[derive(Debug)]
@@ -264,9 +265,10 @@ impl TTYPort {
     /// ## Examples
     ///
     /// ```
-    /// use serialport::TTYPort;
+    /// use serialport::SerialPort;
+    /// use serialport::SerialPortExt;
     ///
-    /// let (mut master, mut slave) = TTYPort::pair().unwrap();
+    /// let (mut master, mut slave) = SerialPort::pair().unwrap();
     ///
     /// # let _ = &mut master;
     /// # let _ = &mut slave;
@@ -532,7 +534,6 @@ impl TTYPort {
         target_os = "netbsd",
         target_os = "openbsd"
     ))]
-
     pub(crate) fn baud_rate(&self) -> Result<u32> {
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
@@ -782,12 +783,13 @@ impl TTYPort {
 
 #[test]
 fn test_ttyport_into_raw_fd() {
+    #![allow(unused_variables)]
+    use crate::posix::SerialPortExt;
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once
     //       https://github.com/rust-lang/rust/issues/15701 is on stable.
     // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-    #![allow(unused_variables)]
-    let (master, slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (master, slave) = crate::SerialPort::pair().expect("Unable to create ptty pair");
 
     // First test with the master
     let master_fd = master.into_raw_fd();
