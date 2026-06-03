@@ -4,16 +4,17 @@
 extern crate serialport;
 
 use std::io::{Read, Write};
-use std::os::unix::prelude::*;
 use std::str;
 use std::time::Duration;
 
-use serialport::{SerialPort, TTYPort};
+use serialport::SerialPort;
+use serialport::SerialPortExt;
+use std::os::unix::io::AsRawFd;
 
 #[test]
 fn test_ttyport_pair() {
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-    let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
+    let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
     master
         .set_timeout(Duration::from_millis(10))
         .expect("Unable to set timeout on the master");
@@ -70,8 +71,8 @@ fn test_ttyport_timeout() {
     let result_thread = result.clone();
 
     std::thread::spawn(move || {
-        // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-        let (mut master, _slave) = TTYPort::pair().expect("Unable to create ptty pair");
+        // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
+        let (mut master, _slave) = SerialPort::pair().expect("Unable to create ptty pair");
         master.set_timeout(Duration::new(1, 0)).unwrap();
 
         let mut buffer = [0u8];
@@ -93,8 +94,8 @@ fn test_ttyport_timeout() {
 #[test]
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 fn test_osx_pty_pair() {
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-    let (mut master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
+    let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     let write_data =
         b"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
@@ -112,10 +113,10 @@ fn test_osx_pty_pair() {
 #[test]
 #[cfg_attr(any(target_os = "ios", target_os = "macos"), ignore)]
 fn test_ttyport_set_standard_baud() {
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
 
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
-    let (_master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (_master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     slave.set_baud_rate(9600).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 9600);
@@ -139,10 +140,10 @@ fn test_ttyport_set_standard_baud() {
     ignore
 )]
 fn test_ttyport_set_nonstandard_baud() {
-    // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
+    // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
 
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
-    let (_master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+    let (_master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 
     slave.set_baud_rate(10000).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 10000);
