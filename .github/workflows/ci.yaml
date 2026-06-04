@@ -17,7 +17,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-        # TODO: Harmonize with build.yaml
+      # TODO: Harmonize with build.yaml
       - name: Fmt | checkout
         uses: actions/checkout@v6
 
@@ -63,7 +63,6 @@ jobs:
       - uses: swatinem/rust-cache@v2
       - run: cargo clippy --target ${{ matrix.target }}
       - run: cargo clippy --target ${{ matrix.target }} --all-features
-
 
   # --------------------------------------------------------------------------
   # Rustdoc
@@ -223,10 +222,10 @@ jobs:
     continue-on-error: ${{ matrix.checks == 'advisories' }}
 
     steps:
-    - uses: actions/checkout@v6
-    - uses: EmbarkStudios/cargo-deny-action@v2
-      with:
-        command: check ${{ matrix.checks }}
+      - uses: actions/checkout@v6
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check ${{ matrix.checks }}
 
   # --------------------------------------------------------------------------
   # BUILD
