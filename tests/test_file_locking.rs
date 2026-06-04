@@ -21,7 +21,7 @@ use serialport::SerialPort;
 cfg_if! {
     if #[cfg(unix)] {
         use std::os::unix::prelude::*;
-        use nix::fcntl::FlockArg;
+        use nix::fcntl::{FlockArg, Flock};
         use nix::ioctl_none_bad;
 
         // Locally create a wrapper for the TIOCEXCL and TIOCNXCL ioctl.
@@ -197,8 +197,7 @@ mod second_exclusive_open {
     fn fails_after_flock(hw_config: HardwareConfig, #[case] first_mode: FlockArg) {
         // Open the port file for the first time, keep it open, and flock it in the specified mode.
         let first = checks::open_file_successful(&hw_config);
-        let fd = first.as_raw_fd();
-        nix::fcntl::flock(fd, first_mode).unwrap();
+        let _ = Flock::lock(first, first_mode).unwrap();
 
         // Opening the same port exclusively for a second time is expected to fail regardless of
         // the previous mode.
@@ -295,7 +294,7 @@ mod second_non_exclusive_open {
     fn after_flock(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port file for the first time, keep it open, and flock it in the specified mode.
         let first = checks::open_file_successful(&hw_config);
-        nix::fcntl::flock(first.as_raw_fd(), first_mode.into()).unwrap();
+        let _ = Flock::lock(first, first_mode.into()).unwrap();
 
         // Open the same port for a second time.
         match first_mode {
