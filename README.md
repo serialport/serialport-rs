@@ -1,7 +1,7 @@
 [![crates.io version badge](https://img.shields.io/crates/v/serialport.svg)](https://crates.io/crates/serialport)
 [![Documentation](https://docs.rs/serialport/badge.svg)](https://docs.rs/serialport)
 [![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/serialport/serialport-rs/ci.yaml?branch=main&logo=github)](https://github.com/serialport/serialport-rs/actions)
-[![Minimum Stable Rust Version](https://img.shields.io/badge/Rust-1.59.0-blue?logo=rust)](https://blog.rust-lang.org/2022/02/24/Rust-1.59.0.html)
+[![Minimum Supported Rust Version](https://img.shields.io/badge/Rust-1.75.0-blue?logo=rust)](https://blog.rust-lang.org/2023/12/28/Rust-1.75.0/)
 
 # Introduction
 
@@ -59,6 +59,7 @@ let port = serialport::new("/dev/ttyUSB0", 115_200)
     .open()
     .expect("Failed to open port");
 ```
+
 Some platforms expose additional functionality, which is opened using the `open_native()` method:
 
 ```rust
@@ -66,6 +67,7 @@ let port = serialport::new("/dev/ttyUSB0", 115_200)
     .open_native()
     .expect("Failed to open port");
 ```
+
 There are devices which wait for DTR before sending any data. Configure
 automatically setting DTR when opening a port by the builder:
 
@@ -116,8 +118,7 @@ can help debug software or hardware errors.
 
 # Dependencies
 
-Rust versions 1.59.0 and higher are supported by the library itself. There are
-examples requiring newer versions of Rust.
+Rust versions 1.75.0 and higher are supported by the library itself.
 
 For GNU/Linux `pkg-config` headers are required:
 
