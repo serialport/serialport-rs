@@ -6,7 +6,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use nix::errno::Errno;
-use nix::fcntl::{fcntl, FcntlArg, OFlag};
+use nix::fcntl::{fcntl, FcntlArg, Flock, FlockArg, OFlag};
 use nix::libc;
 
 use crate::posix::flock;
@@ -67,7 +67,7 @@ fn close(fd: RawFd) {
 /// ```
 #[derive(Debug)]
 pub struct TTYPort {
-    fd: OwnedFd,
+    fd: Flock<OwnedFd>,
     timeout: Duration,
     exclusive: bool,
     port_name: Option<String>,
@@ -113,12 +113,12 @@ impl TTYPort {
         // Set the requested access mode on the port. In exclusive mode use
         // TIOCEXCL and an exclusive flock to prevent other openers. In shared
         // mode we only need a shared flock to allow concurrent access.
-        if builder.exclusive {
+        let fd = if builder.exclusive {
             ioctl::tiocexcl(fd.as_raw_fd())?;
-            flock::lock_exclusive(fd.as_raw_fd())?;
+            flock::lock_exclusive(fd)?
         } else {
-            flock::lock_shared(fd.as_raw_fd())?;
-        }
+            flock::lock_shared(fd)?
+        };
         let mut termios = MaybeUninit::uninit();
         Errno::result(unsafe { libc::tcgetattr(fd.as_raw_fd(), termios.as_mut_ptr()) })?;
         let mut termios = unsafe { termios.assume_init() };
@@ -156,7 +156,7 @@ impl TTYPort {
         }
 
         // clear O_NONBLOCK flag
-        fcntl(&fd, FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()))?;
+        fcntl(&*fd, FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()))?;
 
         // Configure the low-level port settings
         let mut termios = termios::get_termios(fd.as_raw_fd())?;
@@ -226,9 +226,9 @@ impl TTYPort {
         setting_result?;
 
         let flock_result = if exclusive {
-            flock::lock_exclusive(self.fd.as_raw_fd())
+            flock::relock_exclusive(&self.fd)
         } else {
-            flock::lock_shared(self.fd.as_raw_fd())
+            flock::relock_shared(&self.fd)
         };
 
         flock_result?;
@@ -321,6 +321,7 @@ impl TTYPort {
             nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
         )?;
 
+        let fd = flock::lock_exclusive(fd)?;
         let slave_tty = TTYPort {
             fd,
             timeout: Duration::from_millis(100),
@@ -330,11 +331,13 @@ impl TTYPort {
             baud_rate,
         };
 
+        let master_fd = unsafe { OwnedFd::from_raw_fd(next_pty_fd.into_raw_fd()) };
+        let master_fd = flock::lock_exclusive(master_fd)?;
         // Manually construct the master port here because the
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
         // BSDs when used on the master port.
         let master_tty = TTYPort {
-            fd: unsafe { OwnedFd::from_raw_fd(next_pty_fd.into_raw_fd()) },
+            fd: master_fd,
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: None,
@@ -348,8 +351,8 @@ impl TTYPort {
     /// Sends 0-valued bits over the port for a set duration
     pub fn send_break(&self, duration: BreakDuration) -> Result<()> {
         match duration {
-            BreakDuration::Short => nix::sys::termios::tcsendbreak(&self.fd, 0),
-            BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(&self.fd, n.get()),
+            BreakDuration::Short => nix::sys::termios::tcsendbreak(&*self.fd, 0),
+            BreakDuration::Arbitrary(n) => nix::sys::termios::tcsendbreak(&*self.fd, n.get()),
         }
         .map_err(|e| e.into())
     }
@@ -369,9 +372,14 @@ impl TTYPort {
     ///
     /// This function returns an error if the serial port couldn't be cloned.
     pub fn try_clone_native(&self) -> Result<TTYPort> {
-        let fd_cloned: i32 = fcntl(&self.fd, nix::fcntl::F_DUPFD_CLOEXEC(self.fd.as_raw_fd()))?;
+        let fd_cloned = self.fd.try_clone()?;
+        let fd_cloned = if self.exclusive {
+            flock::lock_exclusive(fd_cloned)
+        } else {
+            flock::lock_shared(fd_cloned)
+        }?;
         Ok(TTYPort {
-            fd: unsafe { OwnedFd::from_raw_fd(fd_cloned) },
+            fd: fd_cloned,
             exclusive: self.exclusive,
             port_name: self.port_name.clone(),
             timeout: self.timeout,
@@ -389,7 +397,7 @@ impl AsRawFd for TTYPort {
 
 impl IntoRawFd for TTYPort {
     fn into_raw_fd(self) -> RawFd {
-        self.fd.into_raw_fd()
+        self.fd.unlock().unwrap().into_raw_fd()
     }
 }
 
@@ -407,7 +415,19 @@ fn get_termios_speed(fd: RawFd) -> u32 {
 
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        let flock_successful = flock::lock_exclusive(fd).is_ok();
+        // SAFETY: Our caller promises that the file descriptor passed in must be owned.
+        let fd = unsafe { OwnedFd::from_raw_fd(fd) };
+
+        let (fd, flock_exclusive) = match Flock::lock(fd, FlockArg::LockExclusiveNonblock) {
+            Ok(fd) => (fd, true),
+            Err((fd, _)) => {
+                // Failed to lock exclusively, fall back to shared lock.
+                (
+                    Flock::lock(fd, FlockArg::LockSharedNonblock).expect("Failed to lock port"),
+                    false,
+                )
+            }
+        };
 
         // TODO: If we fail to get the exclusive lock, this probably means that
         // another process is using the port, and we should return an error,
@@ -415,20 +435,22 @@ impl FromRawFd for TTYPort {
         //
         // This will require a breaking change, as this method currently can't fail.
 
-        let tiocexcl_successful = ioctl::tiocexcl(fd).is_ok();
+        let tiocexcl_successful = ioctl::tiocexcl(fd.as_raw_fd()).is_ok();
 
+        // It's not guaranteed that the baud rate in the `termios` struct is correct, as
+        // setting an arbitrary baud rate via the `iossiospeed` ioctl overrides that value,
+        // but extract that value anyways as a best-guess of the actual baud rate.
+        #[cfg(any(target_os = "ios", target_os = "macos"))]
+        let baud_rate = get_termios_speed(fd.as_raw_fd());
         TTYPort {
-            fd: unsafe { OwnedFd::from_raw_fd(fd) },
+            fd,
             timeout: Duration::from_millis(100),
-            exclusive: tiocexcl_successful && flock_successful,
+            exclusive: tiocexcl_successful && flock_exclusive,
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
             port_name: None,
-            // It's not guaranteed that the baud rate in the `termios` struct is correct, as
-            // setting an arbitrary baud rate via the `iossiospeed` ioctl overrides that value,
-            // but extract that value anyways as a best-guess of the actual baud rate.
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: get_termios_speed(fd),
+            baud_rate,
         }
     }
 }
@@ -439,7 +461,7 @@ impl io::Read for TTYPort {
             return Err(io::Error::from(Error::from(e)));
         }
 
-        nix::unistd::read(&self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        nix::unistd::read(&*self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 }
 
@@ -449,13 +471,13 @@ impl io::Write for TTYPort {
             return Err(io::Error::from(Error::from(e)));
         }
 
-        nix::unistd::write(&self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+        nix::unistd::write(&*self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 
     fn flush(&mut self) -> io::Result<()> {
         let timeout = Instant::now() + self.timeout;
         loop {
-            return match nix::sys::termios::tcdrain(&self.fd) {
+            return match nix::sys::termios::tcdrain(&*self.fd) {
                 Ok(_) => Ok(()),
                 Err(Errno::EINTR) => {
                     // Retry flushing. But only up to the ports timeout for not retrying
