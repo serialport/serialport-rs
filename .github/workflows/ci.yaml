@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - playground-5.0
   push:
   # Check for new issues from updated dependencies once a week (Friday noon).
   schedule:
