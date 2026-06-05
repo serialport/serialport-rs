@@ -118,12 +118,10 @@ fn test_osx_pty_pair() {
 #[test]
 #[cfg_attr(any(target_os = "ios", target_os = "macos"), ignore)]
 fn test_ttyport_set_standard_baud() {
-    // `master` must be used here as Dropping it causes slave to be deleted by the OS.
-    // TODO: Convert this to a statement-level attribute once
-    //       https://github.com/rust-lang/rust/issues/15701 is on stable.
     // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-    #![allow(unused_variables)]
-    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+
+    // `master` must be used here as Dropping it causes slave to be deleted by the OS.
+    let (_master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
 
     slave.set_baud_rate(9600).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 9600);
@@ -147,12 +145,10 @@ fn test_ttyport_set_standard_baud() {
     ignore
 )]
 fn test_ttyport_set_nonstandard_baud() {
-    // `master` must be used here as Dropping it causes slave to be deleted by the OS.
-    // TODO: Convert this to a statement-level attribute once
-    //       https://github.com/rust-lang/rust/issues/15701 is on stable.
     // FIXME: Create a mutex across all tests for using `TTYPort::pair()` as it's not threadsafe
-    #![allow(unused_variables)]
-    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+
+    // `master` must be used here as Dropping it causes slave to be deleted by the OS.
+    let (_master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
 
     slave.set_baud_rate(10000).unwrap();
     assert_eq!(slave.baud_rate().unwrap(), 10000);
