@@ -197,7 +197,7 @@ mod second_exclusive_open {
     fn fails_after_flock(hw_config: HardwareConfig, #[case] first_mode: FlockArg) {
         // Open the port file for the first time, keep it open, and flock it in the specified mode.
         let first = checks::open_file_successful(&hw_config);
-        let _ = Flock::lock(first, first_mode).unwrap();
+        let _locked = Flock::lock(first, first_mode).unwrap();
 
         // Opening the same port exclusively for a second time is expected to fail regardless of
         // the previous mode.
@@ -294,7 +294,7 @@ mod second_non_exclusive_open {
     fn after_flock(hw_config: HardwareConfig, #[case] first_mode: LockMode) {
         // Open the port file for the first time, keep it open, and flock it in the specified mode.
         let first = checks::open_file_successful(&hw_config);
-        let _ = Flock::lock(first, first_mode.into()).unwrap();
+        let _locked = Flock::lock(first, first_mode.into()).unwrap();
 
         // Open the same port for a second time.
         match first_mode {
