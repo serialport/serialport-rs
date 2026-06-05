@@ -249,7 +249,6 @@ jobs:
   aarch64-apple-darwin:
     uses: ./.github/workflows/build.yaml
     with:
-      disable_tests: true
       runs_on: macos-latest
       target: aarch64-apple-darwin
 
