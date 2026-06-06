@@ -1,10 +1,8 @@
 //! Internal convenience wrappers for using `flock`.
 
 use crate::{Error, ErrorKind, Result};
-use nix::{
-    errno::Errno,
-    fcntl::{Flock, FlockArg},
-};
+use nix::errno::Errno;
+use nix::fcntl::{Flock, FlockArg};
 use std::os::unix::prelude::*;
 
 /// Convenience method to acquire an exclusive lock using flock
