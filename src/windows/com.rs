@@ -118,7 +118,7 @@ impl COMPort {
     /// # Errors
     ///
     /// This function returns an error if the serial port couldn't be cloned.
-    pub fn try_clone(&self) -> Result<COMPort> {
+    pub(crate) fn try_clone(&self) -> Result<COMPort> {
         let process_handle: HANDLE = unsafe { GetCurrentProcess() };
         let mut cloned_handle: HANDLE = INVALID_HANDLE_VALUE;
 
@@ -265,7 +265,6 @@ impl io::Write for COMPort {
     }
 }
 
-#[allow(missing_docs)]
 impl COMPort {
     pub fn name(&self) -> Option<String> {
         self.port_name.clone()

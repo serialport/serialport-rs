@@ -56,8 +56,7 @@ fn close(fd: RawFd) {
 /// that would otherwise happen via an `ioctl` command.
 ///
 /// ```no_run
-/// use serialport::SerialPort;
-/// use serialport::SerialPortExt;
+/// use serialport::{SerialPort, SerialPortExt};
 ///
 /// let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
 /// # let _ = &mut master;
@@ -265,8 +264,7 @@ impl TTYPort {
     /// ## Examples
     ///
     /// ```
-    /// use serialport::SerialPort;
-    /// use serialport::SerialPortExt;
+    /// use serialport::{SerialPort, SerialPortExt};
     ///
     /// let (mut master, mut slave) = SerialPort::pair().unwrap();
     ///
@@ -499,7 +497,7 @@ impl io::Write for TTYPort {
         }
     }
 }
-#[allow(missing_docs)]
+
 impl TTYPort {
     pub(crate) fn name(&self) -> Option<String> {
         self.port_name.clone()
@@ -783,7 +781,6 @@ impl TTYPort {
 
 #[test]
 fn test_ttyport_into_raw_fd() {
-    #![allow(unused_variables)]
     use crate::posix::SerialPortExt;
     // `master` must be used here as Dropping it causes slave to be deleted by the OS.
     // TODO: Convert this to a statement-level attribute once

@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+
 mod config;
 
 use assert_hex::assert_eq_hex;
