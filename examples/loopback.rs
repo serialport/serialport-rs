@@ -17,7 +17,6 @@
 //!
 //! 4) `cargo run --example loopback /dev/ttyUSB8 --bytes 222,173,190,239`
 use std::io::{Read, Write};
-
 use std::time::{Duration, Instant};
 
 use clap::Parser;

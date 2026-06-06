@@ -15,8 +15,7 @@
 //!  3) With two ports physically connected to each other
 //!     `cargo run --example hardware_check /dev/ttyUSB0 /dev/ttyUSB1`
 
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::str;
 use std::time::Duration;
 

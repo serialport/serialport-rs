@@ -4,12 +4,11 @@
 extern crate serialport;
 
 use std::io::{Read, Write};
+use std::os::unix::io::AsRawFd;
 use std::str;
 use std::time::Duration;
 
-use serialport::SerialPort;
-use serialport::SerialPortExt;
-use std::os::unix::io::AsRawFd;
+use serialport::{SerialPort, SerialPortExt};
 
 #[test]
 fn test_ttyport_pair() {
