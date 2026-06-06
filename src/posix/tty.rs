@@ -273,13 +273,13 @@ impl TTYPort {
     /// ```
     pub fn pair() -> Result<(Self, Self)> {
         // Open the next free pty.
-        let next_pty_fd = nix::pty::posix_openpt(nix::fcntl::OFlag::O_RDWR)?;
+        let master = nix::pty::posix_openpt(nix::fcntl::OFlag::O_RDWR)?;
 
         // Grant access to the associated slave pty
-        nix::pty::grantpt(&next_pty_fd)?;
+        nix::pty::grantpt(&master)?;
 
         // Unlock the slave pty
-        nix::pty::unlockpt(&next_pty_fd)?;
+        nix::pty::unlockpt(&master)?;
 
         // Get the path of the attached slave ptty
         #[cfg(not(any(
@@ -288,7 +288,7 @@ impl TTYPort {
             target_os = "emscripten",
             target_os = "fuchsia"
         )))]
-        let ptty_name = unsafe { nix::pty::ptsname(&next_pty_fd)? };
+        let ptty_name = unsafe { nix::pty::ptsname(&master)? };
 
         #[cfg(any(
             target_os = "linux",
@@ -296,13 +296,13 @@ impl TTYPort {
             target_os = "emscripten",
             target_os = "fuchsia"
         ))]
-        let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
+        let ptty_name = nix::pty::ptsname_r(&master)?;
 
         // Open the slave port
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         let baud_rate = 9600;
 
-        let fd = nix::fcntl::open(
+        let slave_fd = nix::fcntl::open(
             Path::new(&ptty_name),
             OFlag::O_RDWR | OFlag::O_NOCTTY | OFlag::O_NONBLOCK,
             nix::sys::stat::Mode::empty(),
@@ -310,20 +310,20 @@ impl TTYPort {
 
         // Set the port to a raw state. Using these ports will not work without this.
         let mut termios = MaybeUninit::uninit();
-        Errno::result(unsafe { libc::tcgetattr(fd.as_raw_fd(), termios.as_mut_ptr()) })?;
+        Errno::result(unsafe { libc::tcgetattr(slave_fd.as_raw_fd(), termios.as_mut_ptr()) })?;
 
         let mut termios = unsafe { termios.assume_init() };
         unsafe { libc::cfmakeraw(&mut termios) };
-        Errno::result(unsafe { libc::tcsetattr(fd.as_raw_fd(), libc::TCSANOW, &termios) })?;
+        Errno::result(unsafe { libc::tcsetattr(slave_fd.as_raw_fd(), libc::TCSANOW, &termios) })?;
 
         fcntl(
-            &fd,
+            &slave_fd,
             nix::fcntl::FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()),
         )?;
 
-        let fd = flock::lock_exclusive(fd)?;
+        let slave_fd = flock::lock_exclusive(slave_fd)?;
         let slave_tty = TTYPort {
-            fd,
+            fd: slave_fd,
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: Some(ptty_name),
@@ -331,7 +331,7 @@ impl TTYPort {
             baud_rate,
         };
 
-        let master_fd = unsafe { OwnedFd::from_raw_fd(next_pty_fd.into_raw_fd()) };
+        let master_fd = master.into();
         let master_fd = flock::lock_exclusive(master_fd)?;
         // Manually construct the master port here because the
         // `tcgetattr()` doesn't work on Mac, Solaris, and maybe other
