@@ -46,6 +46,12 @@ use crate::UsbPortInfo;
 use crate::{Error, ErrorKind};
 use crate::{Result, SerialPortInfo};
 
+cfg_if! {
+    if #[cfg(feature = "usbportinfo-chain")] {
+        use crate::Location;
+    }
+}
+
 /// Retrieves the udev property value named by `key`. If the value exists, then it will be
 /// converted to a String, otherwise None will be returned.
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
@@ -116,7 +122,7 @@ fn udev_restore_spaces(source: String) -> String {
 ))]
 /// Get the bus number and port chain out of the first parent device that
 /// has a defined bus number.
-fn bus_num_and_port_chain(device: &libudev::Device) -> (String, Vec<u8>) {
+fn port_location(device: &libudev::Device) -> Location {
     let mut device = device.parent();
     while let Some(d) = device.take() {
         let busnum = udev_property_as_string(&d, "BUSNUM");
@@ -152,10 +158,10 @@ fn bus_num_and_port_chain(device: &libudev::Device) -> (String, Vec<u8>) {
                     .collect::<Option<Vec<u8>>>()
             })
             .unwrap_or_default();
-        return (bus_num, port_chain);
+        return Location::new(&bus_num, &port_chain);
     }
 
-    ("000".to_owned(), vec![])
+    Location::new("000", &[])
 }
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
@@ -174,7 +180,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
 
             #[cfg(feature = "usbportinfo-chain")]
-            let (bus_id, port_chain) = bus_num_and_port_chain(d);
+            let location = port_location(d);
 
             Ok(SerialPortType::UsbPort(UsbPortInfo {
                 vid: udev_hex_property_as_int(d, "ID_VENDOR_ID", &u16::from_str_radix)?,
@@ -183,9 +189,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 manufacturer,
                 product,
                 #[cfg(feature = "usbportinfo-chain")]
-                bus_id,
-                #[cfg(feature = "usbportinfo-chain")]
-                port_chain,
+                location,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
                     .ok(),
@@ -213,7 +217,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 );
 
                 #[cfg(feature = "usbportinfo-chain")]
-                let (bus_id, port_chain) = bus_num_and_port_chain(d);
+                let location = port_location(d);
 
                 Ok(SerialPortType::UsbPort(UsbPortInfo {
                     vid: udev_hex_property_as_int(d, "ID_USB_VENDOR_ID", &u16::from_str_radix)?,
@@ -222,9 +226,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     manufacturer,
                     product,
                     #[cfg(feature = "usbportinfo-chain")]
-                    bus_id,
-                    #[cfg(feature = "usbportinfo-chain")]
-                    port_chain,
+                    location,
                     #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
                         d,
@@ -319,9 +321,7 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         manufacturer: None,
         product: None,
         #[cfg(feature = "usbportinfo-chain")]
-        bus_id: Default::default(),
-        #[cfg(feature = "usbportinfo-chain")]
-        port_chain: Default::default(),
+        location: Default::default(),
         // Only attempt to find the interface if the feature is enabled.
         #[cfg(feature = "usbportinfo-interface")]
         interface: mod_tail.get(pid_start + 4..).and_then(|mod_tail| {
@@ -695,23 +695,26 @@ cfg_if! {
             let manufacturer = read_file_to_trimmed_string(device_path, "manufacturer");
 
             #[cfg(feature = "usbportinfo-chain")]
-            let bus_id = if let Some(busnum) = read_file_to_trimmed_string(device_path, "busnum") {
-                u32::from_str_radix(&busnum, 10)
-                .map(|n| format!("{n:03}"))
-                .unwrap_or_default()
-            } else {
-                "000".to_owned()
-            };
+            let location = {
+                let bus_id = if let Some(busnum) = read_file_to_trimmed_string(device_path, "busnum") {
+                    u32::from_str_radix(&busnum, 10)
+                    .map(|n| format!("{n:03}"))
+                    .unwrap_or_default()
+                } else {
+                    "000".to_owned()
+                };
 
-            #[cfg(feature = "usbportinfo-chain")]
-            let port_chain = read_file_to_trimmed_string(device_path, "devpath")
-                .filter(|p| p != "0") // root hub should be empty but devpath is 0
-                .and_then(|p| {
-                    p.split('.')
-                        .map(|v| v.parse::<u8>().ok())
-                        .collect::<Option<Vec<u8>>>()
-                })
-                .unwrap_or_default();
+                let port_chain = read_file_to_trimmed_string(device_path, "devpath")
+                    .filter(|p| p != "0") // root hub should be empty but devpath is 0
+                    .and_then(|p| {
+                        p.split('.')
+                            .map(|v| v.parse::<u8>().ok())
+                            .collect::<Option<Vec<u8>>>()
+                    })
+                    .unwrap_or_default();
+
+                Location::new(&bus_id, &port_chain)
+            };
 
             Some(UsbPortInfo {
                 vid,
@@ -720,9 +723,7 @@ cfg_if! {
                 manufacturer,
                 product,
                 #[cfg(feature = "usbportinfo-chain")]
-                bus_id,
-                #[cfg(feature = "usbportinfo-chain")]
-                port_chain,
+                location,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface,
             })

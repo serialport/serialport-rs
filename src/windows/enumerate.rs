@@ -186,9 +186,7 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         product: None,
 
         #[cfg(feature = "usbportinfo-chain")]
-        bus_id: Default::default(),
-        #[cfg(feature = "usbportinfo-chain")]
-        port_chain: Default::default(),
+        location: Default::default(),
 
         #[cfg(feature = "usbportinfo-interface")]
         interface,
@@ -196,7 +194,7 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
 }
 
 #[cfg(feature = "usbportinfo-chain")]
-fn parse_location_path(s: &str) -> Option<(String, Vec<u8>)> {
+fn parse_location_path(s: &str) -> Option<crate::Location> {
     let usbroot = "#USBROOT(";
     let start_i = s.find(usbroot)?;
     let close_i = s[start_i + usbroot.len()..].find(')')?;
@@ -210,7 +208,7 @@ fn parse_location_path(s: &str) -> Option<(String, Vec<u8>)> {
         s = next;
     }
 
-    Some((bus.to_owned(), path))
+    Some(crate::Location::new(bus, &path))
 }
 
 struct PortDevices {
@@ -422,13 +420,10 @@ impl PortDevice {
                 {
                     use windows_sys::Win32::Devices::DeviceAndDriverInstallation:: SPDRP_LOCATION_PATHS;
                     let location_paths = self.property_list(SPDRP_LOCATION_PATHS);
-                    eprintln!("Location paths: {location_paths:?}");
-                    let (bus_id, port_chain) = location_paths
+                    info.location = location_paths
                         .iter()
                         .find_map(|p| parse_location_path(p))
                         .unwrap_or_default();
-                    info.bus_id = bus_id;
-                    info.port_chain = port_chain;
                 }
 
                 SerialPortType::UsbPort(info)

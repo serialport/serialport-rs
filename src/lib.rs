@@ -825,17 +825,74 @@ pub struct UsbPortInfo {
     pub manufacturer: Option<String>,
     /// Product name (arbitrary string)
     pub product: Option<String>,
-    /// ID of the USB bus where this device is connected
-    #[cfg(feature = "usbportinfo-chain")]
-    pub bus_id: String,
     /// Physical port heirarchy
     #[cfg(feature = "usbportinfo-chain")]
-    pub port_chain: Vec<u8>,
+    pub location: Location,
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
     /// interface (as is the case on macOS), so you should recognize both interface numbers.
     #[cfg(feature = "usbportinfo-interface")]
     pub interface: Option<u8>,
+}
+
+#[cfg(feature = "usbportinfo-chain")]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Identify where a particular USB device is on the system.
+pub struct Location {
+    bus_id: String,
+    port_chain: Vec<u8>,
+}
+
+#[cfg(feature = "usbportinfo-chain")]
+impl core::fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {:?}", self.bus_id, self.port_chain)
+    }
+}
+
+#[cfg(feature = "usbportinfo-chain")]
+impl Location {
+    /// Create a new USB device location based on some string
+    /// identifying the bus number, along with the path taken
+    /// to a particular port.
+    pub fn new(bus_id: &str, port_chain: &[u8]) -> Self {
+        Location {
+            bus_id: bus_id.to_owned(),
+            port_chain: port_chain.to_owned(),
+        }
+    }
+
+    /// Returns `true` if this Location is located below
+    /// another Location in the bus heirarchy.
+    pub fn is_child_of(&self, other: &Location) -> bool {
+        self.bus_id == other.bus_id
+            && self.port_chain.starts_with(&other.port_chain)
+            && self.port_chain != other.port_chain
+    }
+
+    /// Returns the ID of the bus.
+    pub fn bus_id(&self) -> &str {
+        &self.bus_id
+    }
+
+    /// Returns a Vec of the port numbers needed to be traversed
+    /// to get to this device.
+    pub fn port_chain(&self) -> &[u8] {
+        &self.port_chain
+    }
+
+    /// Returns the parent of this device, if any. Root objects
+    /// have no parent.
+    pub fn parent(&self) -> Option<Location> {
+        if self.port_chain.len() <= 1 {
+            return None;
+        }
+        Some(Location {
+            bus_id: self.bus_id.clone(),
+            port_chain: self.port_chain[0..self.port_chain.len() - 1].to_owned(),
+        })
+    }
 }
 
 struct HexU16(u16);
@@ -984,9 +1041,7 @@ mod test {
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
             #[cfg(feature = "usbportinfo-chain")]
-            bus_id: String::from("001"),
-            #[cfg(feature = "usbportinfo-chain")]
-            port_chain: vec![],
+            location: Location::new("001", &[]),
             #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
         };
