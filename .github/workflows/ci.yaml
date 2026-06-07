@@ -61,6 +61,23 @@ jobs:
         with:
           target: ${{ matrix.target }}
       - uses: swatinem/rust-cache@v2
+        # Pin some dependencies (for Clippy and our MSRV 1.59.0) just here in
+        # CI and not via Cargo.toml. The latter would enforce them to all users
+        # and not just the ones who want to build with an old Rust release. See
+        # issue https://github.com/serialport/serialport-rs/issues/324.
+        #
+        # The command line arguments below are for Cargo 1.59.0. The have
+        # changed with newer releases and need to be adjusted when bumbing our
+        # MSRV.
+        #
+        # NOTE: Please keep in sync with pinning for build jobs in build.yaml.
+      - name: Build | pin some dependencies for building with MSRV
+        run: |
+          cargo update --precise 0.10.0 --package core-foundation
+          cargo update --precise 0.2.163 --package libc
+          cargo update --precise 1.0.101 --package proc-macro2
+          cargo update --precise 1.0.40 --package quote
+          cargo update --precise 1.0.22 --package unicode-ident
       - run: cargo clippy --target ${{ matrix.target }}
       - run: cargo clippy --target ${{ matrix.target }} --all-features
 
