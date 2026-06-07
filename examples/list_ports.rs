@@ -40,9 +40,7 @@ fn main() {
                             info.product.as_ref().map_or("", String::as_str)
                         );
                         #[cfg(feature = "usbportinfo-chain")]
-                        println!("        Bus ID: {}", info.bus_id);
-                        #[cfg(feature = "usbportinfo-chain")]
-                        println!("        Port Chain: {:?}", info.port_chain);
+                        println!("        Location: {}", info.location);
                     }
                     SerialPortType::BluetoothPort => {
                         println!("        Type: Bluetooth");
