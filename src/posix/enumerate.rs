@@ -137,8 +137,9 @@ fn bus_num_and_port_chain(device: &libudev::Device) -> (String, Vec<u8>) {
         };
         let devpath = devpath.unwrap();
 
-        let bus_num = u32::from_str_radix(&busnum, 10)
-            .map(|n| format!("{n:03}"))
+        let bus_num = busnum
+            .parse()
+            .map(|n: u32| format!("{n:03}"))
             .unwrap_or_default();
 
         let port_chain = devpath
@@ -153,7 +154,8 @@ fn bus_num_and_port_chain(device: &libudev::Device) -> (String, Vec<u8>) {
             .unwrap_or_default();
         return (bus_num, port_chain);
     }
-    return ("000".to_owned(), vec![]);
+
+    ("000".to_owned(), vec![])
 }
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
