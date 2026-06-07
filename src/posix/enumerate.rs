@@ -46,12 +46,6 @@ use crate::UsbPortInfo;
 use crate::{Error, ErrorKind};
 use crate::{Result, SerialPortInfo};
 
-cfg_if! {
-    if #[cfg(feature = "usbportinfo-chain")] {
-        use crate::Location;
-    }
-}
-
 /// Retrieves the udev property value named by `key`. If the value exists, then it will be
 /// converted to a String, otherwise None will be returned.
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
@@ -158,10 +152,10 @@ fn port_location(device: &libudev::Device) -> Location {
                     .collect::<Option<Vec<u8>>>()
             })
             .unwrap_or_default();
-        return Location::new(&bus_num, &port_chain);
+        return crate::Location::new(&bus_num, &port_chain);
     }
 
-    Location::new("000", &[])
+    crate::Location::new("000", &[])
 }
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
@@ -451,7 +445,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
             #[cfg(feature = "usbportinfo-chain")]
-            location: Location::new(
+            location: crate::Location::new(
                 &format!("{:02x}", (location_id >> 24) as u8),
                 &parse_location_id(location_id),
             ),
@@ -714,7 +708,7 @@ cfg_if! {
                     })
                     .unwrap_or_default();
 
-                Location::new(&bus_id, &port_chain)
+                crate::Location::new(&bus_id, &port_chain)
             };
 
             Some(UsbPortInfo {
