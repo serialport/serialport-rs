@@ -826,10 +826,10 @@ pub struct UsbPortInfo {
     /// Product name (arbitrary string)
     pub product: Option<String>,
     /// ID of the USB bus where this device is connected
-    #[cfg(feature = "port-chain")]
+    #[cfg(feature = "usbportinfo-chain")]
     pub bus_id: String,
     /// Physical port heirarchy
-    #[cfg(feature = "port-chain")]
+    #[cfg(feature = "usbportinfo-chain")]
     pub port_chain: Vec<u8>,
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
@@ -983,9 +983,9 @@ mod test {
             pid: 0xaffe,
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             bus_id: String::from("001"),
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             port_chain: vec![],
             #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),

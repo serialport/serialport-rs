@@ -112,7 +112,7 @@ fn udev_restore_spaces(source: String) -> String {
 #[cfg(all(
     target_os = "linux",
     not(target_env = "musl"),
-    all(feature = "libudev", feature = "port-chain")
+    all(feature = "libudev", feature = "usbportinfo-chain")
 ))]
 /// Get the bus number and port chain out of the first parent device that
 /// has a defined bus number.
@@ -171,7 +171,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 udev_property_encoded_or_replaced_as_string(d, "ID_MODEL_ENC", "ID_MODEL")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
 
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             let (bus_id, port_chain) = bus_num_and_port_chain(d);
 
             Ok(SerialPortType::UsbPort(UsbPortInfo {
@@ -180,9 +180,9 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 serial_number,
                 manufacturer,
                 product,
-                #[cfg(feature = "port-chain")]
+                #[cfg(feature = "usbportinfo-chain")]
                 bus_id,
-                #[cfg(feature = "port-chain")]
+                #[cfg(feature = "usbportinfo-chain")]
                 port_chain,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
@@ -210,7 +210,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     "ID_USB_MODEL",
                 );
 
-                #[cfg(feature = "port-chain")]
+                #[cfg(feature = "usbportinfo-chain")]
                 let (bus_id, port_chain) = bus_num_and_port_chain(d);
 
                 Ok(SerialPortType::UsbPort(UsbPortInfo {
@@ -219,9 +219,9 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
                     manufacturer,
                     product,
-                    #[cfg(feature = "port-chain")]
+                    #[cfg(feature = "usbportinfo-chain")]
                     bus_id,
-                    #[cfg(feature = "port-chain")]
+                    #[cfg(feature = "usbportinfo-chain")]
                     port_chain,
                     #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
@@ -316,9 +316,9 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         serial_number: None,
         manufacturer: None,
         product: None,
-        #[cfg(feature = "port-chain")]
+        #[cfg(feature = "usbportinfo-chain")]
         bus_id: Default::default(),
-        #[cfg(feature = "port-chain")]
+        #[cfg(feature = "usbportinfo-chain")]
         port_chain: Default::default(),
         // Only attempt to find the interface if the feature is enabled.
         #[cfg(feature = "usbportinfo-interface")]
@@ -412,7 +412,10 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Resu
         .ok_or(Error::new(ErrorKind::Unknown, "Failed to get string value"))
 }
 
-#[cfg(all(any(target_os = "ios", target_os = "macos"), feature = "port-chain"))]
+#[cfg(all(
+    any(target_os = "ios", target_os = "macos"),
+    feature = "usbportinfo-chain"
+))]
 fn parse_location_id(id: u32) -> Vec<u8> {
     let mut chain = vec![];
     let mut shift = id << 8;
@@ -437,7 +440,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
-        #[cfg(feature = "port-chain")]
+        #[cfg(feature = "usbportinfo-chain")]
         let location_id = get_int_property(usb_device, "locationID").unwrap_or_default();
         SerialPortType::UsbPort(UsbPortInfo {
             vid: get_int_property(usb_device, "idVendor").unwrap_or_default() as u16,
@@ -445,9 +448,9 @@ fn port_type(service: io_object_t) -> SerialPortType {
             serial_number: get_string_property(usb_device, "USB Serial Number").ok(),
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             bus_id: format!("{:02x}", (location_id >> 24) as u8),
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             port_chain: parse_location_id(location_id),
             // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
             // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
@@ -689,7 +692,7 @@ cfg_if! {
             let product = read_file_to_trimmed_string(device_path, "product");
             let manufacturer = read_file_to_trimmed_string(device_path, "manufacturer");
 
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             let bus_id = if let Some(busnum) = read_file_to_trimmed_string(device_path, "busnum") {
                 u32::from_str_radix(&busnum, 10)
                 .map(|n| format!("{n:03}"))
@@ -698,7 +701,7 @@ cfg_if! {
                 "000".to_owned()
             };
 
-            #[cfg(feature = "port-chain")]
+            #[cfg(feature = "usbportinfo-chain")]
             let port_chain = read_file_to_trimmed_string(device_path, "devpath")
                 .filter(|p| p != "0") // root hub should be empty but devpath is 0
                 .and_then(|p| {
@@ -714,9 +717,9 @@ cfg_if! {
                 serial_number,
                 manufacturer,
                 product,
-                #[cfg(feature = "port-chain")]
+                #[cfg(feature = "usbportinfo-chain")]
                 bus_id,
-                #[cfg(feature = "port-chain")]
+                #[cfg(feature = "usbportinfo-chain")]
                 port_chain,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface,
