@@ -116,7 +116,7 @@ fn udev_restore_spaces(source: String) -> String {
 ))]
 /// Get the bus number and port chain out of the first parent device that
 /// has a defined bus number.
-fn port_location(device: &libudev::Device) -> Location {
+fn port_location(device: &libudev::Device) -> crate::Location {
     let mut device = device.parent();
     while let Some(d) = device.take() {
         let busnum = udev_property_as_string(&d, "BUSNUM");
