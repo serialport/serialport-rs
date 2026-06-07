@@ -93,7 +93,9 @@ jobs:
         # The command line arguments below are for Cargo 1.59.0. The have
         # changed with newer releases and need to be adjusted when bumbing our
         # MSRV.
-      - name: Build | pin some dependencies for building with MSRV
+        #
+        # NOTE: Please keep in sync with pinning for other jobs in ci.yaml.
+      - name: Build | pin some dependencies
         if: ${{ inputs.pin-incompatible-msrv-bump-dependencies == true }}
         run: |
           cargo update --precise 0.10.0 --package core-foundation
