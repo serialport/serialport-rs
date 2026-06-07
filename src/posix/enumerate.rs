@@ -451,9 +451,10 @@ fn port_type(service: io_object_t) -> SerialPortType {
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
             #[cfg(feature = "usbportinfo-chain")]
-            bus_id: format!("{:02x}", (location_id >> 24) as u8),
-            #[cfg(feature = "usbportinfo-chain")]
-            port_chain: parse_location_id(location_id),
+            location: Location::new(
+                &format!("{:02x}", (location_id >> 24) as u8),
+                &parse_location_id(location_id),
+            ),
             // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
             // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
             // we will lookup the interface number using the same method. See:
