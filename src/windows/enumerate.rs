@@ -185,9 +185,9 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         manufacturer: None,
         product: None,
 
-        #[cfg(feature = "port-chain")]
+        #[cfg(feature = "usbportinfo-chain")]
         bus_id: Default::default(),
-        #[cfg(feature = "port-chain")]
+        #[cfg(feature = "usbportinfo-chain")]
         port_chain: Default::default(),
 
         #[cfg(feature = "usbportinfo-interface")]
@@ -195,7 +195,7 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
     })
 }
 
-#[cfg(feature = "port-chain")]
+#[cfg(feature = "usbportinfo-chain")]
 fn parse_location_path(s: &str) -> Option<(String, Vec<u8>)> {
     let usbroot = "#USBROOT(";
     let start_i = s.find(usbroot)?;
@@ -418,7 +418,7 @@ impl PortDevice {
                 info.manufacturer = self.property(SPDRP_MFG);
                 info.product = self.property(SPDRP_FRIENDLYNAME);
 
-                #[cfg(feature = "port-chain")]
+                #[cfg(feature = "usbportinfo-chain")]
                 {
                     use windows_sys::Win32::Devices::DeviceAndDriverInstallation:: SPDRP_LOCATION_PATHS;
                     let location_paths = self.property_list(SPDRP_LOCATION_PATHS);
@@ -469,7 +469,7 @@ impl PortDevice {
 
     // Retrieves a device property and returns it, if it exists. Returns None if the property
     // doesn't exist.
-    #[cfg(feature = "port-chain")]
+    #[cfg(feature = "usbportinfo-chain")]
     fn property_list(&mut self, property_id: u32) -> Vec<String> {
         use windows_sys::Win32::System::Registry::REG_MULTI_SZ;
         let mut value_type = 0;
