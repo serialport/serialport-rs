@@ -341,6 +341,8 @@ fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<
 fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Result<String> {
     let cf_property = CFString::from_str(property);
 
+    // SAFETY: We are calling `IORegistryEntryCreateCFProperty` with valid arguments and have
+    // allocated `cf_property` right above.
     let cf_type = unsafe {
         IORegistryEntryCreateCFProperty(device_type, Some(&cf_property), kCFAllocatorDefault, 0)
     }
