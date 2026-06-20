@@ -14,8 +14,6 @@ pub fn last_os_error() -> Error {
     error_from_raw_os_error(errno())
 }
 
-// the rest of this module is borrowed from libstd
-
 fn error_from_raw_os_error(errno: u32) -> Error {
     let kind = match errno {
         ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND | ERROR_ACCESS_DENIED => ErrorKind::NoDevice,
@@ -24,8 +22,10 @@ fn error_from_raw_os_error(errno: u32) -> Error {
 
     let description = format!("{} (os error {})", error_string(errno).trim(), errno);
 
-    Error::new_with_os_error(kind, description, Some(errno as i32))
+    Error::new(kind, description)
 }
+
+// the rest of this module is borrowed from libstd
 
 fn errno() -> u32 {
     unsafe { GetLastError() }
@@ -77,11 +77,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn preserves_raw_os_error_in_windows_wrapper() {
+    fn includes_raw_os_error_in_windows_wrapper_description() {
         let error = error_from_raw_os_error(ERROR_ACCESS_DENIED);
 
         assert_eq!(error.kind(), ErrorKind::NoDevice);
-        assert_eq!(error.raw_os_error(), Some(ERROR_ACCESS_DENIED as i32));
         assert!(error.to_string().contains("os error 5"));
     }
 }

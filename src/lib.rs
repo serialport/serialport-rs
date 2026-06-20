@@ -88,43 +88,20 @@ pub struct Error {
     pub kind: ErrorKind,
     /// A description of the error suitable for end-users
     pub description: String,
-    /// The raw operating system error code, if one was provided by the OS.
-    ///
-    /// This is useful when callers need a stable identifier for the failure that
-    /// does not depend on the current system language.
-    pub raw_os_error: Option<i32>,
 }
 
 impl Error {
     /// Instantiates a new error
     pub fn new<T: Into<String>>(kind: ErrorKind, description: T) -> Self {
-        Self::new_with_os_error(kind, description, None)
-    }
-
-    /// Instantiates a new error with an optional raw operating system error code.
-    pub fn new_with_os_error<T: Into<String>>(
-        kind: ErrorKind,
-        description: T,
-        raw_os_error: Option<i32>,
-    ) -> Self {
         Error {
             kind,
             description: description.into(),
-            raw_os_error,
         }
     }
 
     /// Returns the corresponding `ErrorKind` for this error.
     pub fn kind(&self) -> ErrorKind {
         self.kind
-    }
-
-    /// Returns the raw operating system error code, if one is available.
-    ///
-    /// This is useful when callers need a stable identifier for the failure that
-    /// does not depend on the current system language.
-    pub fn raw_os_error(&self) -> Option<i32> {
-        self.raw_os_error
     }
 }
 
@@ -142,9 +119,7 @@ impl StdError for Error {
 
 impl From<io::Error> for Error {
     fn from(io_error: io::Error) -> Error {
-        let kind = io_error.kind();
-        let raw_os_error = io_error.raw_os_error();
-        Error::new_with_os_error(ErrorKind::Io(kind), format!("{}", io_error), raw_os_error)
+        Error::new(ErrorKind::Io(io_error.kind()), format!("{}", io_error))
     }
 }
 
@@ -157,10 +132,7 @@ impl From<Error> for io::Error {
             ErrorKind::Io(kind) => kind,
         };
 
-        match error.raw_os_error {
-            Some(code) => io::Error::from_raw_os_error(code),
-            None => io::Error::new(kind, error.description),
-        }
+        io::Error::new(kind, error.description)
     }
 }
 
@@ -1018,28 +990,5 @@ mod test {
         let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\"), interface: Some(42) }";
 
         assert_eq!(formatted, expected);
-    }
-
-    #[rstest]
-    fn error_new_has_no_raw_os_error() {
-        let error = Error::new(ErrorKind::Unknown, "plain error");
-
-        assert_eq!(error.raw_os_error(), None);
-        assert_eq!(error.raw_os_error, None);
-    }
-
-    #[rstest]
-    fn error_from_io_error_preserves_raw_os_error() {
-        let error = Error::from(io::Error::from_raw_os_error(120));
-
-        assert_eq!(error.raw_os_error(), Some(120));
-    }
-
-    #[rstest]
-    fn io_error_from_error_preserves_raw_os_error() {
-        let error = Error::new_with_os_error(ErrorKind::NoDevice, "device busy", Some(120));
-        let io_error = io::Error::from(error);
-
-        assert_eq!(io_error.raw_os_error(), Some(120));
     }
 }
