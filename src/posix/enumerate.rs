@@ -8,7 +8,7 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(target_vendor = "apple")] {
-        use core::ffi::{c_char, c_int, c_uint, CStr};
+        use core::ffi::{c_int, c_uint, CStr};
         use core::mem::MaybeUninit;
 
         use objc2_core_foundation::{
@@ -274,7 +274,7 @@ fn get_parent_device_by_type(
 ) -> Option<io_registry_entry_t> {
     let mut device = device;
     loop {
-        let mut class_name = MaybeUninit::<[c_char; 128]>::uninit();
+        let mut class_name = MaybeUninit::uninit();
         unsafe { IOObjectGetClass(device, class_name.as_mut_ptr()) };
         let class_name = unsafe { class_name.assume_init() };
         let name = unsafe { CStr::from_ptr(&class_name[0]) };
