@@ -16,7 +16,7 @@ cfg_if! {
         };
         use objc2_io_kit::{
             io_object_t, io_registry_entry_t, kIOMainPortDefault, kIOSerialBSDAllTypes,
-            kIOSerialBSDServiceValue, kIOSerialBSDTypeKey, kIOServiceClass, kIOUSBDeviceClassName,
+            kIOSerialBSDServiceValue, kIOSerialBSDTypeKey, kIOServicePlane, kIOUSBDeviceClassName,
             kIOUSBHostInterfaceClassName, IOIteratorNext, IOMainPort, IOObjectGetClass,
             IOObjectRelease, IORegistryEntryCreateCFProperties, IORegistryEntryCreateCFProperty,
             IORegistryEntryGetParentEntry, IOServiceGetMatchingServices, IOServiceMatching,
@@ -283,7 +283,7 @@ fn get_parent_device_by_type(
         if unsafe {
             IORegistryEntryGetParentEntry(
                 device,
-                kIOServiceClass.as_ptr() as _,
+                kIOServicePlane.as_ptr() as _,
                 parent.as_mut_ptr(),
             ) != KERN_SUCCESS
         } {
