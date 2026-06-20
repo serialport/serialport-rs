@@ -274,23 +274,36 @@ fn get_parent_device_by_type(
 ) -> Option<io_registry_entry_t> {
     let mut device = device;
     loop {
-        let mut class_name = MaybeUninit::uninit();
-        unsafe { IOObjectGetClass(device, class_name.as_mut_ptr()) };
+        let mut class_name = MaybeUninit::zeroed();
+        // SAFETY: `device` is supposed to be valid `io_object_t` and `class_name` points to a
+        // zero-initialzed buffer of the required size.
+        if KERN_SUCCESS != unsafe { IOObjectGetClass(device, class_name.as_mut_ptr()) } {
+            return None;
+        }
+        // SAFETY: We successfully called `IOObjectGetClass` and can now assume that `class_name`
+        // contains either completely zeroed data ot a valid C string.
         let class_name = unsafe { class_name.assume_init() };
-        let name = unsafe { CStr::from_ptr(&class_name[0]) };
+
+        // SAFETY: `class_name` contains a valid C sting (which might be empty).
+        let name = unsafe { CStr::from_ptr(class_name.as_ptr()) };
         if name == parent_type {
             return Some(device);
         }
+
         let mut parent = MaybeUninit::uninit();
-        if unsafe {
-            IORegistryEntryGetParentEntry(
-                device,
-                kIOServicePlane.as_ptr() as _,
-                parent.as_mut_ptr(),
-            ) != KERN_SUCCESS
-        } {
+        if KERN_SUCCESS
+            != unsafe {
+                IORegistryEntryGetParentEntry(
+                    device,
+                    kIOServicePlane.as_ptr() as _,
+                    parent.as_mut_ptr(),
+                )
+            }
+        {
             return None;
         }
+        // SAFETY: We checked right above that we successfully called
+        // `IORegistryEntryGetParentEntry` and can assume a valid `io_registry_entry_t` in `parent`.
         device = unsafe { parent.assume_init() };
     }
 }
