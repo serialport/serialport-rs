@@ -17,7 +17,7 @@ cfg_if! {
         #[allow(deprecated)]
         use objc2_io_kit::{kIOMasterPortDefault, IOMasterPort};
         use objc2_io_kit::{
-            io_object_t, io_registry_entry_t, kIOServiceClass, kIOUSBDeviceClassName,
+            io_object_t, io_registry_entry_t, kIOServicePlane, kIOUSBDeviceClassName,
             kIOUSBHostInterfaceClassName, IOIteratorNext, IOObjectGetClass, IOObjectRelease,
             IORegistryEntryCreateCFProperties, IORegistryEntryCreateCFProperty,
             IORegistryEntryGetParentEntry, IOServiceGetMatchingServices, IOServiceMatching,
@@ -285,7 +285,7 @@ fn get_parent_device_by_type(
         if unsafe {
             IORegistryEntryGetParentEntry(
                 device,
-                kIOServiceClass.as_ptr() as _,
+                kIOServicePlane.as_ptr() as _,
                 parent.as_mut_ptr(),
             ) != KERN_SUCCESS
         } {
