@@ -314,6 +314,8 @@ fn get_parent_device_by_type(
 fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<u32> {
     let cf_property = CFString::from_str(property);
 
+    // SAFETY: We are calling `IORegistryEntryCreateCFProperty` with valid arguments and allocated
+    // `cf_property` right above.
     let cf_type = unsafe {
         IORegistryEntryCreateCFProperty(device_type, Some(&cf_property), kCFAllocatorDefault, 0)
     }
@@ -323,11 +325,15 @@ fn get_int_property(device_type: io_registry_entry_t, property: &str) -> Result<
         .downcast::<CFNumber>()
         .ok()
         .and_then(|n| n.as_i64())
-        .map(|n| n as u32)
-        .ok_or(Error::new(
-            ErrorKind::Unknown,
-            "Failed to get numerical value",
-        ))
+        .ok_or_else(|| Error::new(ErrorKind::Unknown, "Failed to get numerical value"))
+        .and_then(|n| {
+            n.try_into().map_err(|e| {
+                Error::new(
+                    ErrorKind::Unknown,
+                    format!("Failed to convert to u32 ({e})"),
+                )
+            })
+        })
 }
 
 #[cfg(target_vendor = "apple")]
