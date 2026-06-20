@@ -394,7 +394,6 @@ cfg_if! {
     if #[cfg(target_vendor = "apple")] {
         /// Scans the system for serial ports and returns a list of them.
         /// The `SerialPortInfo` struct contains the name of the port which can be used for opening it.
-        #[allow(deprecated)]
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             unsafe {
@@ -412,7 +411,7 @@ cfg_if! {
                 // Get an interface to IOKit
                 let mut master_port: mach_port_t = MACH_PORT_NULL;
                 #[allow(deprecated)]
-                let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
+                let kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
                 if kern_result != KERN_SUCCESS {
                     return Err(Error::new(
                         ErrorKind::Unknown,
@@ -422,7 +421,8 @@ cfg_if! {
 
                 // Run the search.
                 let mut matching_services = MaybeUninit::uninit();
-                kern_result = IOServiceGetMatchingServices(
+                #[allow(deprecated)]
+                let kern_result = IOServiceGetMatchingServices(
                     kIOMasterPortDefault,
                     Some(classes_to_match.as_opaque().into()),
                     matching_services.as_mut_ptr(),
