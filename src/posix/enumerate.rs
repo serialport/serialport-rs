@@ -14,14 +14,12 @@ cfg_if! {
         use objc2_core_foundation::{
             kCFAllocatorDefault, CFMutableDictionary, CFNumber, CFRetained, CFString, CFType,
         };
-        #[allow(deprecated)]
-        use objc2_io_kit::{kIOMasterPortDefault, IOMasterPort};
         use objc2_io_kit::{
-            io_object_t, io_registry_entry_t, kIOServiceClass, kIOUSBDeviceClassName,
-            kIOUSBHostInterfaceClassName, IOIteratorNext, IOObjectGetClass, IOObjectRelease,
-            IORegistryEntryCreateCFProperties, IORegistryEntryCreateCFProperty,
+            io_object_t, io_registry_entry_t, kIOMainPortDefault, kIOSerialBSDAllTypes,
+            kIOSerialBSDServiceValue, kIOSerialBSDTypeKey, kIOServiceClass, kIOUSBDeviceClassName,
+            kIOUSBHostInterfaceClassName, IOIteratorNext, IOMainPort, IOObjectGetClass,
+            IOObjectRelease, IORegistryEntryCreateCFProperties, IORegistryEntryCreateCFProperty,
             IORegistryEntryGetParentEntry, IOServiceGetMatchingServices, IOServiceMatching,
-            kIOSerialBSDServiceValue, kIOSerialBSDTypeKey, kIOSerialBSDAllTypes,
         };
 
         // NOTE: Do not use `mach` nor `mach2` crates, they're unmaintained,
@@ -391,7 +389,7 @@ cfg_if! {
                 // Get an interface to IOKit
                 let mut master_port: mach_port_t = MACH_PORT_NULL;
                 #[allow(deprecated)]
-                let mut kern_result = IOMasterPort(MACH_PORT_NULL, &mut master_port);
+                let mut kern_result = IOMainPort(MACH_PORT_NULL, &mut master_port);
                 if kern_result != KERN_SUCCESS {
                     return Err(Error::new(
                         ErrorKind::Unknown,
@@ -402,7 +400,7 @@ cfg_if! {
                 // Run the search.
                 let mut matching_services = MaybeUninit::uninit();
                 kern_result = IOServiceGetMatchingServices(
-                    kIOMasterPortDefault,
+                    kIOMainPortDefault,
                     Some(classes_to_match.as_opaque().into()),
                     matching_services.as_mut_ptr(),
                 );
