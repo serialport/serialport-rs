@@ -17,6 +17,8 @@
 //! platform-specific port object which allows access to platform-specific functionality.
 
 #![allow(clippy::uninlined_format_args)]
+// Clippy's MSRV lint can disagree with macro-expanded code from dependencies (e.g. nix ioctl helpers) even when `cargo build` at the crate MSRV still succeeds. See CI `clippy` jobs.
+#![allow(clippy::incompatible_msrv)]
 #![deny(
     clippy::dbg_macro,
     missing_docs,
@@ -38,6 +40,9 @@ use std::fmt;
 use std::io;
 use std::str::FromStr;
 use std::time::Duration;
+
+#[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
+extern crate libudev_rs as libudev;
 
 #[cfg(unix)]
 mod posix;
