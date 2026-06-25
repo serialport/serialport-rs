@@ -65,5 +65,5 @@ hardware-tests = []
 
 # TODO: Make the features below unconditionally available with the next major
 # release (5.0) and remove this feature gate.
-usbportinfo-chain = []
 usbportinfo-interface = []
+usbportinfo-location = []
