@@ -853,9 +853,8 @@ impl core::fmt::Display for Location {
 
 #[cfg(feature = "usbportinfo-chain")]
 impl Location {
-    /// Create a new USB device location based on some string
-    /// identifying the bus number, along with the path taken
-    /// to a particular port.
+    /// Create a new USB device location based on some string identifying the bus number, along with
+    /// the path taken to a particular port.
     pub fn new(bus_id: &str, port_chain: &[u8]) -> Self {
         Location {
             bus_id: bus_id.to_owned(),
@@ -863,8 +862,7 @@ impl Location {
         }
     }
 
-    /// Returns `true` if this Location is located below
-    /// another Location in the bus heirarchy.
+    /// Returns `true` if this Location is located below another Location in the bus hierarchy.
     pub fn is_child_of(&self, other: &Location) -> bool {
         self.bus_id == other.bus_id
             && self.port_chain.starts_with(&other.port_chain)
@@ -876,14 +874,12 @@ impl Location {
         &self.bus_id
     }
 
-    /// Returns a Vec of the port numbers needed to be traversed
-    /// to get to this device.
+    /// Returns a Vec of the port numbers needed to be traversed to get to this device.
     pub fn port_chain(&self) -> &[u8] {
         &self.port_chain
     }
 
-    /// Returns the parent of this device, if any. Root objects
-    /// have no parent.
+    /// Returns the parent of this device, if any. Root objects have no parent.
     pub fn parent(&self) -> Option<Location> {
         if self.port_chain.len() <= 1 {
             return None;
