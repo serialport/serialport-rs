@@ -112,7 +112,7 @@ fn udev_restore_spaces(source: String) -> String {
 #[cfg(all(
     target_os = "linux",
     not(target_env = "musl"),
-    all(feature = "libudev", feature = "usbportinfo-chain")
+    all(feature = "libudev", feature = "usbportinfo-location")
 ))]
 /// Get the bus number and port chain out of the first parent device that
 /// has a defined bus number.
@@ -173,7 +173,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 udev_property_encoded_or_replaced_as_string(d, "ID_MODEL_ENC", "ID_MODEL")
                     .or_else(|| udev_property_as_string(d, "ID_MODEL_FROM_DATABASE"));
 
-            #[cfg(feature = "usbportinfo-chain")]
+            #[cfg(feature = "usbportinfo-location")]
             let location = port_location(d);
 
             Ok(SerialPortType::UsbPort(UsbPortInfo {
@@ -182,7 +182,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                 serial_number,
                 manufacturer,
                 product,
-                #[cfg(feature = "usbportinfo-chain")]
+                #[cfg(feature = "usbportinfo-location")]
                 location,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface: udev_hex_property_as_int(d, "ID_USB_INTERFACE_NUM", &u8::from_str_radix)
@@ -210,7 +210,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     "ID_USB_MODEL",
                 );
 
-                #[cfg(feature = "usbportinfo-chain")]
+                #[cfg(feature = "usbportinfo-location")]
                 let location = port_location(d);
 
                 Ok(SerialPortType::UsbPort(UsbPortInfo {
@@ -219,7 +219,7 @@ fn port_type(d: &libudev::Device) -> Result<SerialPortType> {
                     serial_number: udev_property_as_string(d, "ID_USB_SERIAL_SHORT"),
                     manufacturer,
                     product,
-                    #[cfg(feature = "usbportinfo-chain")]
+                    #[cfg(feature = "usbportinfo-location")]
                     location,
                     #[cfg(feature = "usbportinfo-interface")]
                     interface: udev_hex_property_as_int(
@@ -314,7 +314,7 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         serial_number: None,
         manufacturer: None,
         product: None,
-        #[cfg(feature = "usbportinfo-chain")]
+        #[cfg(feature = "usbportinfo-location")]
         location: Default::default(),
         // Only attempt to find the interface if the feature is enabled.
         #[cfg(feature = "usbportinfo-interface")]
@@ -410,7 +410,7 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Resu
 
 #[cfg(all(
     any(target_os = "ios", target_os = "macos"),
-    feature = "usbportinfo-chain"
+    feature = "usbportinfo-location"
 ))]
 fn parse_location_id(id: u32) -> Vec<u8> {
     let mut chain = vec![];
@@ -436,7 +436,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
-        #[cfg(feature = "usbportinfo-chain")]
+        #[cfg(feature = "usbportinfo-location")]
         let location_id = get_int_property(usb_device, "locationID").unwrap_or_default();
         SerialPortType::UsbPort(UsbPortInfo {
             vid: get_int_property(usb_device, "idVendor").unwrap_or_default() as u16,
@@ -444,7 +444,7 @@ fn port_type(service: io_object_t) -> SerialPortType {
             serial_number: get_string_property(usb_device, "USB Serial Number").ok(),
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
-            #[cfg(feature = "usbportinfo-chain")]
+            #[cfg(feature = "usbportinfo-location")]
             location: crate::Location::new(
                 &format!("{:02x}", (location_id >> 24) as u8),
                 &parse_location_id(location_id),
@@ -689,7 +689,7 @@ cfg_if! {
             let product = read_file_to_trimmed_string(device_path, "product");
             let manufacturer = read_file_to_trimmed_string(device_path, "manufacturer");
 
-            #[cfg(feature = "usbportinfo-chain")]
+            #[cfg(feature = "usbportinfo-location")]
             let location = {
                 let bus_id = if let Some(busnum) = read_file_to_trimmed_string(device_path, "busnum") {
                     u32::from_str_radix(&busnum, 10)
@@ -717,7 +717,7 @@ cfg_if! {
                 serial_number,
                 manufacturer,
                 product,
-                #[cfg(feature = "usbportinfo-chain")]
+                #[cfg(feature = "usbportinfo-location")]
                 location,
                 #[cfg(feature = "usbportinfo-interface")]
                 interface,

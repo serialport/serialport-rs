@@ -826,7 +826,7 @@ pub struct UsbPortInfo {
     /// Product name (arbitrary string)
     pub product: Option<String>,
     /// Physical port heirarchy
-    #[cfg(feature = "usbportinfo-chain")]
+    #[cfg(feature = "usbportinfo-location")]
     pub location: Location,
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
@@ -835,7 +835,7 @@ pub struct UsbPortInfo {
     pub interface: Option<u8>,
 }
 
-#[cfg(feature = "usbportinfo-chain")]
+#[cfg(feature = "usbportinfo-location")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Identify where a particular USB device is on the system.
@@ -844,7 +844,7 @@ pub struct Location {
     port_chain: Vec<u8>,
 }
 
-#[cfg(feature = "usbportinfo-chain")]
+#[cfg(feature = "usbportinfo-location")]
 impl core::fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         // Use a location format similat to Linux' sysfs 'bus-port.port[....]'.
@@ -860,7 +860,7 @@ impl core::fmt::Display for Location {
     }
 }
 
-#[cfg(feature = "usbportinfo-chain")]
+#[cfg(feature = "usbportinfo-location")]
 impl Location {
     /// Create a new USB device location based on some string identifying the bus number, along with
     /// the path taken to a particular port.
@@ -1045,7 +1045,7 @@ mod test {
             pid: 0xaffe,
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
-            #[cfg(feature = "usbportinfo-chain")]
+            #[cfg(feature = "usbportinfo-location")]
             location: Location::new("001", &[]),
             #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
