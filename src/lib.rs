@@ -847,7 +847,16 @@ pub struct Location {
 #[cfg(feature = "usbportinfo-chain")]
 impl core::fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {:?}", self.bus_id, self.port_chain)
+        // Use a location format similat to Linux' sysfs 'bus-port.port[....]'.
+        //
+        // TODO: Switch to Iterator::intersperse when it get stabilized and available to us.
+        let port_chain = self
+            .port_chain
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(".");
+        write!(f, "{}-{}", self.bus_id, port_chain)
     }
 }
 
