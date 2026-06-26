@@ -91,7 +91,7 @@ fn test_ttyport_timeout() {
 }
 
 #[test]
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(target_vendor = "apple")]
 fn test_osx_pty_pair() {
     // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
     let (mut master, mut slave) = SerialPort::pair().expect("Unable to create ptty pair");
@@ -110,7 +110,7 @@ fn test_osx_pty_pair() {
 // On Mac this should work (in fact used to in b77768a) but now fails. It's not functionality that
 // should be required, and the ptys work otherwise. So going to just disable this test instead.
 #[test]
-#[cfg_attr(any(target_os = "ios", target_os = "macos"), ignore)]
+#[cfg_attr(target_vendor = "apple", ignore)]
 fn test_ttyport_set_standard_baud() {
     // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
 
@@ -125,18 +125,16 @@ fn test_ttyport_set_standard_baud() {
     assert_eq!(slave.baud_rate().unwrap(), 115_200);
 }
 
-// On mac this fails because you can't set nonstandard baud rates for these virtual ports
 #[test]
 #[cfg_attr(
     any(
-        target_os = "ios",
         all(
             target_os = "linux",
             any(target_arch = "powerpc", target_arch = "powerpc64")
         ),
-        target_os = "macos"
+        target_vendor = "apple",
     ),
-    ignore
+    ignore = "target does not support non-standard baud rates"
 )]
 fn test_ttyport_set_nonstandard_baud() {
     // FIXME: Create a mutex across all tests for using `SerialPort::pair()` as it's not threadsafe
