@@ -36,6 +36,8 @@
 use std::error::Error as StdError;
 use std::fmt;
 use std::io;
+#[cfg(feature = "usbportinfo-location")]
+use std::num::{IntErrorKind, ParseIntError};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -845,22 +847,6 @@ pub struct Location {
 }
 
 #[cfg(feature = "usbportinfo-location")]
-impl core::fmt::Display for Location {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        // Use a location format similat to Linux' sysfs 'bus-port.port[....]'.
-        //
-        // TODO: Switch to Iterator::intersperse when it get stabilized and available to us.
-        let port_chain = self
-            .port_chain
-            .iter()
-            .map(|p| p.to_string())
-            .collect::<Vec<_>>()
-            .join(".");
-        write!(f, "{}-{}", self.bus_id, port_chain)
-    }
-}
-
-#[cfg(feature = "usbportinfo-location")]
 impl Location {
     /// Create a new USB device location based on some string identifying the bus number, along with
     /// the path taken to a particular port.
@@ -897,6 +883,88 @@ impl Location {
             bus_id: self.bus_id.clone(),
             port_chain: self.port_chain[0..self.port_chain.len() - 1].to_owned(),
         })
+    }
+}
+
+#[cfg(feature = "usbportinfo-location")]
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        // Use a location format similat to Linux' sysfs 'bus-port.port[....]'.
+        //
+        // TODO: Switch to Iterator::intersperse when it get stabilized and available to us.
+        let port_chain = self
+            .port_chain
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(".");
+        write!(f, "{}-{}", self.bus_id, port_chain)
+    }
+}
+
+/// An error which can be returned when parsing a USB device location string.
+#[cfg(feature = "usbportinfo-location")]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct ParseLocationError {
+    kind: LocationErrorKind,
+}
+
+#[cfg(feature = "usbportinfo-location")]
+impl ParseLocationError {
+    /// Returns the detailed cause for parsing a USB device location failing.
+    pub fn kind(&self) -> &LocationErrorKind {
+        &self.kind
+    }
+}
+
+/// Enum to store the various types of errors that can cause parsing a USB device locaiton to fail.
+#[cfg(feature = "usbportinfo-location")]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum LocationErrorKind {
+    /// Parsing a port number in the port chain failed.
+    Port(IntErrorKind),
+    /// Parsing the top-level structure failed.
+    TopLevel,
+}
+
+#[cfg(feature = "usbportinfo-location")]
+impl From<ParseIntError> for ParseLocationError {
+    fn from(error: ParseIntError) -> ParseLocationError {
+        ParseLocationError {
+            kind: LocationErrorKind::Port(*error.kind()),
+        }
+    }
+}
+
+#[cfg(feature = "usbportinfo-location")]
+impl FromStr for Location {
+    type Err = ParseLocationError;
+
+    fn from_str(s: &str) -> std::result::Result<Location, Self::Err> {
+        let mut splits = s.split('-');
+
+        if let (Some(bus_id), Some(port_chain), None) =
+            (splits.next(), splits.next(), splits.next())
+        {
+            let bus_id = String::from(bus_id);
+            // We need to handle an empty port chain explicitly because otherwise the `split` would
+            // result in an empty port string for which parsing would fail.
+            let port_chain = if port_chain.is_empty() {
+                Vec::new()
+            } else {
+                port_chain
+                    .split('.')
+                    .map(|p| p.parse())
+                    .collect::<std::result::Result<Vec<u8>, _>>()?
+            };
+
+            Ok(Location { bus_id, port_chain })
+        } else {
+            Err(ParseLocationError {
+                kind: LocationErrorKind::TopLevel,
+            })
+        }
     }
 }
 
@@ -1060,5 +1128,112 @@ mod test {
         let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\"), interface: Some(42) }";
 
         assert_eq!(formatted, expected);
+    }
+
+    #[cfg(feature = "usbportinfo-location")]
+    mod usbportinfo_location {
+        use super::*;
+
+        // Empty fields are corner cases when we are not restricting the input inputs to
+        // `Location::new`. Let's have some test to ensure that they behave at least in a defined
+        // manner.
+        #[rstest]
+        #[case(Location { bus_id: String::new(), port_chain: vec![] }, "-")]
+        #[case(Location { bus_id: String::from("1"), port_chain: vec![] }, "1-")]
+        #[case(Location { bus_id: String::new(), port_chain: vec![1] }, "-1")]
+        fn display_empty_fields(#[case] location: Location, #[case] display: &str) {
+            assert_eq!(format!("{}", location), display);
+        }
+
+        #[rstest]
+        #[case(Location { bus_id: String::from("bus"), port_chain: vec![1, 2, 3]})]
+        #[case(Location { bus_id: String::from("1"), port_chain: vec![1, 2, 3]})]
+        #[case(Location { bus_id: String::from("001"), port_chain: vec![1, 2, 3]})]
+        fn display_from_str_cycle(#[case] start: Location) {
+            let display = format!("{}", start);
+            let from_str = Location::from_str(&display).unwrap();
+
+            assert_eq!(start, from_str);
+        }
+
+        #[rstest]
+        fn display_simple() {
+            let location = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1, 2, 3],
+            };
+
+            assert_eq!(format!("{}", location), "bus-1.2.3",)
+        }
+
+        // Empty fields are corner cases when we are not restricting the input inputs to
+        // `Location::new`. Let's have some test to ensure that they behave at least in a defined
+        // manner.
+        #[rstest]
+        #[case("-", Location { bus_id: String::new(), port_chain: vec![]})]
+        #[case("1-", Location { bus_id: String::from("1"), port_chain: vec![]})]
+        #[case("-1", Location { bus_id: String::new(), port_chain: vec![1]})]
+        fn from_str_empty_fields(#[case] from: &str, #[case] location: Location) {
+            assert_eq!(Location::from_str(from).unwrap(), location);
+        }
+
+        #[rstest]
+        fn from_str_simple() {
+            assert_eq!(
+                Location::from_str("bus-1").unwrap(),
+                Location {
+                    bus_id: String::from("bus"),
+                    port_chain: vec![1],
+                }
+            );
+
+            assert_eq!(
+                Location::from_str("bus-255").unwrap(),
+                Location {
+                    bus_id: String::from("bus"),
+                    port_chain: vec![255],
+                }
+            );
+
+            assert_eq!(
+                Location::from_str("bus-1.2.3.4.5").unwrap(),
+                Location {
+                    bus_id: String::from("bus"),
+                    port_chain: vec![1, 2, 3, 4, 5],
+                }
+            );
+        }
+
+        #[rstest]
+        fn from_str_simple_invalid() {
+            matches!(
+                Location::from_str("").unwrap_err().kind(),
+                LocationErrorKind::TopLevel
+            );
+            matches!(
+                Location::from_str("bus").unwrap_err().kind(),
+                LocationErrorKind::TopLevel
+            );
+            matches!(
+                Location::from_str("bus-a").unwrap_err().kind(),
+                LocationErrorKind::Port(_)
+            );
+            matches!(
+                Location::from_str("bus-256").unwrap_err().kind(),
+                LocationErrorKind::Port(_)
+            );
+            matches!(
+                Location::from_str("bus-1-1").unwrap_err().kind(),
+                LocationErrorKind::TopLevel
+            );
+            matches!(
+                Location::from_str("bus-1..2").unwrap_err().kind(),
+                LocationErrorKind::TopLevel
+            );
+            matches!(
+                Location::from_str("bus-1.2.").unwrap_err().kind(),
+                LocationErrorKind::TopLevel
+            );
+        }
     }
 }
