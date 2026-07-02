@@ -858,7 +858,7 @@ impl Location {
     }
 
     /// Returns `true` if this Location is located below another Location in the bus hierarchy.
-    pub fn is_child_of(&self, other: &Location) -> bool {
+    pub fn is_descendant_of(&self, other: &Location) -> bool {
         self.bus_id == other.bus_id
             && self.port_chain.starts_with(&other.port_chain)
             && self.port_chain != other.port_chain
