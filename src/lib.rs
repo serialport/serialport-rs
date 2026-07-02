@@ -1235,5 +1235,78 @@ mod test {
                 LocationErrorKind::TopLevel
             );
         }
+
+        #[rstest]
+        fn is_descendand_of() {
+            let child = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1, 2, 3],
+            };
+            let parent = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1, 2],
+            };
+            let grandparent = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1],
+            };
+            let empty_port_chain = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![],
+            };
+
+            assert!(child.is_descendant_of(&empty_port_chain));
+            assert!(parent.is_descendant_of(&empty_port_chain));
+            assert!(grandparent.is_descendant_of(&empty_port_chain));
+            assert!(!empty_port_chain.is_descendant_of(&empty_port_chain));
+
+            assert!(child.is_descendant_of(&grandparent));
+            assert!(parent.is_descendant_of(&grandparent));
+            assert!(!grandparent.is_descendant_of(&grandparent));
+            assert!(!empty_port_chain.is_descendant_of(&grandparent));
+
+            assert!(child.is_descendant_of(&parent));
+            assert!(!parent.is_descendant_of(&parent));
+            assert!(!grandparent.is_descendant_of(&parent));
+            assert!(!empty_port_chain.is_descendant_of(&parent));
+
+            assert!(!child.is_descendant_of(&child));
+            assert!(!parent.is_descendant_of(&child));
+            assert!(!grandparent.is_descendant_of(&child));
+            assert!(!empty_port_chain.is_descendant_of(&child));
+
+            let different_parent = Location {
+                bus_id: String::from("another_bus"),
+                port_chain: vec![1, 2],
+            };
+
+            assert!(!child.is_descendant_of(&different_parent));
+        }
+
+        #[rstest]
+        fn parent() {
+            let child = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1, 2, 3],
+            };
+            let parent = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1, 2],
+            };
+            let grandparent = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1],
+            };
+            let empty_port_chain = Location {
+                bus_id: String::from("bus"),
+                port_chain: vec![1],
+            };
+
+            assert_eq!(child.parent(), Some(parent.clone()));
+            assert_eq!(parent.parent(), Some(grandparent.clone()));
+
+            assert!(grandparent.parent().is_none());
+            assert!(empty_port_chain.parent().is_none());
+        }
     }
 }
