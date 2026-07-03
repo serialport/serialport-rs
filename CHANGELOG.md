@@ -8,6 +8,12 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+* Provide USB port location in terms of bus and port chain via `UsbPortInfo`
+  and `Location`.
+  [#222](https://github.com/serialport/serialport-rs/issues/222)
+  [#350](https://github.com/serialport/serialport-rs/pull/350)
+
 ### Changed
 ### Fixed
 ### Removed
