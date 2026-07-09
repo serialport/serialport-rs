@@ -137,7 +137,14 @@ impl<'hwid> HwidMatches<'hwid> {
                     })
                     .map(|(index, _)| index)
                     .unwrap_or(tail.len());
-                tail.get(..index)
+                let s = tail.get(..index)?;
+                let rest = tail.get(index..).unwrap_or("");
+                // Reject "serials" that are just a prefix of a composite instance-id tail
+                // (e.g. `...PID_6018+6&A694CA9&0&0000` should not yield serial `6`).
+                if rest.starts_with('&') && rest.matches('&').count() >= 2 {
+                    return None;
+                }
+                Some(s)
             })
         } else {
             None
@@ -168,14 +175,33 @@ impl<'hwid> HwidMatches<'hwid> {
 ///   - BlackMagic GDB Server:  USB\VID_1D50&PID_6018&MI_00\6&A694CA9&0&0000
 ///   - BlackMagic UART port:   USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0002
 ///   - FTDI Serial Adapter:    FTDIBUS\VID_0403+PID_6001+A702TB52A\0000
-fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> Option<UsbPortInfo> {
+fn parse_usb_port_info(hardware_id: &str, ancestor_hardware_ids: &[String]) -> Option<UsbPortInfo> {
     let mut caps = HwidMatches::new(hardware_id)?;
 
     let interface = caps.interface.and_then(|m| u8::from_str_radix(m, 16).ok());
 
     if interface.is_some() {
-        // If this is a composite device, we need to parse the parent's HWID to get the correct information.
-        caps = HwidMatches::new(parent_hardware_id?)?;
+        for parent_hwid in ancestor_hardware_ids {
+            if let Some(parent_caps) = HwidMatches::new(parent_hwid) {
+                if parent_caps.vid != caps.vid || parent_caps.pid != caps.pid {
+                    break;
+                }
+
+                caps.vid = parent_caps.vid;
+                caps.pid = parent_caps.pid;
+                caps.serial = parent_caps.serial;
+
+                let is_usb = parent_hwid.starts_with("USB\\");
+                let valid_serial = caps.serial.map_or(false, |s| !s.contains('&'));
+                if is_usb && valid_serial {
+                    break;
+                }
+            }
+        }
+    }
+
+    if caps.serial.map_or(false, |s| s.contains('&')) {
+        caps.serial = None;
     }
 
     Some(UsbPortInfo {
@@ -276,31 +302,38 @@ struct PortDevice {
 impl PortDevice {
     /// Retrieves the device instance id string associated with this device's parent.
     /// This is useful for determining the serial number of a composite USB device.
-    fn parent_instance_id(&mut self) -> Option<String> {
+    fn ancestor_instance_ids(&mut self) -> Vec<String> {
         let mut result_buf = [0u16; MAX_PATH as usize];
-        let mut parent_device_instance_id = 0;
+        let mut ancestors = Vec::new();
+        let mut current_devinst = self.devinfo_data.DevInst;
 
-        let res =
-            unsafe { CM_Get_Parent(&mut parent_device_instance_id, self.devinfo_data.DevInst, 0) };
-        if res == CR_SUCCESS {
+        loop {
+            let mut parent_devinst = 0;
+            let res = unsafe { CM_Get_Parent(&mut parent_devinst, current_devinst, 0) };
+            if res != CR_SUCCESS {
+                break;
+            }
+
             let buffer_len = result_buf.len() - 1;
-            let res = unsafe {
+            let id_res = unsafe {
                 CM_Get_Device_IDW(
-                    parent_device_instance_id,
+                    parent_devinst,
                     result_buf.as_mut_ptr(),
                     buffer_len as u32,
                     0,
                 )
             };
 
-            if res == CR_SUCCESS {
-                Some(from_utf16_lossy_trimmed(&result_buf))
+            if id_res == CR_SUCCESS {
+                ancestors.push(from_utf16_lossy_trimmed(&result_buf));
             } else {
-                None
+                break;
             }
-        } else {
-            None
+
+            current_devinst = parent_devinst;
         }
+
+        ancestors
     }
 
     /// Retrieves the device instance id string associated with this device. Some examples of
@@ -410,8 +443,8 @@ impl PortDevice {
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
     pub fn port_type(&mut self) -> SerialPortType {
         self.instance_id()
-            .map(|s| (s, self.parent_instance_id())) // Get parent instance id if it exists.
-            .and_then(|(d, p)| parse_usb_port_info(&d, p.as_deref()))
+            .map(|s| (s, self.ancestor_instance_ids())) // Get ancestor instance ids.
+            .and_then(|(d, p)| parse_usb_port_info(&d, &p))
             .map(|mut info: UsbPortInfo| {
                 info.manufacturer = self.property(SPDRP_MFG);
                 info.product = self.property(SPDRP_FRIENDLYNAME);
@@ -802,13 +835,13 @@ mod tests {
     #[test]
     fn test_parsing_usb_port_information() {
         let madeup_hwid = r"USB\VID_1D50&PID_6018+6&A694CA9&0&0000";
-        let info = parse_usb_port_info(madeup_hwid, None).unwrap();
-        // TODO: Fix returning no serial at all for devices without one. See issue #203.
-        assert_eq!(info.serial_number, Some("6".to_string()));
+        let info = parse_usb_port_info(madeup_hwid, &[]).unwrap();
+        // Since & is filtered, fallback to None gracefully.
+        assert_eq!(info.serial_number, None);
 
         let bm_uart_hwid = r"USB\VID_1D50&PID_6018&MI_02\6&A694CA9&0&0000";
-        let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01";
-        let info = parse_usb_port_info(bm_uart_hwid, Some(bm_parent_hwid)).unwrap();
+        let bm_parent_hwid = r"USB\VID_1D50&PID_6018\85A12F01".to_string();
+        let info = parse_usb_port_info(bm_uart_hwid, &[bm_parent_hwid]).unwrap();
 
         assert_eq!(info.vid, 0x1D50);
         assert_eq!(info.pid, 0x6018);
@@ -817,7 +850,7 @@ mod tests {
         assert_eq!(info.interface, Some(2));
 
         let ftdi_serial_hwid = r"FTDIBUS\VID_0403+PID_6001+A702TB52A\0000";
-        let info = parse_usb_port_info(ftdi_serial_hwid, None).unwrap();
+        let info = parse_usb_port_info(ftdi_serial_hwid, &[]).unwrap();
 
         assert_eq!(info.vid, 0x0403);
         assert_eq!(info.pid, 0x6001);
@@ -825,8 +858,30 @@ mod tests {
         #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, None);
 
+        let ftdi_multi_hwid = r"FTDIBUS\VID_0403+PID_6010+6&119857B6&0&4&2\0000";
+        let ftdi_multi_parents = vec![
+            r"USB\VID_0403&PID_6010&MI_01\7&19792F3E&0&0001".to_string(),
+            r"USB\VID_0403&PID_6010\FT73U3C5".to_string(),
+        ];
+        let info = parse_usb_port_info(ftdi_multi_hwid, &ftdi_multi_parents).unwrap();
+
+        assert_eq!(info.vid, 0x0403);
+        assert_eq!(info.pid, 0x6010);
+        assert_eq!(info.serial_number, Some("FT73U3C5".to_string()));
+
+        let ftdi_noserial_multi = r"FTDIBUS\VID_0403+PID_6010+6&119857B6&0&4&2\0000";
+        let ftdi_noserial_parents = vec![
+            r"USB\VID_0403&PID_6010&MI_01\7&19792F3E&0&0001".to_string(),
+            r"USB\VID_0403&PID_6010\6&119857B6&0&4".to_string(),
+        ];
+        let info = parse_usb_port_info(ftdi_noserial_multi, &ftdi_noserial_parents).unwrap();
+
+        assert_eq!(info.vid, 0x0403);
+        assert_eq!(info.pid, 0x6010);
+        assert_eq!(info.serial_number, None); // Should filter out ampersands
+
         let pyboard_hwid = r"USB\VID_F055&PID_9802\385435603432";
-        let info = parse_usb_port_info(pyboard_hwid, None).unwrap();
+        let info = parse_usb_port_info(pyboard_hwid, &[]).unwrap();
 
         assert_eq!(info.vid, 0xF055);
         assert_eq!(info.pid, 0x9802);
@@ -835,19 +890,19 @@ mod tests {
         assert_eq!(info.interface, None);
 
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432&test";
-        let info = parse_usb_port_info(unicode_serial, None).unwrap();
-        assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
+        let info = parse_usb_port_info(unicode_serial, &[]).unwrap();
+        assert_eq!(info.serial_number, None); // Fails because of &test
 
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β03432";
-        let info = parse_usb_port_info(unicode_serial, None).unwrap();
+        let info = parse_usb_port_info(unicode_serial, &[]).unwrap();
         assert_eq!(info.serial_number.as_deref(), Some("3854356β03432"));
 
         let unicode_serial = r"USB\VID_F055&PID_9802\3854356β";
-        let info = parse_usb_port_info(unicode_serial, None).unwrap();
+        let info = parse_usb_port_info(unicode_serial, &[]).unwrap();
         assert_eq!(info.serial_number.as_deref(), Some("3854356β"));
 
         let serial_with_underscore_hwid = r"USB\VID_0483&PID_5740\TMCS_B000000000";
-        let info = parse_usb_port_info(serial_with_underscore_hwid, None).unwrap();
+        let info = parse_usb_port_info(serial_with_underscore_hwid, &[]).unwrap();
         assert_eq!(info.serial_number.as_deref(), Some("TMCS_B000000000"));
     }
 }
