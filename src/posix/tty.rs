@@ -1,11 +1,12 @@
 use std::mem::MaybeUninit;
+use std::os::fd::{AsFd, BorrowedFd};
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::time::{Duration, Instant};
 use std::{io, mem};
 
 use nix::errno::Errno;
-use nix::fcntl::{fcntl, FcntlArg, OFlag};
+use nix::fcntl::{fcntl, OFlag};
 use nix::{libc, unistd};
 
 use crate::posix::flock;
@@ -121,6 +122,17 @@ impl TTYPort {
     /// * `InvalidInput` if `path` is not a valid device name.
     /// * `Io` for any other error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<TTYPort> {
+        Self::open_internal(builder, false)
+    }
+
+    #[cfg(feature = "async-io")]
+    pub(super) fn open_nonblocking(builder: &SerialPortBuilder) -> Result<TTYPort> {
+        Self::open_internal(builder, true)
+    }
+
+    fn open_internal(builder: &SerialPortBuilder, nonblocking: bool) -> Result<TTYPort> {
+        use nix::fcntl::FcntlArg::F_SETFL;
+
         let path = Path::new(&builder.path);
         let fd = OwnedFd(nix::fcntl::open(
             path,
@@ -173,8 +185,10 @@ impl TTYPort {
             Errno::result(unsafe { libc::tcflush(fd.0, libc::TCIOFLUSH) })?;
         }
 
-        // clear O_NONBLOCK flag
-        fcntl(fd.0, FcntlArg::F_SETFL(nix::fcntl::OFlag::empty()))?;
+        if !nonblocking {
+            // clear O_NONBLOCK flag
+            fcntl(fd.0, F_SETFL(nix::fcntl::OFlag::empty()))?;
+        }
 
         // Configure the low-level port settings
         let mut termios = termios::get_termios(fd.0)?;
@@ -208,6 +222,16 @@ impl TTYPort {
         }
 
         Ok(port)
+    }
+
+    #[cfg(feature = "async-io")]
+    pub(super) fn read_nonblocking(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        nix::unistd::read(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
+    }
+
+    #[cfg(feature = "async-io")]
+    pub(super) fn write_nonblocking(&mut self, buf: &[u8]) -> io::Result<usize> {
+        nix::unistd::write(self.fd, buf).map_err(|e| io::Error::from(Error::from(e)))
     }
 
     /// Returns the exclusivity of the port
@@ -375,8 +399,7 @@ impl TTYPort {
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
-    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
-    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    /// should look at [`SerialPortBuilder::open_async`].
     ///
     /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
@@ -409,6 +432,14 @@ impl Drop for TTYPort {
 impl AsRawFd for TTYPort {
     fn as_raw_fd(&self) -> RawFd {
         self.fd
+    }
+}
+
+impl AsFd for TTYPort {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        // SAFETY: `TTYPort` does not close or replace the fd
+        // except on drop or by consuming `self`.
+        unsafe { BorrowedFd::borrow_raw(self.fd) }
     }
 }
 

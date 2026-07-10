@@ -41,13 +41,20 @@ use std::num::{IntErrorKind, ParseIntError};
 use std::str::FromStr;
 use std::time::Duration;
 
+#[cfg(any(feature = "async-io", feature = "tokio"))]
+mod async_core;
+
 #[cfg(unix)]
 mod posix;
+#[cfg(all(unix, feature = "async-io"))]
+pub use posix::AsyncSerialPort;
 #[cfg(unix)]
 pub use posix::{BreakDuration, TTYPort};
 
 #[cfg(windows)]
 mod windows;
+#[cfg(all(windows, feature = "async-io"))]
+pub use windows::AsyncSerialPort;
 #[cfg(windows)]
 pub use windows::COMPort;
 
@@ -459,6 +466,12 @@ impl SerialPortBuilder {
     pub fn open_native(self) -> Result<COMPort> {
         windows::COMPort::open(&self)
     }
+
+    /// Open an asynchronous interface to the port with the specified settings.
+    #[cfg(all(any(unix, windows), feature = "async-io"))]
+    pub fn open_async(self) -> Result<AsyncSerialPort> {
+        AsyncSerialPort::open(&self)
+    }
 }
 
 /// A trait for serial port devices
@@ -665,8 +678,7 @@ pub trait SerialPort: Send + io::Read + io::Write {
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
-    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
-    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    /// should look at [`SerialPortBuilder::open_async`].
     ///
     /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
@@ -681,6 +693,89 @@ pub trait SerialPort: Send + io::Read + io::Write {
     fn set_break(&self) -> Result<()>;
 
     /// Stop transmitting a break
+    fn clear_break(&self) -> Result<()>;
+}
+
+/// A trait for configuring asynchronous serial port devices.
+///
+/// This trait mirrors the configuration and control-signal methods of
+/// [`SerialPort`] but does **not** require `Read` or `Write` — those are
+/// provided by the `futures_io` (`AsyncRead` / `AsyncWrite`) traits instead.
+///
+/// Every async serial port backend (e.g. the `async-io`-based
+/// [`AsyncSerialPort`]) implements this trait so that generic code can
+/// configure a port without depending on a concrete backend type.
+pub trait AsyncSerialPortExt: Send {
+    /// Returns the name of this port if it exists.
+    fn name(&self) -> Option<String>;
+
+    /// Returns the current baud rate.
+    fn baud_rate(&self) -> Result<u32>;
+
+    /// Returns the character size.
+    fn data_bits(&self) -> Result<DataBits>;
+
+    /// Returns the flow control mode.
+    fn flow_control(&self) -> Result<FlowControl>;
+
+    /// Returns the parity-checking mode.
+    fn parity(&self) -> Result<Parity>;
+
+    /// Returns the number of stop bits.
+    fn stop_bits(&self) -> Result<StopBits>;
+
+    /// Returns the configured timeout.
+    fn timeout(&self) -> Duration;
+
+    /// Sets the baud rate.
+    fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()>;
+
+    /// Sets the character size.
+    fn set_data_bits(&mut self, data_bits: DataBits) -> Result<()>;
+
+    /// Sets the flow control mode.
+    fn set_flow_control(&mut self, flow_control: FlowControl) -> Result<()>;
+
+    /// Sets the parity mode.
+    fn set_parity(&mut self, parity: Parity) -> Result<()>;
+
+    /// Sets the number of stop bits.
+    fn set_stop_bits(&mut self, stop_bits: StopBits) -> Result<()>;
+
+    /// Sets the timeout for operations on the underlying port.
+    fn set_timeout(&mut self, timeout: Duration) -> Result<()>;
+
+    /// Sets the state of the RTS (Request To Send) control signal.
+    fn write_request_to_send(&mut self, level: bool) -> Result<()>;
+
+    /// Writes to the Data Terminal Ready pin.
+    fn write_data_terminal_ready(&mut self, level: bool) -> Result<()>;
+
+    /// Reads the state of the CTS (Clear To Send) control signal.
+    fn read_clear_to_send(&mut self) -> Result<bool>;
+
+    /// Reads the state of the Data Set Ready control signal.
+    fn read_data_set_ready(&mut self) -> Result<bool>;
+
+    /// Reads the state of the Ring Indicator control signal.
+    fn read_ring_indicator(&mut self) -> Result<bool>;
+
+    /// Reads the state of the Carrier Detect control signal.
+    fn read_carrier_detect(&mut self) -> Result<bool>;
+
+    /// Gets the number of bytes available to be read from the input buffer.
+    fn bytes_to_read(&self) -> Result<u32>;
+
+    /// Get the number of bytes written to the output buffer, awaiting transmission.
+    fn bytes_to_write(&self) -> Result<u32>;
+
+    /// Discards data from the serial driver's input and/or output buffer.
+    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<()>;
+
+    /// Start transmitting a break.
+    fn set_break(&self) -> Result<()>;
+
+    /// Stop transmitting a break.
     fn clear_break(&self) -> Result<()>;
 }
 

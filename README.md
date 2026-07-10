@@ -8,8 +8,10 @@
 `serialport-rs` is a general-purpose cross-platform serial port library for Rust. It provides a
 blocking I/O interface and port enumeration on POSIX and Windows systems.
 
-For async I/O functionality, see the [mio-serial](https://github.com/berkowski/mio-serial) and
-[tokio-serial](https://github.com/berkowski/tokio-serial) crates.
+Async I/O is supported on Unix and Windows via the `async-io` feature flag, which provides an
+[`AsyncSerialPort`](https://docs.rs/serialport/latest/serialport/struct.AsyncSerialPort.html) type
+implementing `futures_io::AsyncRead` and `futures_io::AsyncWrite`. A native `tokio` backend is
+planned.
 
 Join the discussion on Matrix!
 [#serialport-rs:matrix.org](https://matrix.to/#/#serialport-rs:matrix.org)
