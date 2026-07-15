@@ -1,6 +1,7 @@
 use std::mem::MaybeUninit;
 use windows_sys::Win32::Devices::Communication::{
-    GetCommState, SetCommState, DCB, EVENPARITY, NOPARITY, ODDPARITY, ONESTOPBIT, TWOSTOPBITS,
+    GetCommState, SetCommState, DCB, EVENPARITY, MARKPARITY, NOPARITY, ODDPARITY, ONESTOPBIT,
+    SPACEPARITY, TWOSTOPBITS,
 };
 use windows_sys::Win32::Foundation::HANDLE;
 

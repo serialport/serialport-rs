@@ -202,6 +202,7 @@ impl TryFrom<u8> for DataBits {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[non_exhaustive]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -215,11 +216,13 @@ pub enum Parity {
     /// Parity bit is set to 1.
     ///
     /// Only supported on Windows and Linux.
+    #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
     Mark,
 
     /// Parity bit is set to 0.
     ///
     /// Only supported on Windows and Linux.
+    #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
     Space,
 }
 
@@ -229,7 +232,9 @@ impl fmt::Display for Parity {
             Parity::None => write!(f, "None"),
             Parity::Odd => write!(f, "Odd"),
             Parity::Even => write!(f, "Even"),
+            #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
             Parity::Mark => write!(f, "Mark"),
+            #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
             Parity::Space => write!(f, "Space"),
         }
     }

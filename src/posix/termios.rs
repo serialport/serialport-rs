@@ -124,10 +124,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &Termios) -> Result<()> {
     crate::posix::ioctl::tcsets2(fd, termios)
 }
 
-// The Result return will seem pointless on platforms that support all parity variants, but we need
-// it for the others.
-#[allow(clippy::unnecessary_wraps)]
-pub(crate) fn set_parity(termios: &mut Termios, parity: Parity) -> Result<()> {
+pub(crate) fn set_parity(termios: &mut Termios, parity: Parity) {
     match parity {
         Parity::None => {
             termios.c_cflag &= !(libc::PARENB | libc::PARODD);
@@ -173,22 +170,7 @@ pub(crate) fn set_parity(termios: &mut Termios, parity: Parity) -> Result<()> {
             termios.c_iflag &= !libc::IGNPAR;
             termios.c_iflag |= libc::CMSPAR;
         }
-        #[cfg(not(any(target_os = "linux", target_os = "android")))]
-        Parity::Mark => {
-            return Err(crate::Error::new(
-                crate::ErrorKind::InvalidInput,
-                "Mark parity not supported on this platform",
-            ));
-        }
-        #[cfg(not(any(target_os = "linux", target_os = "android")))]
-        Parity::Space => {
-            return Err(crate::Error::new(
-                crate::ErrorKind::InvalidInput,
-                "Space parity not supported on this platform",
-            ));
-        }
     };
-    Ok(())
 }
 
 pub(crate) fn set_flow_control(termios: &mut Termios, flow_control: FlowControl) {
