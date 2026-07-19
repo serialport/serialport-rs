@@ -366,6 +366,7 @@ impl COMPort {
         let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         match dcb.StopBits {
             TWOSTOPBITS => Ok(StopBits::Two),
+            ONE5STOPBITS => Ok(StopBits::OnePointFive),
             ONESTOPBIT => Ok(StopBits::One),
             _ => Err(Error::new(
                 ErrorKind::Unknown,
