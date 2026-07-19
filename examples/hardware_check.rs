@@ -227,6 +227,7 @@ fn test_single_port(port: &mut serialport::SerialPort, loopback: bool) {
     // Test setting stop bits
     println!("Testing stop bits...");
     stop_bits_check!(port, StopBits::Two);
+    #[cfg(target_os = "windows")]
     stop_bits_check!(port, StopBits::OnePointFive);
     stop_bits_check!(port, StopBits::One);
 
