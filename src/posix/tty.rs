@@ -424,15 +424,24 @@ impl IntoRawFd for TTYPort {
 }
 
 /// Get the baud speed for a port from its file descriptor
+/// ## Errors
+///
+/// * `Io` if the termios data could not be read from `fd`
+/// * `Unknown` if the port reports differing input and output baud rates
 #[cfg(any(target_os = "ios", target_os = "macos"))]
-fn get_termios_speed(fd: RawFd) -> u32 {
+fn get_termios_speed(fd: RawFd) -> Result<u32> {
     let mut termios = MaybeUninit::uninit();
-    // TODO: Propagate error instead of panicking.
-    Errno::result(unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) })
-        .expect("Failed to get termios data");
+    Errno::result(unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) })?;
     let termios = unsafe { termios.assume_init() };
-    assert_eq!(termios.c_ospeed, termios.c_ispeed);
-    termios.c_ospeed as u32
+
+    if termios.c_ospeed != termios.c_ispeed {
+        return Err(Error::new(
+            ErrorKind::Unknown,
+            "port reports differing input and output baud rates",
+        ));
+    }
+
+    Ok(termios.c_ospeed as u32)
 }
 
 impl FromRawFd for TTYPort {
@@ -458,7 +467,8 @@ impl FromRawFd for TTYPort {
             // setting an arbitrary baud rate via the `iossiospeed` ioctl overrides that value,
             // but extract that value anyways as a best-guess of the actual baud rate.
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: get_termios_speed(fd),
+            // FromRawFd::from_raw_fd can not fail, so fall back to reporting a baud rate of 0  when it can not be determined.
+            baud_rate: get_termios_speed(fd).unwrap_or(0),
         }
     }
 }
@@ -821,4 +831,21 @@ fn test_ttyport_into_raw_fd() {
     }
     close(master_fd);
     close(slave_fd);
+}
+
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[test]
+fn test_get_termios_speed_errors_for_non_tty() {
+    let (read_fd, write_fd) = nix::unistd::pipe().expect("Unable to create pipe");
+
+    let result = get_termios_speed(read_fd);
+
+    let _ = unistd::close(read_fd);
+    let _ = unistd::close(write_fd);
+
+    assert!(
+        result.is_err(),
+        "expected an error for a non-tty file descriptor, got {:?}",
+        result
+    );
 }
