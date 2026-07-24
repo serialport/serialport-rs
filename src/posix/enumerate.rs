@@ -116,7 +116,7 @@ fn udev_restore_spaces(source: String) -> String {
 ))]
 /// Get the bus number and port chain out of the first parent device that
 /// has a defined bus number.
-fn port_location(device: &libudev::Device) -> crate::Location {
+fn port_location(device: &libudev::Device) -> Option<crate::Location> {
     let mut device = device.parent();
     while let Some(d) = device.take() {
         let busnum = udev_property_as_string(&d, "BUSNUM");
@@ -137,10 +137,7 @@ fn port_location(device: &libudev::Device) -> crate::Location {
         };
         let devpath = devpath.unwrap();
 
-        let bus_num = busnum
-            .parse()
-            .map(|n: u32| format!("{n:03}"))
-            .unwrap_or_default();
+        let bus_num = busnum.parse().map(|n: u32| format!("{n:03}"));
 
         let port_chain = devpath
             .rsplit_once("-")
@@ -150,12 +147,15 @@ fn port_location(device: &libudev::Device) -> crate::Location {
                 p.split('.')
                     .map(|v| v.parse::<u8>().ok())
                     .collect::<Option<Vec<u8>>>()
-            })
-            .unwrap_or_default();
-        return crate::Location::new(&bus_num, &port_chain);
+            });
+
+        return match (bus_num, port_chain) {
+            (Ok(bus_id), Some(port_chain)) => Some(crate::Location::new(bus_id, port_chain)),
+            _ => None,
+        };
     }
 
-    crate::Location::new("000", &[])
+    None
 }
 
 #[cfg(all(target_os = "linux", not(target_env = "musl"), feature = "libudev"))]
@@ -718,7 +718,7 @@ cfg_if! {
                 manufacturer,
                 product,
                 #[cfg(feature = "usbportinfo-location")]
-                location,
+                location: Some(location),
                 #[cfg(feature = "usbportinfo-interface")]
                 interface,
             })

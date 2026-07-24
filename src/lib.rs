@@ -829,7 +829,7 @@ pub struct UsbPortInfo {
     pub product: Option<String>,
     /// Physical port heirarchy
     #[cfg(feature = "usbportinfo-location")]
-    pub location: Location,
+    pub location: Option<Location>,
     /// The interface index of the USB serial port. This can be either the interface number of
     /// the communication interface (as is the case on Windows and Linux) or the data
     /// interface (as is the case on macOS), so you should recognize both interface numbers.
@@ -838,7 +838,7 @@ pub struct UsbPortInfo {
 }
 
 #[cfg(feature = "usbportinfo-location")]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Identify where a particular USB device is on the system.
 pub struct Location {
@@ -1111,7 +1111,7 @@ mod test {
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
             #[cfg(feature = "usbportinfo-location")]
-            location: Location::new(String::from("001"), Vec::new()),
+            location: Some(Location::new(String::from("001"), Vec::new())),
             #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
         };
