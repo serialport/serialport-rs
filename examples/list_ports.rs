@@ -20,6 +20,8 @@ fn main() {
                         println!("        Type: USB");
                         println!("        VID: {:04x}", info.vid);
                         println!("        PID: {:04x}", info.pid);
+                        #[cfg(feature = "usbportinfo-location")]
+                        println!("        Location: {}", info.location);
                         #[cfg(feature = "usbportinfo-interface")]
                         println!(
                             "        Interface: {}",
@@ -39,8 +41,6 @@ fn main() {
                             "        Product: {}",
                             info.product.as_ref().map_or("", String::as_str)
                         );
-                        #[cfg(feature = "usbportinfo-location")]
-                        println!("        Location: {}", info.location);
                     }
                     SerialPortType::BluetoothPort => {
                         println!("        Type: Bluetooth");
