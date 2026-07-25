@@ -1,3 +1,7 @@
 # Ignore links to issues on GitLab which are no longer reachable since we
 # disabled bug tracking over there.
 https://gitlab.com/susurrus/serialport-rs/(-/)?merge_requests/\d+
+
+# Ignore link to external documentation frequently but spuriously returning
+# HTTP error 415, 'Unsupported Media Type'.
+http://freeware.the-meiers.org/
