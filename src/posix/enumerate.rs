@@ -672,7 +672,7 @@ cfg_if! {
         fn read_location(dir: &Path) -> Option<crate::Location> {
             let bus_id = read_file_to_trimmed_string(dir, "busnum")
                 .and_then(|s| u32::from_str_radix(&s, 10).ok())
-                .map(|n| format!("{n:03}"));
+                .map(|n| format!("{n}"));
 
             let port_chain = read_file_to_trimmed_string(dir, "devpath")
                 .filter(|p| p != "0") // root hub should be empty but devpath is 0
