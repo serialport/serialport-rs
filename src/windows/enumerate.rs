@@ -200,7 +200,7 @@ fn parse_location_path(s: &str) -> Option<crate::Location> {
     let close_i = s[start_i + usbroot.len()..].find(')')?;
     let (bus, mut s) = s.split_at(start_i + usbroot.len() + close_i + 1);
 
-    let mut path = vec![];
+    let mut path = Vec::new();
 
     while let Some((_, next)) = s.split_once("#USB(") {
         let (port_num, next) = next.split_once(")")?;
@@ -208,7 +208,7 @@ fn parse_location_path(s: &str) -> Option<crate::Location> {
         s = next;
     }
 
-    Some(crate::Location::new(bus, &path))
+    Some(crate::Location::new(bus.to_owned(), path))
 }
 
 struct PortDevices {
