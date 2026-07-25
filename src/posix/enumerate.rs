@@ -412,17 +412,36 @@ fn get_string_property(device_type: io_registry_entry_t, property: &str) -> Resu
     any(target_os = "ios", target_os = "macos"),
     feature = "usbportinfo-location"
 ))]
-fn parse_location_id(id: u32) -> Vec<u8> {
-    let mut chain = vec![];
-    let mut shift = id << 8;
+impl crate::Location {
+    /// Creates a `Location` from a location ID from Apple's I/O registry.
+    ///
+    /// There is no information from Apple on this format. This is how [nusb's
+    /// `parse_location_id`](https://github.com/kevinmehall/nusb/blob/e9343c3c6ccd227206631015098b2f27b7e3ec5f/src/platform/macos_iokit/enumeration.rs#L276)
+    /// interprets it:
+    ///
+    /// The format of the ID is expected to be in the form of `0xBBPPPPPP` where `BB` is the bus ID
+    /// and `P` a nibble containing a port number. USB allows ub to 5 hubs between the root hub and
+    /// the device and so the location ID can capture the entire port chain. Trailing port numbers
+    /// of zero will be ignored.
+    pub fn from_location_id(id: u32) -> crate::Location {
+        let bytes = id.to_be_bytes();
 
-    while shift != 0 {
-        let port = shift >> 28;
-        chain.push(port as u8);
-        shift <<= 4;
+        // TODO: What's the reason for formatting the bus ID with trailing zeroes? This format also
+        // differs from formatting it to three digits on Linux.
+        let bus_id = format!("{:02}", bytes[0]);
+
+        // Convert remaining bytes into nibbles and trim trailing zeroes. When trailing zeroes are
+        // not used, I would have expected zeroes in between non-zero ports to be invalid. But this
+        // is how nusb does it and I'm leaving it this way for the time being.
+        let mut ports: Vec<u8> = bytes[1..].iter().flat_map(|b| [b >> 4, b & 0xf]).collect();
+        if let Some(last_populated) = ports.iter().rposition(|n| *n != 0) {
+            ports.truncate(last_populated + 1);
+        } else {
+            ports.clear();
+        }
+
+        crate::Location::new(bus_id, ports)
     }
-
-    chain
 }
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -436,8 +455,6 @@ fn port_type(service: io_object_t) -> SerialPortType {
     let maybe_usb_device = get_parent_device_by_type(service, usb_device_class_name)
         .or_else(|| get_parent_device_by_type(service, legacy_usb_device_class_name));
     if let Some(usb_device) = maybe_usb_device {
-        #[cfg(feature = "usbportinfo-location")]
-        let location_id = get_int_property(usb_device, "locationID").unwrap_or_default();
         SerialPortType::UsbPort(UsbPortInfo {
             vid: get_int_property(usb_device, "idVendor").unwrap_or_default() as u16,
             pid: get_int_property(usb_device, "idProduct").unwrap_or_default() as u16,
@@ -445,10 +462,9 @@ fn port_type(service: io_object_t) -> SerialPortType {
             manufacturer: get_string_property(usb_device, "USB Vendor Name").ok(),
             product: get_string_property(usb_device, "USB Product Name").ok(),
             #[cfg(feature = "usbportinfo-location")]
-            location: crate::Location::new(
-                format!("{:02x}", (location_id >> 24) as u8),
-                parse_location_id(location_id),
-            ),
+            location: get_int_property(usb_device, "locationID")
+                .ok()
+                .map(crate::Location::from_location_id),
             // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
             // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
             // we will lookup the interface number using the same method. See:
