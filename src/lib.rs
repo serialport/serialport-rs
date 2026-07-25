@@ -988,6 +988,11 @@ impl std::fmt::Debug for UsbPortInfo {
             .field("manufacturer", &self.manufacturer)
             .field("product", &self.product);
 
+        #[cfg(feature = "usbportinfo-location")]
+        {
+            d.field("location", &self.location);
+        }
+
         #[cfg(feature = "usbportinfo-interface")]
         {
             d.field("interface", &self.interface);
@@ -1117,7 +1122,7 @@ mod test {
             product: Some(String::from("your product here")),
             serial_number: Some(String::from("your serial_number here")),
             #[cfg(feature = "usbportinfo-location")]
-            location: Some(Location::new(String::from("001"), Vec::new())),
+            location: Some(Location::new(String::from("001"), vec![1, 2, 3])),
             #[cfg(feature = "usbportinfo-interface")]
             interface: Some(42),
         };
@@ -1125,10 +1130,19 @@ mod test {
 
         // Set the expectiation for the debug representation basend on a "snapshot" of the current
         // one, manually cross-checked to contain a VID and PID in hexadecimal digits.
-        #[cfg(not(feature = "usbportinfo-interface"))]
-        let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\") }";
+        //
+        // Due to having multiple configuration variants, we are building the expectation depending
+        // on the currently selected preview features.
+        let mut expected = String::from("UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\")");
+        #[cfg(feature = "usbportinfo-location")]
+        {
+            expected += ", location: Some(Location { bus_id: \"001\", port_chain: [1, 2, 3] })";
+        }
         #[cfg(feature = "usbportinfo-interface")]
-        let expected = "UsbPortInfo { vid: 0xbade, pid: 0xaffe, serial_number: Some(\"your serial_number here\"), manufacturer: Some(\"your manufacutrer here\"), product: Some(\"your product here\"), interface: Some(42) }";
+        {
+            expected += ", interface: Some(42)";
+        }
+        expected += " }";
 
         assert_eq!(formatted, expected);
     }
