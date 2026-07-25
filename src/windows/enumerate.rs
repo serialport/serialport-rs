@@ -422,8 +422,7 @@ impl PortDevice {
                     let location_paths = self.property_list(SPDRP_LOCATION_PATHS);
                     info.location = location_paths
                         .iter()
-                        .find_map(|p| parse_location_path(p))
-                        .unwrap_or_default();
+                        .find_map(|p| parse_location_path(p));
                 }
 
                 SerialPortType::UsbPort(info)
