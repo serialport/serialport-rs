@@ -446,8 +446,8 @@ fn port_type(service: io_object_t) -> SerialPortType {
             product: get_string_property(usb_device, "USB Product Name").ok(),
             #[cfg(feature = "usbportinfo-location")]
             location: crate::Location::new(
-                &format!("{:02x}", (location_id >> 24) as u8),
-                &parse_location_id(location_id),
+                format!("{:02x}", (location_id >> 24) as u8),
+                parse_location_id(location_id),
             ),
             // Apple developer documentation indicates `bInterfaceNumber` is the supported key for
             // looking up the composite usb interface id. `idVendor` and `idProduct` are included in the same tables, so
@@ -708,7 +708,7 @@ cfg_if! {
                     })
                     .unwrap_or_default();
 
-                crate::Location::new(&bus_id, &port_chain)
+                crate::Location::new(bus_id, port_chain)
             };
 
             Some(UsbPortInfo {
