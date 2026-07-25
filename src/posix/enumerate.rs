@@ -668,6 +668,26 @@ cfg_if! {
             u8::from_str_radix(&read_file_to_trimmed_string(dir, file)?, 16).ok()
         }
 
+        #[cfg(feature = "usbportinfo-location")]
+        fn read_location(dir: &Path) -> Option<crate::Location> {
+            let bus_id = read_file_to_trimmed_string(dir, "busnum")
+                .and_then(|s| u32::from_str_radix(&s, 10).ok())
+                .map(|n| format!("{n:03}"));
+
+            let port_chain = read_file_to_trimmed_string(dir, "devpath")
+                .filter(|p| p != "0") // root hub should be empty but devpath is 0
+                .and_then(|p| {
+                    p.split('.')
+                        .map(|v| v.parse::<u8>().ok())
+                        .collect::<Option<Vec<u8>>>()
+                });
+
+            match (bus_id, port_chain) {
+                (Some(bus_id), Some(port_chain)) => Some(crate::Location::new(bus_id, port_chain)),
+                _ => None,
+            }
+        }
+
         fn read_port_type(path: &Path) -> Option<SerialPortType> {
             let path = path
                 .canonicalize()
@@ -697,33 +717,13 @@ cfg_if! {
 
             let vid = read_file_to_u16(device_path, "idVendor")?;
             let pid = read_file_to_u16(device_path, "idProduct")?;
+            #[cfg(feature = "usbportinfo-location")]
+            let location = read_location(device_path)?;
             #[cfg(feature = "usbportinfo-interface")]
             let interface = read_file_to_u8(interface_path, "bInterfaceNumber");
             let serial_number = read_file_to_trimmed_string(device_path, "serial");
             let product = read_file_to_trimmed_string(device_path, "product");
             let manufacturer = read_file_to_trimmed_string(device_path, "manufacturer");
-
-            #[cfg(feature = "usbportinfo-location")]
-            let location = {
-                let bus_id = if let Some(busnum) = read_file_to_trimmed_string(device_path, "busnum") {
-                    u32::from_str_radix(&busnum, 10)
-                    .map(|n| format!("{n:03}"))
-                    .unwrap_or_default()
-                } else {
-                    "000".to_owned()
-                };
-
-                let port_chain = read_file_to_trimmed_string(device_path, "devpath")
-                    .filter(|p| p != "0") // root hub should be empty but devpath is 0
-                    .and_then(|p| {
-                        p.split('.')
-                            .map(|v| v.parse::<u8>().ok())
-                            .collect::<Option<Vec<u8>>>()
-                    })
-                    .unwrap_or_default();
-
-                crate::Location::new(bus_id, port_chain)
-            };
 
             Some(UsbPortInfo {
                 vid,
