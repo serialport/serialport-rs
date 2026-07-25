@@ -137,7 +137,7 @@ fn port_location(device: &libudev::Device) -> Option<crate::Location> {
         };
         let devpath = devpath.unwrap();
 
-        let bus_num = busnum.parse().map(|n: u32| format!("{n:03}"));
+        let bus_num = busnum.parse().map(|n: u32| format!("{n}"));
 
         let port_chain = devpath
             .rsplit_once("-")
@@ -426,9 +426,7 @@ impl crate::Location {
     pub fn from_location_id(id: u32) -> crate::Location {
         let bytes = id.to_be_bytes();
 
-        // TODO: What's the reason for formatting the bus ID with trailing zeroes? This format also
-        // differs from formatting it to three digits on Linux.
-        let bus_id = format!("{:02}", bytes[0]);
+        let bus_id = format!("{}", bytes[0]);
 
         // Convert remaining bytes into nibbles and trim trailing zeroes. When trailing zeroes are
         // not used, I would have expected zeroes in between non-zero ports to be invalid. But this

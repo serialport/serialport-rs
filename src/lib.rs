@@ -874,12 +874,13 @@ impl Location {
     /// Returns the parent of this device, if any. Root objects have no parent.
     pub fn parent(&self) -> Option<Location> {
         if self.port_chain.len() <= 1 {
-            return None;
+            None
+        } else {
+            Some(Location {
+                bus_id: self.bus_id.clone(),
+                port_chain: self.port_chain[0..self.port_chain.len() - 1].to_owned(),
+            })
         }
-        Some(Location {
-            bus_id: self.bus_id.clone(),
-            port_chain: self.port_chain[0..self.port_chain.len() - 1].to_owned(),
-        })
     }
 }
 
