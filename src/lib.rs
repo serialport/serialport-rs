@@ -902,7 +902,8 @@ impl fmt::Display for Location {
 
 /// An error which can be returned when parsing a USB device location string.
 #[cfg(feature = "usbportinfo-location")]
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+// TODO: Derive Hash when our MSRV gives us an `IntErrorKind` implementing it.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseLocationError {
     kind: LocationErrorKind,
 }
@@ -917,7 +918,8 @@ impl ParseLocationError {
 
 /// Enum to store the various types of errors that can cause parsing a USB device locaiton to fail.
 #[cfg(feature = "usbportinfo-location")]
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+// TODO: Derive Hash when our MSRV gives us an `IntErrorKind` implementing it.
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum LocationErrorKind {
     /// Parsing a port number in the port chain failed.
