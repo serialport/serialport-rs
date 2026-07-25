@@ -931,8 +931,11 @@ pub enum LocationErrorKind {
 #[cfg(feature = "usbportinfo-location")]
 impl From<ParseIntError> for ParseLocationError {
     fn from(error: ParseIntError) -> ParseLocationError {
+        // TODO: Switch to copying instead of cloning of ParseIntError once this is supported on our
+        // MSRV too.
+        #[allow(clippy::clone_on_copy)]
         ParseLocationError {
-            kind: LocationErrorKind::Port(*error.kind()),
+            kind: LocationErrorKind::Port(error.kind().clone()),
         }
     }
 }
