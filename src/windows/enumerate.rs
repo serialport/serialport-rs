@@ -186,7 +186,7 @@ fn parse_usb_port_info(hardware_id: &str, parent_hardware_id: Option<&str>) -> O
         product: None,
 
         #[cfg(feature = "usbportinfo-location")]
-        location: Default::default(),
+        location: None,
 
         #[cfg(feature = "usbportinfo-interface")]
         interface,

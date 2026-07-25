@@ -315,7 +315,7 @@ fn parse_modalias(moda: &str) -> Option<UsbPortInfo> {
         manufacturer: None,
         product: None,
         #[cfg(feature = "usbportinfo-location")]
-        location: Default::default(),
+        location: None,
         // Only attempt to find the interface if the feature is enabled.
         #[cfg(feature = "usbportinfo-interface")]
         interface: mod_tail.get(pid_start + 4..).and_then(|mod_tail| {
