@@ -98,9 +98,7 @@ jobs:
       - name: Build | pin some dependencies for building with MSRV
         if: ${{ inputs.pin-incompatible-msrv-bump-dependencies == true }}
         run: |
-          # There is nothing to pin for MSRV builds with Rust 1.75.0 as of now.
-          # See the line below for an example.
-          #cargo update --precise 0.10.0 core-foundation
+          cargo update --precise 0.1.8 unescaper
 
       - name: Build | build library (default features)
         run: cargo build --target=${{ inputs.target }}

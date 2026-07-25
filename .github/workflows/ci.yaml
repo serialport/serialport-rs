@@ -74,9 +74,7 @@ jobs:
         # NOTE: Please keep in sync with pinning for build jobs in build.yaml.
       - name: Build | pin some dependencies for building with MSRV
         run: |
-          # There is nothing to pin for MSRV builds with Rust 1.75.0 as of now.
-          # See the line below for an example.
-          #cargo update --precise 0.10.0 core-foundation
+          cargo update --precise 0.1.8 unescaper
       - run: cargo clippy --target ${{ matrix.target }}
       - run: cargo clippy --target ${{ matrix.target }} --all-features
 
