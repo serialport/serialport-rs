@@ -98,13 +98,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#251](https://github.com/serialport/serialport-rs/issues/251)
   [#243](https://github.com/serialport/serialport-rs/issues/243)
   [#239](https://github.com/serialport/serialport-rs/pull/239)
-  [#29](https://github.com/serialport/serialport-rs/pull/29)
+  [#29](https://github.com/serialport/serialport-rs/issues/29)
 
 ### Fixed
 
 * Fix reporting serial numbers with colons on Windows.
   [#279](https://github.com/serialport/serialport-rs/issues/279)
-  [#282](https://github.com/serialport/serialport-rs/issues/282)
+  [#282](https://github.com/serialport/serialport-rs/pull/282)
 * Setting arbitrary baud rates on Linux which resulted in issues when read back
   on Arch recently.
   [#281](https://github.com/serialport/serialport-rs/issues/281)
