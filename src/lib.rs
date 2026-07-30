@@ -202,6 +202,7 @@ impl TryFrom<u8> for DataBits {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[non_exhaustive]
 pub enum Parity {
     /// No parity bit.
     None,
@@ -211,6 +212,18 @@ pub enum Parity {
 
     /// Parity bit sets even number of 1 bits.
     Even,
+
+    /// Parity bit is set to 1.
+    ///
+    /// Only supported on Windows and Linux.
+    #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
+    Mark,
+
+    /// Parity bit is set to 0.
+    ///
+    /// Only supported on Windows and Linux.
+    #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
+    Space,
 }
 
 impl fmt::Display for Parity {
@@ -219,6 +232,10 @@ impl fmt::Display for Parity {
             Parity::None => write!(f, "None"),
             Parity::Odd => write!(f, "Odd"),
             Parity::Even => write!(f, "Even"),
+            #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
+            Parity::Mark => write!(f, "Mark"),
+            #[cfg(any(target_os = "windows", target_os = "linux", target_os = "android"))]
+            Parity::Space => write!(f, "Space"),
         }
     }
 }
@@ -229,9 +246,14 @@ impl fmt::Display for Parity {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[non_exhaustive]
 pub enum StopBits {
     /// One stop bit.
     One,
+
+    /// One and a half stop bits.
+    #[cfg(target_os = "windows")]
+    OnePointFive,
 
     /// Two stop bits.
     Two,
@@ -241,6 +263,8 @@ impl fmt::Display for StopBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             StopBits::One => write!(f, "One"),
+            #[cfg(target_os = "windows")]
+            StopBits::OnePointFive => write!(f, "OnePointFive"),
             StopBits::Two => write!(f, "Two"),
         }
     }
@@ -250,6 +274,8 @@ impl From<StopBits> for u8 {
     fn from(value: StopBits) -> Self {
         match value {
             StopBits::One => 1,
+            #[cfg(target_os = "windows")]
+            StopBits::OnePointFive => 1,
             StopBits::Two => 2,
         }
     }

@@ -1,6 +1,7 @@
 use std::mem::MaybeUninit;
 use windows_sys::Win32::Devices::Communication::{
-    GetCommState, SetCommState, DCB, EVENPARITY, NOPARITY, ODDPARITY, ONESTOPBIT, TWOSTOPBITS,
+    GetCommState, SetCommState, DCB, EVENPARITY, MARKPARITY, NOPARITY, ODDPARITY, ONE5STOPBITS,
+    ONESTOPBIT, SPACEPARITY, TWOSTOPBITS,
 };
 use windows_sys::Win32::Foundation::HANDLE;
 
@@ -249,6 +250,8 @@ pub(crate) fn set_parity(dcb: &mut DCB, parity: Parity) {
         Parity::None => NOPARITY,
         Parity::Odd => ODDPARITY,
         Parity::Even => EVENPARITY,
+        Parity::Mark => MARKPARITY,
+        Parity::Space => SPACEPARITY,
     };
 
     dcb.set_fParity(parity != Parity::None);
@@ -257,6 +260,7 @@ pub(crate) fn set_parity(dcb: &mut DCB, parity: Parity) {
 pub(crate) fn set_stop_bits(dcb: &mut DCB, stop_bits: StopBits) {
     dcb.StopBits = match stop_bits {
         StopBits::One => ONESTOPBIT,
+        StopBits::OnePointFive => ONE5STOPBITS,
         StopBits::Two => TWOSTOPBITS,
     };
 }

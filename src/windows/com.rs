@@ -352,6 +352,8 @@ impl COMPort {
         match dcb.Parity {
             ODDPARITY => Ok(Parity::Odd),
             EVENPARITY => Ok(Parity::Even),
+            MARKPARITY => Ok(Parity::Mark),
+            SPACEPARITY => Ok(Parity::Space),
             NOPARITY => Ok(Parity::None),
             _ => Err(Error::new(
                 ErrorKind::Unknown,
@@ -364,6 +366,7 @@ impl COMPort {
         let dcb = dcb::get_dcb(self.handle.as_raw_handle())?;
         match dcb.StopBits {
             TWOSTOPBITS => Ok(StopBits::Two),
+            ONE5STOPBITS => Ok(StopBits::OnePointFive),
             ONESTOPBIT => Ok(StopBits::One),
             _ => Err(Error::new(
                 ErrorKind::Unknown,

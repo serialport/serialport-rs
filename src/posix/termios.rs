@@ -130,17 +130,45 @@ pub(crate) fn set_parity(termios: &mut Termios, parity: Parity) {
             termios.c_cflag &= !(libc::PARENB | libc::PARODD);
             termios.c_iflag &= !libc::INPCK;
             termios.c_iflag |= libc::IGNPAR;
+            #[cfg(any(target_os = "linux", target_os = "android"))]
+            {
+                termios.c_iflag &= !libc::CMSPAR;
+            }
         }
         Parity::Odd => {
             termios.c_cflag |= libc::PARENB | libc::PARODD;
             termios.c_iflag |= libc::INPCK;
             termios.c_iflag &= !libc::IGNPAR;
+            #[cfg(any(target_os = "linux", target_os = "android"))]
+            {
+                termios.c_iflag &= !libc::CMSPAR;
+            }
         }
         Parity::Even => {
             termios.c_cflag &= !libc::PARODD;
             termios.c_cflag |= libc::PARENB;
             termios.c_iflag |= libc::INPCK;
             termios.c_iflag &= !libc::IGNPAR;
+            #[cfg(any(target_os = "linux", target_os = "android"))]
+            {
+                termios.c_iflag &= !libc::CMSPAR;
+            }
+        }
+        #[cfg(any(target_os = "linux", target_os = "android"))]
+        Parity::Mark => {
+            termios.c_cflag |= libc::PARODD;
+            termios.c_cflag |= libc::PARENB;
+            termios.c_iflag |= libc::INPCK;
+            termios.c_iflag &= !libc::IGNPAR;
+            termios.c_iflag |= libc::CMSPAR;
+        }
+        #[cfg(any(target_os = "linux", target_os = "android"))]
+        Parity::Space => {
+            termios.c_cflag &= !libc::PARODD;
+            termios.c_cflag |= libc::PARENB;
+            termios.c_iflag |= libc::INPCK;
+            termios.c_iflag &= !libc::IGNPAR;
+            termios.c_iflag |= libc::CMSPAR;
         }
     };
 }
