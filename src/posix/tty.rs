@@ -467,7 +467,6 @@ impl FromRawFd for TTYPort {
             // setting an arbitrary baud rate via the `iossiospeed` ioctl overrides that value,
             // but extract that value anyways as a best-guess of the actual baud rate.
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            // FromRawFd::from_raw_fd can not fail, so fall back to reporting a baud rate of 0  when it can not be determined.
             baud_rate: get_termios_speed(fd).unwrap_or(0),
         }
     }
@@ -566,7 +565,7 @@ impl SerialPort for TTYPort {
     /// desired baud rate.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     fn baud_rate(&self) -> Result<u32> {
-        Ok(self.baud_rate)
+        get_termios_speed(self.fd)
     }
 
     /// Returns the port's baud rate
