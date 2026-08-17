@@ -507,6 +507,11 @@ impl TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
+    ///
+    /// ## Errors
+    ///
+    /// * `Io` if the termios data could not be read from the port
+    /// * `Unknown` if the port reports differing input and output baud rates
     #[cfg(any(
         target_os = "android",
         all(
@@ -517,7 +522,12 @@ impl TTYPort {
     pub(crate) fn baud_rate(&self) -> Result<u32> {
         let termios2 = ioctl::tcgets2(self.fd.as_raw_fd())?;
 
-        assert!(termios2.c_ospeed == termios2.c_ispeed);
+        if termios2.c_ospeed != termios2.c_ispeed {
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "port reports differing input and output baud rates",
+            ));
+        }
 
         Ok(termios2.c_ospeed)
     }
@@ -526,6 +536,11 @@ impl TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
+    ///
+    /// ## Errors
+    ///
+    /// * `Io` if the termios data could not be read from the port
+    /// * `Unknown` if the port reports differing input and output baud rates
     #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
@@ -537,7 +552,12 @@ impl TTYPort {
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
         let ispeed = unsafe { libc::cfgetispeed(&termios) };
 
-        assert!(ospeed == ispeed);
+        if ospeed != ispeed {
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "port reports differing input and output baud rates",
+            ));
+        }
 
         Ok(ospeed as u32)
     }
@@ -555,6 +575,12 @@ impl TTYPort {
     ///
     /// On some platforms this will be the actual device baud rate, which may differ from the
     /// desired baud rate.
+    ///
+    /// ## Errors
+    ///
+    /// * `Io` if the termios data could not be read from the port
+    /// * `Unknown` if the port reports differing input and output baud rates, or if it reports a
+    ///   baud rate which is not a known `B*` constant
     #[cfg(all(
         target_os = "linux",
         any(target_arch = "powerpc", target_arch = "powerpc64")
@@ -573,7 +599,12 @@ impl TTYPort {
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
         let ispeed = unsafe { libc::cfgetispeed(&termios) };
 
-        assert!(ospeed == ispeed);
+        if ospeed != ispeed {
+            return Err(Error::new(
+                ErrorKind::Unknown,
+                "port reports differing input and output baud rates",
+            ));
+        }
 
         let res: u32 = match ospeed {
             B50 => 50,
@@ -606,7 +637,15 @@ impl TTYPort {
             B3000000 => 3_000_000,
             B3500000 => 3_500_000,
             B4000000 => 4_000_000,
-            _ => unreachable!(),
+            _ => {
+                return Err(Error::new(
+                    ErrorKind::Unknown,
+                    format!(
+                        "port reports an unrecognized baud rate constant: {}",
+                        ospeed
+                    ),
+                ))
+            }
         };
 
         Ok(res)
