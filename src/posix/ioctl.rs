@@ -165,9 +165,10 @@ pub fn i_push(fd: RawFd, module: StreamsModule) -> Result<()> {
         StreamsModule::Ptem => b"ptem\x00".as_slice(),
         StreamsModule::Ldterm => b"ldterm\x00".as_slice(),
     };
-    unsafe { raw::i_push(fd, name.as_ptr().cast()) }
-        .map(|_| ())
-        .map_err(|e| e.into())
+    unsafe {
+        raw::i_push(fd, name.as_ptr().cast())?;
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "illumos")]
