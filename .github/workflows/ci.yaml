@@ -76,6 +76,7 @@ jobs:
         run: |
           cargo update --precise 0.10.0 --package core-foundation
           cargo update --precise 0.2.163 --package libc
+          cargo update --precise 0.3.33 --package pkg-config
           cargo update --precise 1.0.101 --package proc-macro2
           cargo update --precise 1.0.40 --package quote
           cargo update --precise 1.0.22 --package unicode-ident
