@@ -414,6 +414,58 @@ fn get_termios_speed(fd: RawFd) -> u32 {
     termios.c_ospeed as u32
 }
 
+#[cfg(all(
+    target_os = "linux",
+    any(target_arch = "powerpc", target_arch = "powerpc64")
+))]
+fn baud_rate_from_speed(speed: libc::speed_t) -> Result<u32> {
+    use libc::{
+        B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000, B460800,
+        B500000, B576000, B921600,
+    };
+    use libc::{
+        B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800,
+        B50, B57600, B600, B75, B9600,
+    };
+
+    match speed {
+        B50 => Ok(50),
+        B75 => Ok(75),
+        B110 => Ok(110),
+        B134 => Ok(134),
+        B150 => Ok(150),
+        B200 => Ok(200),
+        B300 => Ok(300),
+        B600 => Ok(600),
+        B1200 => Ok(1200),
+        B1800 => Ok(1800),
+        B2400 => Ok(2400),
+        B4800 => Ok(4800),
+        B9600 => Ok(9600),
+        B19200 => Ok(19_200),
+        B38400 => Ok(38_400),
+        B57600 => Ok(57_600),
+        B115200 => Ok(115_200),
+        B230400 => Ok(230_400),
+        B460800 => Ok(460_800),
+        B500000 => Ok(500_000),
+        B576000 => Ok(576_000),
+        B921600 => Ok(921_600),
+        B1000000 => Ok(1_000_000),
+        B1152000 => Ok(1_152_000),
+        B1500000 => Ok(1_500_000),
+        B2000000 => Ok(2_000_000),
+        B2500000 => Ok(2_500_000),
+        B3000000 => Ok(3_000_000),
+        B3500000 => Ok(3_500_000),
+        B4000000 => Ok(4_000_000),
+        _ => Err(Error::new(
+            ErrorKind::Unknown,
+            format!("port reports an unrecognized baud rate constant: {}", speed),
+        )),
+    }
+}
+
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         // SAFETY: Our caller promises that the file descriptor passed in must be owned.
@@ -522,14 +574,14 @@ impl TTYPort {
     pub(crate) fn baud_rate(&self) -> Result<u32> {
         let termios2 = ioctl::tcgets2(self.fd.as_raw_fd())?;
 
-        if termios2.c_ospeed != termios2.c_ispeed {
-            return Err(Error::new(
+        if termios2.c_ospeed == termios2.c_ispeed {
+            Ok(termios2.c_ospeed)
+        } else {
+            Err(Error::new(
                 ErrorKind::Unknown,
                 "port reports differing input and output baud rates",
-            ));
+            ))
         }
-
-        Ok(termios2.c_ospeed)
     }
 
     /// Returns the port's baud rate
@@ -552,14 +604,14 @@ impl TTYPort {
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
         let ispeed = unsafe { libc::cfgetispeed(&termios) };
 
-        if ospeed != ispeed {
-            return Err(Error::new(
+        if ospeed == ispeed {
+            Ok(ospeed as u32)
+        } else {
+            Err(Error::new(
                 ErrorKind::Unknown,
                 "port reports differing input and output baud rates",
-            ));
+            ))
         }
-
-        Ok(ospeed as u32)
     }
 
     /// Returns the port's baud rate
@@ -586,69 +638,18 @@ impl TTYPort {
         any(target_arch = "powerpc", target_arch = "powerpc64")
     ))]
     pub(crate) fn baud_rate(&self) -> Result<u32> {
-        use libc::{
-            B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000,
-            B460800, B500000, B576000, B921600,
-        };
-        use libc::{
-            B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400,
-            B4800, B50, B57600, B600, B75, B9600,
-        };
-
         let termios = termios::get_termios(self.fd.as_raw_fd())?;
         let ospeed = unsafe { libc::cfgetospeed(&termios) };
         let ispeed = unsafe { libc::cfgetispeed(&termios) };
 
-        if ospeed != ispeed {
-            return Err(Error::new(
+        if ospeed == ispeed {
+            baud_rate_from_speed(ospeed)
+        } else {
+            Err(Error::new(
                 ErrorKind::Unknown,
                 "port reports differing input and output baud rates",
-            ));
+            ))
         }
-
-        let res: u32 = match ospeed {
-            B50 => 50,
-            B75 => 75,
-            B110 => 110,
-            B134 => 134,
-            B150 => 150,
-            B200 => 200,
-            B300 => 300,
-            B600 => 600,
-            B1200 => 1200,
-            B1800 => 1800,
-            B2400 => 2400,
-            B4800 => 4800,
-            B9600 => 9600,
-            B19200 => 19_200,
-            B38400 => 38_400,
-            B57600 => 57_600,
-            B115200 => 115_200,
-            B230400 => 230_400,
-            B460800 => 460_800,
-            B500000 => 500_000,
-            B576000 => 576_000,
-            B921600 => 921_600,
-            B1000000 => 1_000_000,
-            B1152000 => 1_152_000,
-            B1500000 => 1_500_000,
-            B2000000 => 2_000_000,
-            B2500000 => 2_500_000,
-            B3000000 => 3_000_000,
-            B3500000 => 3_500_000,
-            B4000000 => 4_000_000,
-            _ => {
-                return Err(Error::new(
-                    ErrorKind::Unknown,
-                    format!(
-                        "port reports an unrecognized baud rate constant: {}",
-                        ospeed
-                    ),
-                ))
-            }
-        };
-
-        Ok(res)
     }
 
     pub(crate) fn data_bits(&self) -> Result<DataBits> {
