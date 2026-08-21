@@ -3,11 +3,11 @@ use std::ptr;
 
 use windows_sys::core::GUID;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
-    CM_Get_DevNode_Status, CM_Get_Device_IDW, CM_Get_Parent, SetupDiClassGuidsFromNameW,
-    SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
-    SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey,
-    CR_SUCCESS, DICS_FLAG_GLOBAL, DIGCF_PRESENT, DIREG_DEV, HDEVINFO, MAX_DEVICE_ID_LEN,
-    SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID, SPDRP_LOCATION_PATHS, SPDRP_MFG, SP_DEVINFO_DATA,
+    CM_Get_DevNode_Status, SetupDiClassGuidsFromNameW, SetupDiDestroyDeviceInfoList,
+    SetupDiEnumDeviceInfo, SetupDiGetClassDevsW, SetupDiGetDeviceInstanceIdW,
+    SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey, CR_SUCCESS, DICS_FLAG_GLOBAL,
+    DIGCF_PRESENT, DIREG_DEV, HDEVINFO, MAX_DEVICE_ID_LEN, SPDRP_FRIENDLYNAME, SPDRP_HARDWAREID,
+    SPDRP_LOCATION_PATHS, SPDRP_MFG, SP_DEVINFO_DATA,
 };
 use windows_sys::Win32::Foundation::{FALSE, FILETIME, INVALID_HANDLE_VALUE, MAX_PATH};
 use windows_sys::Win32::System::Registry::{
@@ -16,6 +16,8 @@ use windows_sys::Win32::System::Registry::{
 };
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
+
+mod usb_descriptors;
 
 const CONNECTOR_PUNCTUATION_SELECTION: &[char] = &[':', '_', '\u{ff3f}'];
 
@@ -269,35 +271,6 @@ struct PortDevice {
 }
 
 impl PortDevice {
-    /// Retrieves the device instance id string associated with this device's parent.
-    /// This is useful for determining the serial number of a composite USB device.
-    fn parent_instance_id(&mut self) -> Option<String> {
-        let mut result_buf = [0u16; MAX_PATH as usize];
-        let mut parent_device_instance_id = 0;
-
-        let res =
-            unsafe { CM_Get_Parent(&mut parent_device_instance_id, self.devinfo_data.DevInst, 0) };
-        if res == CR_SUCCESS {
-            let buffer_len = result_buf.len() - 1;
-            let res = unsafe {
-                CM_Get_Device_IDW(
-                    parent_device_instance_id,
-                    result_buf.as_mut_ptr(),
-                    buffer_len as u32,
-                    0,
-                )
-            };
-
-            if res == CR_SUCCESS {
-                Some(from_utf16_lossy_trimmed(&result_buf))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
     /// Retrieves the device instance id string associated with this device. Some examples of
     /// instance id strings are:
     /// * MicroPython Board:  USB\VID_F055&PID_9802\385435603432
@@ -404,20 +377,39 @@ impl PortDevice {
 
     // Determines the port_type for this device, and if it's a USB port populate the various fields.
     pub fn port_type(&mut self) -> SerialPortType {
-        self.instance_id()
-            .map(|s| (s, self.parent_instance_id())) // Get parent instance id if it exists.
-            .and_then(|(d, p)| parse_usb_port_info(&d, p.as_deref()))
-            .map(|mut info: UsbPortInfo| {
-                info.manufacturer = self.property(SPDRP_MFG);
-                info.product = self.property(SPDRP_FRIENDLYNAME);
-                info.location = self
-                    .property_list(SPDRP_LOCATION_PATHS)
-                    .iter()
-                    .find_map(|p| parse_location_path(p));
+        let Some(device_instance_id) = self.instance_id() else {
+            return SerialPortType::Unknown;
+        };
+        let parent_devinst = usb_descriptors::parent(self.devinfo_data.DevInst);
+        let parent_instance_id = parent_devinst.and_then(usb_descriptors::instance_id);
+        let Some(mut info) =
+            parse_usb_port_info(&device_instance_id, parent_instance_id.as_deref())
+        else {
+            return SerialPortType::Unknown;
+        };
 
-                SerialPortType::UsbPort(info)
-            })
-            .unwrap_or(SerialPortType::Unknown)
+        // For USB composite devices, the COM-port devnode is an interface child. The USB string
+        // descriptors belong to the parent physical USB device.
+        let usb_device_devinst = if info.interface.is_some() {
+            parent_devinst
+        } else {
+            Some(self.devinfo_data.DevInst)
+        };
+
+        if let Some(devinst) = usb_device_devinst {
+            let strings = usb_descriptors::strings(devinst, info.vid, info.pid);
+            info.manufacturer = strings.manufacturer;
+            info.product = strings.product;
+        }
+        info.manufacturer = info.manufacturer.or_else(|| self.property(SPDRP_MFG));
+        info.product = info.product.or_else(|| self.property(SPDRP_FRIENDLYNAME));
+
+        info.location = self
+            .property_list(SPDRP_LOCATION_PATHS)
+            .iter()
+            .find_map(|p| parse_location_path(p));
+
+        SerialPortType::UsbPort(info)
     }
 
     // Retrieves a device property and returns it, if it exists. Returns None if the property
