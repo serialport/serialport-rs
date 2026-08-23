@@ -10,11 +10,11 @@ cfg_if! {
     if #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
+        target_os = "illumos",
         target_os = "ios",
         target_os = "macos",
         target_os = "netbsd",
         target_os = "openbsd",
-        target_os = "illumos",
         all(
             target_os = "linux",
             any(
@@ -57,9 +57,9 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
 #[cfg(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "illumos",
     target_os = "netbsd",
     target_os = "openbsd",
-    target_os = "illumos",
     all(
         target_os = "linux",
         any(target_arch = "powerpc", target_arch = "powerpc64")
@@ -102,9 +102,9 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) ->
 #[cfg(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "illumos",
     target_os = "netbsd",
     target_os = "openbsd",
-    target_os = "illumos",
     all(
         target_os = "linux",
         any(target_arch = "powerpc", target_arch = "powerpc64")

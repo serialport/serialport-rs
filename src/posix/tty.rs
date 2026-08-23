@@ -742,10 +742,10 @@ impl SerialPort for TTYPort {
         target_os = "android",
         target_os = "dragonfly",
         target_os = "freebsd",
+        target_os = "illumos",
+        target_os = "linux",
         target_os = "netbsd",
         target_os = "openbsd",
-        target_os = "illumos",
-        target_os = "linux"
     ))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         let mut termios = termios::get_termios(self.fd)?;

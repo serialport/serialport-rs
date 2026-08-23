@@ -28,10 +28,10 @@ cfg_if! {
 
 #[cfg(any(
     target_os = "freebsd",
+    target_os = "illumos",
     target_os = "ios",
     target_os = "linux",
     target_os = "macos",
-    target_os = "illumos",
 ))]
 use crate::SerialPortType;
 #[cfg(any(target_os = "ios", target_os = "linux", target_os = "macos"))]

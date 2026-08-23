@@ -23,11 +23,11 @@ mod raw {
     #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
+        target_os = "illumos",
         target_os = "ios",
         target_os = "macos",
         target_os = "netbsd",
         target_os = "openbsd",
-        target_os = "illumos",
     ))]
     ioctl_read!(fionread, b'f', 127, libc::c_int);
 
