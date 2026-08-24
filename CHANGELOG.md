@@ -14,6 +14,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#222](https://github.com/serialport/serialport-rs/issues/222)
   [#350](https://github.com/serialport/serialport-rs/pull/350)
   [#360](https://github.com/serialport/serialport-rs/pull/360)
+* Add new target illumos.
+  [#347](https://github.com/serialport/serialport-rs/pull/347)
 
 ### Changed
 
