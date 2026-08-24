@@ -16,6 +16,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#360](https://github.com/serialport/serialport-rs/pull/360)
 
 ### Changed
+
+* Return error instead of panicking when reading inconsistent input/output
+  baudrates on some POSIX targets.
+  [#368](https://github.com/serialport/serialport-rs/pull/368)
+
 ### Fixed
 ### Removed
 
