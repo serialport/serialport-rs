@@ -24,6 +24,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
   [#368](https://github.com/serialport/serialport-rs/pull/368)
 
 ### Fixed
+
+* Accept dashes in serial number parsing on Windows.
+  [#351](https://github.com/serialport/serialport-rs/issues/351)
+  [#370](https://github.com/serialport/serialport-rs/issues/370)
+
 ### Removed
 
 
