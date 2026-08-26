@@ -795,7 +795,18 @@ mod tests {
                 serial: Some("B4:3A:45:B0:08:24"),
                 interface: None,
             },
-        )
+        );
+
+        // And there alre also devices using dashes. See issue #351.
+        assert_eq!(
+            HwidMatches::new("USB\\VID_303A&PID_1001\\SERIAL-123-456").unwrap(),
+            HwidMatches {
+                vid: "303A",
+                pid: "1001",
+                serial: Some("SERIAL-123-456"),
+                interface: None,
+            },
+        );
     }
 
     #[test]
