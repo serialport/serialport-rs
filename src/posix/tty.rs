@@ -1,5 +1,5 @@
 use std::io;
-use std::mem::MaybeUninit;
+use std::mem::{self, MaybeUninit};
 use std::os::fd::OwnedFd;
 use std::os::unix::prelude::*;
 use std::path::Path;
@@ -398,7 +398,16 @@ impl AsRawFd for TTYPort {
 
 impl IntoRawFd for TTYPort {
     fn into_raw_fd(self) -> RawFd {
-        self.fd.unlock().unwrap().into_raw_fd()
+        match self.fd.unlock() {
+            Ok(fd) => fd.into_raw_fd(),
+            Err((fd, _)) => {
+                // Unlocking failed, but ownership of the descriptor must still be transferred
+                // to the caller. Forget `fd` so its destructor doesn't close the descriptor.
+                let raw_fd = fd.as_raw_fd();
+                mem::forget(fd);
+                raw_fd
+            }
+        }
     }
 }
 
