@@ -22,11 +22,25 @@ cfg_if! {
     if #[cfg(unix)] {
         use std::os::unix::prelude::*;
         use nix::fcntl::FlockArg;
+        #[cfg(not(target_os = "haiku"))]
         use nix::ioctl_none_bad;
 
         // Locally create a wrapper for the TIOCEXCL and TIOCNXCL ioctl.
+        #[cfg(not(target_os = "haiku"))]
         ioctl_none_bad!(tiocexcl, libc::TIOCEXCL);
+        #[cfg(not(target_os = "haiku"))]
         ioctl_none_bad!(tiocnxcl, libc::TIOCNXCL);
+
+        // The `ioctl_*` macros from `nix` are not exported for Haiku, so the wrappers are
+        // hand-rolled here.
+        #[cfg(target_os = "haiku")]
+        unsafe fn tiocexcl(fd: libc::c_int) -> nix::Result<libc::c_int> {
+            nix::errno::Errno::result(libc::ioctl(fd, libc::TIOCEXCL))
+        }
+        #[cfg(target_os = "haiku")]
+        unsafe fn tiocnxcl(fd: libc::c_int) -> nix::Result<libc::c_int> {
+            nix::errno::Errno::result(libc::ioctl(fd, libc::TIOCNXCL))
+        }
     }
 }
 

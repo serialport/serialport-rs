@@ -8,6 +8,8 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+* Add new target Haiku. Serial ports are enumerated from `/dev/ports/`.
 ### Changed
 ### Fixed
 ### Removed
