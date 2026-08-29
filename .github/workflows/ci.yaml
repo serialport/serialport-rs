@@ -190,6 +190,7 @@ jobs:
       target: x86_64-unknown-netbsd
       toolchain: "1.59.0"
       pin-incompatible-msrv-bump-dependencies: true
+
   msrv-x86_64-unknown-illumos:
     uses: ./.github/workflows/build.yaml
     with:
@@ -198,7 +199,6 @@ jobs:
       target: x86_64-unknown-illumos
       toolchain: "1.59.0"
       pin-incompatible-msrv-bump-dependencies: true
-
 
 
   # --------------------------------------------------------------------------
