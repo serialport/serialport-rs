@@ -9,7 +9,8 @@ use windows_sys::Win32::Foundation::{
     INVALID_HANDLE_VALUE, TRUE,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, OPEN_EXISTING,
+    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL,
+    FILE_FLAG_OVERLAPPED, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
@@ -50,6 +51,14 @@ impl COMPort {
     /// * `InvalidInput` if `port` is not a valid device name.
     /// * `Io` for any other I/O error while opening or initializing the device.
     pub fn open(builder: &SerialPortBuilder) -> Result<COMPort> {
+        Self::open_with_flags(builder, FILE_ATTRIBUTE_NORMAL)
+    }
+
+    pub(crate) fn open_overlapped(builder: &SerialPortBuilder) -> Result<COMPort> {
+        Self::open_with_flags(builder, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED)
+    }
+
+    fn open_with_flags(builder: &SerialPortBuilder, flags: u32) -> Result<COMPort> {
         let mut name = Vec::<u16>::with_capacity(4 + builder.path.len() + 1);
 
         if !builder.path.starts_with('\\') {
@@ -68,7 +77,7 @@ impl COMPort {
                 share_mode,
                 ptr::null_mut(),
                 OPEN_EXISTING,
-                FILE_ATTRIBUTE_NORMAL,
+                flags,
                 0 as HANDLE,
             )
         };
@@ -102,8 +111,7 @@ impl COMPort {
 
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
-    /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
-    /// [tokio-serial](https://crates.io/crates/tokio-serial).
+    /// should look at [`SerialPortBuilder::open_async`].
     ///
     /// Also, you must be very careful when changing the settings of a cloned `SerialPort` : since
     /// the settings are cached on a per object basis, trying to modify them from two different
