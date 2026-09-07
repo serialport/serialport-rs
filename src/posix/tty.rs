@@ -492,9 +492,9 @@ fn baud_rate_from_speed(speed: libc::speed_t) -> Result<u32> {
         B230400 => Ok(230_400),
         B460800 => Ok(460_800),
         #[cfg(target_os = "linux")]
-        B500000 => 500_000,
+        B500000 => Ok(500_000),
         #[cfg(target_os = "linux")]
-        B576000 => 576_000,
+        B576000 => Ok(576_000),
         B921600 => Ok(921_600),
         B1000000 => Ok(1_000_000),
         B1152000 => Ok(1_152_000),
