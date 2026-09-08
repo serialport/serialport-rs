@@ -10,6 +10,11 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+
+* Fix builds for Linux/PowerPC which got broken with [4.10.0].
+  [#375](https://github.com/serialport/serialport-rs/issues/375)
+  [#376](https://github.com/serialport/serialport-rs/pull/376)
+
 ### Removed
 
 
