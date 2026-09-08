@@ -40,12 +40,15 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     env:
+      # Enable cross compilation for `pkg_config`.
+      PKG_CONFIG_ALLOW_CROSS: 1
       RUSTFLAGS: -Dwarnings
     strategy:
       matrix:
         target:
           - aarch64-apple-darwin
           - arm-linux-androideabi
+          - powerpc64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
           - x86_64-unknown-freebsd
           - x86_64-unknown-illumos
@@ -143,6 +146,18 @@ jobs:
       toolchain: "1.59.0"
       pin-incompatible-msrv-bump-dependencies: true
 
+  msrv-powerpc64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      extra_packages: libudev-dev gcc-powerpc64-linux-gnu libc6-dev-ppc64-cross
+      target: powerpc64-unknown-linux-gnu
+      toolchain: "1.59.0"
+      pin-incompatible-msrv-bump-dependencies: true
+
+  # There is no support for powerpc64-unknown-linux-musl with Rust 1.59.0.
+
   msrv-x86_64-unknown-freebsd:
     uses: ./.github/workflows/build.yaml
     with:
@@ -210,11 +225,15 @@ jobs:
 
   semver:
     runs-on: ubuntu-latest
+    env:
+      # Enable cross compilation for `pkg_config`.
+      PKG_CONFIG_ALLOW_CROSS: 1
     strategy:
       matrix:
         target:
           - aarch64-apple-darwin
           - arm-linux-androideabi
+          - powerpc64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
           - x86_64-unknown-freebsd
           - x86_64-unknown-illumos
@@ -325,6 +344,22 @@ jobs:
       extra_packages: libudev-dev gcc-multilib
       target: i686-unknown-linux-musl
 
+  powerpc64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      extra_packages: libudev-dev gcc-powerpc64-linux-gnu libc6-dev-ppc64-cross
+      target: powerpc64-unknown-linux-gnu
+
+  powerpc64-unknown-linux-musl:
+    uses: ./.github/workflows/build.yaml
+    with:
+      disable_extra_builds: true
+      disable_tests: true
+      extra_packages: gcc-powerpc64-linux-gnu
+      target: powerpc64-unknown-linux-musl
+
   x86_64-apple-darwin:
     uses: ./.github/workflows/build.yaml
     with:
@@ -367,6 +402,7 @@ jobs:
       disable_extra_builds: true
       disable_tests: true
       target: x86_64-unknown-netbsd
+
   x86_64-unknown-illumos:
     uses: ./.github/workflows/build.yaml
     with:
