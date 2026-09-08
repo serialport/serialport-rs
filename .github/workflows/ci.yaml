@@ -20,7 +20,7 @@ jobs:
     steps:
         # TODO: Harmonize with build.yaml
       - name: Fmt | checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Fmt | install toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -61,7 +61,7 @@ jobs:
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt install -qq -y libudev-dev
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target }}
@@ -103,7 +103,7 @@ jobs:
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt install -qq -y libudev-dev
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@nightly
       - uses: dtolnay/install@cargo-docs-rs
       - run: cargo docs-rs
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Links | checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Links | check
         id: lychee
@@ -248,7 +248,7 @@ jobs:
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/' /etc/apt/sources.list
           sudo apt-get -qq update
           sudo apt-get -qq -y install build-essential curl git pkg-config libudev-dev
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target }}
@@ -273,7 +273,7 @@ jobs:
     continue-on-error: ${{ matrix.checks == 'advisories' }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: EmbarkStudios/cargo-deny-action@v2
       with:
         command: check ${{ matrix.checks }}

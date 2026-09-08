@@ -75,7 +75,7 @@ jobs:
           echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
 
       - name: Build | checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
 
       - name: Build | install toolchain
         uses: dtolnay/rust-toolchain@stable
