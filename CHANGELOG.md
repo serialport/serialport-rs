@@ -639,7 +639,7 @@ Unreleased, happened due to a user error using `cargo-release`.
 
 
 [Unreleased]: https://github.com/serialport/serialport-rs/compare/v4.10.1...HEAD
-[4.10.0]: https://github.com/serialport/serialport-rs/compare/v4.10.0...v4.10.1
+[4.10.1]: https://github.com/serialport/serialport-rs/compare/v4.10.0...v4.10.1
 [4.10.0]: https://github.com/serialport/serialport-rs/compare/v4.9.0...v4.10.0
 [4.9.0]: https://github.com/serialport/serialport-rs/compare/v4.8.1...v4.9.0
 [4.8.1]: https://github.com/serialport/serialport-rs/compare/v4.8.0...v4.8.1
