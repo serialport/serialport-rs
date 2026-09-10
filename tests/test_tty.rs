@@ -137,6 +137,7 @@ fn test_ttyport_set_standard_baud() {
 #[test]
 #[cfg_attr(
     any(
+        target_os = "haiku",
         target_os = "illumos",
         target_os = "ios",
         all(

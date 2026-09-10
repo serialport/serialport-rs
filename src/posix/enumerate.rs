@@ -28,6 +28,7 @@ cfg_if! {
 
 #[cfg(any(
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "linux",
@@ -820,6 +821,24 @@ cfg_if! {
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
             let dev_path = Path::new("/dev/cua");
+            for path in dev_path.read_dir()? {
+                let path = path?;
+                vec.push(SerialPortInfo {
+                    port_name: path.path().to_string_lossy().to_string(),
+                    port_type: SerialPortType::Unknown,
+                });
+            }
+            Ok(vec)
+        }
+    } else if #[cfg(target_os = "haiku")] {
+        use std::path::Path;
+
+        /// Scans the system for serial ports and returns a list of them.
+        /// The `SerialPortInfo` struct contains the name of the port
+        /// which can be used for opening it.
+        pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
+            let mut vec = Vec::new();
+            let dev_path = Path::new("/dev/ports");
             for path in dev_path.read_dir()? {
                 let path = path?;
                 vec.push(SerialPortInfo {

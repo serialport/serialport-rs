@@ -10,6 +10,7 @@ cfg_if! {
     if #[cfg(any(
         target_os = "dragonfly",
         target_os = "freebsd",
+        target_os = "haiku",
         target_os = "illumos",
         target_os = "ios",
         target_os = "macos",
@@ -57,6 +58,7 @@ pub(crate) fn get_termios(fd: RawFd) -> Result<Termios> {
 #[cfg(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "netbsd",
     target_os = "openbsd",
@@ -102,6 +104,7 @@ pub(crate) fn set_termios(fd: RawFd, termios: &libc::termios, baud_rate: u32) ->
 #[cfg(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "netbsd",
     target_os = "openbsd",
@@ -267,6 +270,42 @@ pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()>
         3_000_000 => B3000000,
         3_500_000 => B3500000,
         4_000_000 => B4000000,
+        _ => return Err(Error::new(ErrorKind::InvalidInput, "Unsupported baud rate")),
+    };
+    let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
+    nix::errno::Errno::result(res)?;
+    Ok(())
+}
+
+#[cfg(target_os = "haiku")]
+pub(crate) fn set_baud_rate(termios: &mut Termios, baud_rate: u32) -> Result<()> {
+    use crate::{Error, ErrorKind};
+
+    use self::libc::{
+        B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B31250,
+        B38400, B4800, B50, B57600, B600, B75, B9600,
+    };
+
+    let baud_rate = match baud_rate {
+        50 => B50,
+        75 => B75,
+        110 => B110,
+        134 => B134,
+        150 => B150,
+        200 => B200,
+        300 => B300,
+        600 => B600,
+        1200 => B1200,
+        1800 => B1800,
+        2400 => B2400,
+        4800 => B4800,
+        9600 => B9600,
+        19_200 => B19200,
+        31_250 => B31250,
+        38_400 => B38400,
+        57_600 => B57600,
+        115_200 => B115200,
+        230_400 => B230400,
         _ => return Err(Error::new(ErrorKind::InvalidInput, "Unsupported baud rate")),
     };
     let res = unsafe { libc::cfsetspeed(termios, baud_rate) };
