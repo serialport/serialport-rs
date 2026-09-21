@@ -208,21 +208,25 @@ impl IntoRawHandle for COMPort {
 
 impl io::Read for COMPort {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let mut len: u32 = 0;
+        let to_read: u32 = buf
+            .len()
+            .try_into()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+        let mut read: u32 = 0;
 
         match unsafe {
             ReadFile(
                 self.handle,
                 buf.as_mut_ptr(),
-                buf.len() as u32,
-                &mut len,
+                to_read,
+                &mut read,
                 ptr::null_mut(),
             )
         } {
             0 => Err(io::Error::last_os_error()),
             _ => {
-                if len != 0 {
-                    Ok(len as usize)
+                if (to_read == 0 && read == 0) || (to_read > 0 && read != 0) {
+                    Ok(read as usize)
                 } else {
                     Err(io::Error::new(
                         io::ErrorKind::TimedOut,
@@ -236,19 +240,32 @@ impl io::Read for COMPort {
 
 impl io::Write for COMPort {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut len: u32 = 0;
+        let to_write: u32 = buf
+            .len()
+            .try_into()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+        let mut written: u32 = 0;
 
         match unsafe {
             WriteFile(
                 self.handle,
                 buf.as_ptr(),
-                buf.len() as u32,
-                &mut len,
+                to_write,
+                &mut written,
                 ptr::null_mut(),
             )
         } {
             0 => Err(io::Error::last_os_error()),
-            _ => Ok(len as usize),
+            _ => {
+                if (to_write == 0 && written == 0) || (to_write > 0 && written != 0) {
+                    Ok(written as usize)
+                } else {
+                    Err(io::Error::new(
+                        io::ErrorKind::TimedOut,
+                        "Operation timed out",
+                    ))
+                }
+            }
         }
     }
 
