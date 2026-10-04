@@ -11,14 +11,18 @@ use windows_sys::Win32::System::Diagnostics::Debug::{
 use crate::{Error, ErrorKind};
 
 pub fn last_os_error() -> Error {
-    let errno = errno();
+    error_from_raw_os_error(errno())
+}
 
+fn error_from_raw_os_error(errno: u32) -> Error {
     let kind = match errno {
         ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND | ERROR_ACCESS_DENIED => ErrorKind::NoDevice,
         _ => ErrorKind::Io(io::ErrorKind::Other),
     };
 
-    Error::new(kind, error_string(errno).trim())
+    let description = format!("{} (os error {})", error_string(errno).trim(), errno);
+
+    Error::new(kind, description)
 }
 
 // the rest of this module is borrowed from libstd
@@ -65,5 +69,18 @@ fn error_string(errnum: u32) -> String {
                 errnum
             ),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn includes_raw_os_error_in_windows_wrapper_description() {
+        let error = error_from_raw_os_error(ERROR_ACCESS_DENIED);
+
+        assert_eq!(error.kind(), ErrorKind::NoDevice);
+        assert!(error.to_string().contains("os error 5"));
     }
 }
