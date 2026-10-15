@@ -139,6 +139,22 @@ impl COMPort {
         }
     }
 
+    /// Attempts to split the `COMPort` into independent read and write halves.
+    ///
+    /// This allows you to write and read simultaneously from the same serial
+    /// connection on different threads without synchronization overhead.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the serial port couldn't be cloned using `try_clone_native`.
+    pub fn split(self) -> Result<(crate::ReadHalf<COMPort>, crate::WriteHalf<COMPort>)> {
+        let cloned = self.try_clone_native()?;
+        Ok((
+            crate::ReadHalf { inner: self },
+            crate::WriteHalf { inner: cloned },
+        ))
+    }
+
     fn escape_comm_function(&mut self, function: u32) -> Result<()> {
         match unsafe { EscapeCommFunction(self.handle, function) } {
             0 => Err(super::error::last_os_error()),

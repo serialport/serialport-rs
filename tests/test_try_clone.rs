@@ -51,3 +51,25 @@ fn test_try_clone_move() {
     // The thread should have already ended, but we'll make sure here anyways.
     loopback.join().unwrap();
 }
+
+#[test]
+fn test_split() {
+    let (master, mut slave) = TTYPort::pair().expect("Unable to create ptty pair");
+
+    let (mut read_half, mut write_half) = master.split().expect("Failed to split");
+
+    let bytes = [b'm', b'n', b'o', b'p', b'q', b'r'];
+    write_half.write_all(&bytes).unwrap();
+
+    let mut buffer = [0; 6];
+    slave.read_exact(&mut buffer).unwrap();
+    assert_eq!(buffer, bytes);
+
+    // Also test reading from the split read_half
+    let slave_bytes = [b's', b't', b'u', b'v', b'w', b'x'];
+    slave.write_all(&slave_bytes).unwrap();
+
+    let mut buffer2 = [0; 6];
+    read_half.read_exact(&mut buffer2).unwrap();
+    assert_eq!(buffer2, slave_bytes);
+}
