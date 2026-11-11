@@ -10,6 +10,9 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+
+* Accept dots in serial number parsing on Windows.
+
 ### Removed
 
 
