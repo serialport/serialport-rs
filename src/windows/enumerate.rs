@@ -17,7 +17,7 @@ use windows_sys::Win32::System::Registry::{
 
 use crate::{Error, ErrorKind, Result, SerialPortInfo, SerialPortType, UsbPortInfo};
 
-const CONNECTOR_PUNCTUATION_SELECTION: &[char] = &['-', ':', '_', '\u{ff3f}'];
+const CONNECTOR_PUNCTUATION_SELECTION: &[char] = &['-', '.', ':', '_', '\u{ff3f}'];
 
 /// takes normal Rust `str` and outputs a null terminated UTF-16 encoded string
 fn as_utf16(utf8: &str) -> Vec<u16> {
@@ -804,6 +804,17 @@ mod tests {
                 vid: "303A",
                 pid: "1001",
                 serial: Some("SERIAL-123-456"),
+                interface: None,
+            },
+        );
+
+        // Serial numbers may also contain dots, for example a domain name prefix. See issue #351.
+        assert_eq!(
+            HwidMatches::new("USB\\VID_16C0&PID_27DD\\example.com:123").unwrap(),
+            HwidMatches {
+                vid: "16C0",
+                pid: "27DD",
+                serial: Some("example.com:123"),
                 interface: None,
             },
         );
