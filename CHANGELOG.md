@@ -13,6 +13,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 * Return an error instead of panicking from `available_ports` on Linux without
   `libudev` when `/sys/class/tty` does not exist.
+  [#382](https://github.com/serialport/serialport-rs/pull/382)
 * Accept dots in serial number parsing on Windows.
   [#381](https://github.com/serialport/serialport-rs/pull/381)
 
