@@ -740,11 +740,18 @@ cfg_if! {
         }
 
         /// Scans `/sys/class/tty` for serial devices (on Linux systems without libudev).
+        ///
+        /// Returns an error if `/sys/class/tty` can not be read, e.g. in containers or sandboxes
+        /// without sysfs.
         pub fn available_ports() -> Result<Vec<SerialPortInfo>> {
+            scan_sys_class_tty(Path::new("/sys/class/tty/"), Path::new("/dev"))
+        }
+
+        /// Scans `sys_path` (usually `/sys/class/tty`) for serial devices and reports them as
+        /// device files in `dev_path` (usually `/dev`).
+        fn scan_sys_class_tty(sys_path: &Path, dev_path: &Path) -> Result<Vec<SerialPortInfo>> {
             let mut vec = Vec::new();
-            let sys_path = Path::new("/sys/class/tty/");
-            let dev_path = Path::new("/dev");
-            for path in sys_path.read_dir().expect("/sys/class/tty/ doesn't exist on this system") {
+            for path in sys_path.read_dir()? {
                 let raw_path = path?.path().clone();
                 let mut path = raw_path.clone();
 
@@ -891,5 +898,23 @@ mod tests {
         assert_eq!(info.pid, 0x5678);
         #[cfg(feature = "usbportinfo-interface")]
         assert_eq!(info.interface, Some(0xdc));
+    }
+}
+
+#[cfg(all(
+    test,
+    target_os = "linux",
+    not(all(not(target_env = "musl"), feature = "libudev"))
+))]
+mod sysfs_tests {
+    use super::*;
+
+    #[test]
+    fn scan_sys_class_tty_reports_missing_directory_as_error() {
+        let result = scan_sys_class_tty(
+            Path::new("/nonexistent/sys/class/tty"),
+            Path::new("/nonexistent/dev"),
+        );
+        assert!(result.is_err());
     }
 }
