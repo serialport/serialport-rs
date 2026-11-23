@@ -511,6 +511,40 @@ fn baud_rate_from_speed(speed: libc::speed_t) -> Result<u32> {
     }
 }
 
+#[cfg(target_os = "haiku")]
+fn baud_rate_from_speed(speed: libc::speed_t) -> Result<u32> {
+    use libc::{
+        B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B31250,
+        B38400, B4800, B50, B57600, B600, B75, B9600,
+    };
+
+    match speed {
+        B50 => Ok(50),
+        B75 => Ok(75),
+        B110 => Ok(110),
+        B134 => Ok(134),
+        B150 => Ok(150),
+        B200 => Ok(200),
+        B300 => Ok(300),
+        B600 => Ok(600),
+        B1200 => Ok(1200),
+        B1800 => Ok(1800),
+        B2400 => Ok(2400),
+        B4800 => Ok(4800),
+        B9600 => Ok(9600),
+        B19200 => Ok(19_200),
+        B31250 => Ok(31_250),
+        B38400 => Ok(38_400),
+        B57600 => Ok(57_600),
+        B115200 => Ok(115_200),
+        B230400 => Ok(230_400),
+        _ => Err(Error::new(
+            ErrorKind::Unknown,
+            format!("port reports an unrecognized baud rate constant: {}", speed),
+        )),
+    }
+}
+
 impl FromRawFd for TTYPort {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         let flock_successful = flock::lock_exclusive(fd).is_ok();
@@ -666,6 +700,7 @@ impl SerialPort for TTYPort {
     /// * `Unknown` if the port reports differing input and output baud rates, or if it reports a
     ///   baud rate which is not a known `B*` constant
     #[cfg(any(
+        target_os = "haiku",
         target_os = "illumos",
         all(
             target_os = "linux",
@@ -687,6 +722,7 @@ impl SerialPort for TTYPort {
         }
     }
 
+    #[cfg(not(target_os = "haiku"))]
     fn data_bits(&self) -> Result<DataBits> {
         let termios = termios::get_termios(self.fd)?;
         match termios.c_cflag & libc::CSIZE {
@@ -698,6 +734,18 @@ impl SerialPort for TTYPort {
                 ErrorKind::Unknown,
                 "Invalid data bits setting encountered",
             )),
+        }
+    }
+
+    // Haiku only distinguishes between seven and eight data bits: `CS8` is set for eight bits
+    // while `CS5`, `CS6` and `CS7` are all zero.
+    #[cfg(target_os = "haiku")]
+    fn data_bits(&self) -> Result<DataBits> {
+        let termios = termios::get_termios(self.fd)?;
+        if termios.c_cflag & libc::CS8 == libc::CS8 {
+            Ok(DataBits::Eight)
+        } else {
+            Ok(DataBits::Seven)
         }
     }
 
@@ -742,6 +790,7 @@ impl SerialPort for TTYPort {
         target_os = "android",
         target_os = "dragonfly",
         target_os = "freebsd",
+        target_os = "haiku",
         target_os = "illumos",
         target_os = "linux",
         target_os = "netbsd",

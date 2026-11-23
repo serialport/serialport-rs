@@ -6,6 +6,7 @@ use nix::libc;
 use crate::Result;
 
 // These are wrapped in a module because they're `pub` by default
+#[cfg(not(target_os = "haiku"))]
 mod raw {
     use nix::libc;
     use nix::{ioctl_none_bad, ioctl_read, ioctl_read_bad, ioctl_write_ptr, ioctl_write_ptr_bad};
@@ -86,13 +87,62 @@ mod raw {
     );
 }
 
+// The `ioctl_*` macros from `nix` are not exported for Haiku, so the wrappers are hand-rolled
+// here. The ioctl identifiers are plain numbers on Haiku (e.g. `TIOCEXCL == TCGETA + 26`).
+#[cfg(target_os = "haiku")]
+mod raw {
+    use nix::libc;
+
+    macro_rules! ioctl_void {
+        ($name:ident, $request:expr) => {
+            pub unsafe fn $name(fd: libc::c_int) -> nix::Result<libc::c_int> {
+                nix::errno::Errno::result(libc::ioctl(fd, $request))
+            }
+        };
+    }
+
+    macro_rules! ioctl_read {
+        ($name:ident, $request:expr) => {
+            pub unsafe fn $name(
+                fd: libc::c_int,
+                data: *mut libc::c_int,
+            ) -> nix::Result<libc::c_int> {
+                nix::errno::Errno::result(libc::ioctl(fd, $request, data))
+            }
+        };
+    }
+
+    macro_rules! ioctl_write_ptr {
+        ($name:ident, $request:expr) => {
+            pub unsafe fn $name(
+                fd: libc::c_int,
+                data: *const libc::c_int,
+            ) -> nix::Result<libc::c_int> {
+                nix::errno::Errno::result(libc::ioctl(fd, $request, data))
+            }
+        };
+    }
+
+    ioctl_void!(tiocexcl, libc::TIOCEXCL);
+    ioctl_void!(tiocnxcl, libc::TIOCNXCL);
+    ioctl_read!(tiocmget, libc::TIOCMGET);
+    ioctl_void!(tiocsbrk, libc::TIOCSBRK);
+    ioctl_void!(tioccbrk, libc::TIOCCBRK);
+    ioctl_read!(fionread, libc::FIONREAD);
+    ioctl_read!(tiocoutq, libc::TIOCOUTQ);
+    ioctl_write_ptr!(tiocmbic, libc::TIOCMBIC);
+    ioctl_write_ptr!(tiocmbis, libc::TIOCMBIS);
+}
+
 bitflags! {
     /// Flags to indicate which wires in a serial connection to use
     pub struct SerialLines: libc::c_int {
         const DATA_SET_READY = libc::TIOCM_DSR;
         const DATA_TERMINAL_READY = libc::TIOCM_DTR;
         const REQUEST_TO_SEND = libc::TIOCM_RTS;
+        #[cfg(not(target_os = "haiku"))]
         const SECONDARY_TRANSMIT = libc::TIOCM_ST;
+        #[cfg(not(target_os = "haiku"))]
         const SECONDARY_RECEIVE = libc::TIOCM_SR;
         const CLEAR_TO_SEND = libc::TIOCM_CTS;
         const DATA_CARRIER_DETECT = libc::TIOCM_CAR;
