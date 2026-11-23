@@ -12,6 +12,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 * Accept dots in serial number parsing on Windows.
+  [#381](https://github.com/serialport/serialport-rs/pull/381)
 
 ### Removed
 
