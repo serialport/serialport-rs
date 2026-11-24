@@ -17,6 +17,8 @@
 //! platform-specific port object which allows access to platform-specific functionality.
 
 #![allow(clippy::uninlined_format_args)]
+// Clippy's MSRV lint can disagree with macro-expanded code from dependencies (e.g. nix ioctl helpers) even when `cargo build` at the crate MSRV still succeeds. See CI `clippy` jobs.
+#![allow(clippy::incompatible_msrv)]
 #![deny(
     clippy::dbg_macro,
     missing_docs,
@@ -155,6 +157,11 @@ pub enum DataBits {
     Eight,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for DataBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
@@ -162,6 +169,20 @@ impl fmt::Display for DataBits {
             DataBits::Six => write!(f, "Six"),
             DataBits::Seven => write!(f, "Seven"),
             DataBits::Eight => write!(f, "Eight"),
+        }
+    }
+}
+
+impl FromStr for DataBits {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "Five" | "five" | "5" => Ok(DataBits::Five),
+            "Six" | "six" | "6" => Ok(DataBits::Six),
+            "Seven" | "seven" | "7" => Ok(DataBits::Seven),
+            "Eight" | "eight" | "8" => Ok(DataBits::Eight),
+            _ => Err(()),
         }
     }
 }
@@ -213,12 +234,30 @@ pub enum Parity {
     Even,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for Parity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Parity::None => write!(f, "None"),
             Parity::Odd => write!(f, "Odd"),
             Parity::Even => write!(f, "Even"),
+        }
+    }
+}
+
+impl FromStr for Parity {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "None" | "none" | "N" | "n" => Ok(Parity::None),
+            "Odd" | "odd" | "O" | "o" => Ok(Parity::Odd),
+            "Even" | "even" | "E" | "e" => Ok(Parity::Even),
+            _ => Err(()),
         }
     }
 }
@@ -236,11 +275,28 @@ pub enum StopBits {
     Two,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for StopBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             StopBits::One => write!(f, "One"),
             StopBits::Two => write!(f, "Two"),
+        }
+    }
+}
+
+impl FromStr for StopBits {
+    type Err = ();
+
+    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
+        match s {
+            "One" | "one" | "1" => Ok(StopBits::One),
+            "Two" | "two" | "2" => Ok(StopBits::Two),
+            _ => Err(()),
         }
     }
 }
@@ -280,6 +336,11 @@ pub enum FlowControl {
     Hardware,
 }
 
+/// Formats the value for a "developer and log locale".
+///
+/// This implementation provides a localized English string for developer logs and debugging,
+/// and is guaranteed to round-trip compatibly with `FromStr`. It is not intended
+/// for user-facing UI localization.
 impl fmt::Display for FlowControl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
@@ -810,6 +871,58 @@ impl fmt::Debug for dyn SerialPort {
         }
 
         write!(f, ")")
+    }
+}
+
+/// A half of a `SerialPort` that can only be used for reading.
+///
+/// This is typically created by splitting a port into its read and write halves.
+#[derive(Debug)]
+pub struct ReadHalf<T> {
+    pub(crate) inner: T,
+}
+
+impl<T: io::Read> io::Read for ReadHalf<T> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buf)
+    }
+}
+
+/// A half of a `SerialPort` that can only be used for writing.
+///
+/// This is typically created by splitting a port into its read and write halves.
+#[derive(Debug)]
+pub struct WriteHalf<T> {
+    pub(crate) inner: T,
+}
+
+impl<T: io::Write> io::Write for WriteHalf<T> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+impl dyn SerialPort {
+    /// Attempts to split the `SerialPort` into independent read and write halves.
+    ///
+    /// This allows you to write and read simultaneously from the same serial
+    /// connection on different threads without synchronization overhead.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the serial port couldn't be cloned using `try_clone`.
+    pub fn split(
+        self: Box<Self>,
+    ) -> Result<(
+        ReadHalf<Box<dyn SerialPort>>,
+        WriteHalf<Box<dyn SerialPort>>,
+    )> {
+        let cloned = self.try_clone()?;
+        Ok((ReadHalf { inner: self }, WriteHalf { inner: cloned }))
     }
 }
 
