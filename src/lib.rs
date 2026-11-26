@@ -153,6 +153,9 @@ pub enum DataBits {
 
     /// 8 bits per character
     Eight,
+
+    /// 9 bits per character
+    Nine,
 }
 
 impl fmt::Display for DataBits {
