@@ -69,8 +69,6 @@ pub struct TTYPort {
     timeout: Duration,
     exclusive: bool,
     port_name: Option<String>,
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
-    baud_rate: u32,
 }
 
 /// Specifies the duration of a transmission break
@@ -195,8 +193,6 @@ impl TTYPort {
             timeout: builder.timeout,
             exclusive: builder.exclusive,
             port_name: Some(builder.path.clone()),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: builder.baud_rate,
         };
 
         // Ignore setting DTR for pseudo terminals. This might be indicated by baud_rate == 0, but
@@ -317,8 +313,6 @@ impl TTYPort {
         let ptty_name = nix::pty::ptsname_r(&next_pty_fd)?;
 
         // Open the slave port
-        #[cfg(any(target_os = "ios", target_os = "macos"))]
-        let baud_rate = 9600;
 
         // Wrap the slave fd in `OwnedFd` immediately so it auto-closes on error
         let fd = OwnedFd(nix::fcntl::open(
@@ -351,8 +345,6 @@ impl TTYPort {
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: Some(ptty_name),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate,
         };
 
         // Manually construct the master port here because the
@@ -363,8 +355,6 @@ impl TTYPort {
             timeout: Duration::from_millis(100),
             exclusive: true,
             port_name: None,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate,
         };
 
         Ok((master_tty, slave_tty))
@@ -400,8 +390,6 @@ impl TTYPort {
             exclusive: self.exclusive,
             port_name: self.port_name.clone(),
             timeout: self.timeout,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: self.baud_rate,
         })
     }
 }
@@ -440,15 +428,24 @@ fn push_ldterm_streams_module(fd: RawFd) -> Result<()> {
 }
 
 /// Get the baud speed for a port from its file descriptor
+/// ## Errors
+///
+/// * `Io` if the termios data could not be read from `fd`
+/// * `Unknown` if the port reports differing input and output baud rates
 #[cfg(any(target_os = "ios", target_os = "macos"))]
-fn get_termios_speed(fd: RawFd) -> u32 {
+fn get_termios_speed(fd: RawFd) -> Result<u32> {
     let mut termios = MaybeUninit::uninit();
-    // TODO: Propagate error instead of panicking.
-    Errno::result(unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) })
-        .expect("Failed to get termios data");
+    Errno::result(unsafe { libc::tcgetattr(fd, termios.as_mut_ptr()) })?;
     let termios = unsafe { termios.assume_init() };
-    assert_eq!(termios.c_ospeed, termios.c_ispeed);
-    termios.c_ospeed as u32
+
+    if termios.c_ospeed != termios.c_ispeed {
+        return Err(Error::new(
+            ErrorKind::Unknown,
+            "port reports differing input and output baud rates",
+        ));
+    }
+
+    Ok(termios.c_ospeed as u32)
 }
 
 #[cfg(any(
@@ -530,11 +527,6 @@ impl FromRawFd for TTYPort {
             // It is not trivial to get the file path corresponding to a file descriptor.
             // We'll punt on it and set it to `None` here.
             port_name: None,
-            // It's not guaranteed that the baud rate in the `termios` struct is correct, as
-            // setting an arbitrary baud rate via the `iossiospeed` ioctl overrides that value,
-            // but extract that value anyways as a best-guess of the actual baud rate.
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            baud_rate: get_termios_speed(fd),
         }
     }
 }
@@ -652,7 +644,7 @@ impl SerialPort for TTYPort {
     /// desired baud rate.
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     fn baud_rate(&self) -> Result<u32> {
-        Ok(self.baud_rate)
+        get_termios_speed(self.fd)
     }
 
     /// Returns the port's baud rate
@@ -757,7 +749,6 @@ impl SerialPort for TTYPort {
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
         ioctl::iossiospeed(self.fd, &(baud_rate as libc::speed_t))?;
-        self.baud_rate = baud_rate;
         Ok(())
     }
 
@@ -765,7 +756,10 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_flow_control(&mut termios, flow_control);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        {
+            let baud_rate = get_termios_speed(self.fd)?;
+            termios::set_termios(self.fd, &termios, baud_rate)
+        }
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -774,7 +768,10 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_parity(&mut termios, parity);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        {
+            let baud_rate = get_termios_speed(self.fd)?;
+            termios::set_termios(self.fd, &termios, baud_rate)
+        }
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -783,7 +780,10 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_data_bits(&mut termios, data_bits);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        {
+            let baud_rate = get_termios_speed(self.fd)?;
+            termios::set_termios(self.fd, &termios, baud_rate)
+        }
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -792,7 +792,10 @@ impl SerialPort for TTYPort {
         let mut termios = termios::get_termios(self.fd)?;
         termios::set_stop_bits(&mut termios, stop_bits);
         #[cfg(any(target_os = "ios", target_os = "macos"))]
-        return termios::set_termios(self.fd, &termios, self.baud_rate);
+        {
+            let baud_rate = get_termios_speed(self.fd)?;
+            termios::set_termios(self.fd, &termios, baud_rate)
+        }
         #[cfg(not(any(target_os = "ios", target_os = "macos")))]
         return termios::set_termios(self.fd, &termios);
     }
@@ -889,4 +892,21 @@ fn test_ttyport_into_raw_fd() {
     }
     close(master_fd);
     close(slave_fd);
+}
+
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[test]
+fn test_get_termios_speed_errors_for_non_tty() {
+    let (read_fd, write_fd) = nix::unistd::pipe().expect("Unable to create pipe");
+
+    let result = get_termios_speed(read_fd);
+
+    let _ = unistd::close(read_fd);
+    let _ = unistd::close(write_fd);
+
+    assert!(
+        result.is_err(),
+        "expected an error for a non-tty file descriptor, got {:?}",
+        result
+    );
 }
