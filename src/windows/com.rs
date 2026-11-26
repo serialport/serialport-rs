@@ -29,6 +29,7 @@ use crate::{
 pub struct COMPort {
     handle: HANDLE,
     timeout: Duration,
+    read_interval_timeout: u32,
     port_name: Option<String>,
 }
 
@@ -100,6 +101,34 @@ impl COMPort {
         Ok(com)
     }
 
+    /// Read the `ReadIntervalTimeout` in milliseconds
+    ///
+    /// This allows checking the current value of the `ReadIntervalTimeout`.
+    pub fn read_interval_timeout(&self) -> u32 {
+        self.read_interval_timeout
+    }
+
+    /// Set the `ReadIntervalTimeout` in milliseconds
+    ///
+    /// `ReadIntervalTimeout` is the maximum time allowed to elapse before the arrival 
+    /// of the next byte on the communications line, in milliseconds. If the interval 
+    /// between the arrival of any two bytes exceeds this amount, the `ReadFile` operation 
+    /// is completed and any buffered data is returned.
+    ///
+    /// A value of zero indicates that interval time-outs are not used. 
+    /// A value of `u32::MAX`, combined with zero values for both the 
+    /// `ReadTotalTimeoutConstant` and `ReadTotalTimeoutMultiplier` members, specifies 
+    /// that the read operation is to return immediately with the bytes that have already 
+    /// been received, even if no bytes have been received.
+    ///
+    /// By default, this is set to `u32::MAX` for maximum responsiveness, mimicking Unix-like
+    /// `VMIN=0`, `VTIME=0` non-blocking behavior. However, for certain use cases, modifying 
+    /// this value can significantly increase transfer rates on Windows.
+    pub fn set_read_interval_timeout(&mut self, timeout: u32) -> Result<()> {
+        self.read_interval_timeout = timeout;
+        self.set_timeout(self.timeout)
+    }
+
     /// Attempts to clone the `SerialPort`. This allow you to write and read simultaneously from the
     /// same serial connection. Please note that if you want a real asynchronous serial port you
     /// should look at [mio-serial](https://crates.io/crates/mio-serial) or
@@ -132,6 +161,7 @@ impl COMPort {
                     handle: cloned_handle,
                     port_name: self.port_name.clone(),
                     timeout: self.timeout,
+                    read_interval_timeout: self.read_interval_timeout,
                 })
             } else {
                 Err(super::error::last_os_error())
@@ -161,6 +191,7 @@ impl COMPort {
         COMPort {
             handle: handle as HANDLE,
             timeout: Duration::from_millis(100),
+            read_interval_timeout: u32::MAX,
             port_name: None,
         }
     }
@@ -272,9 +303,15 @@ impl SerialPort for COMPort {
     fn set_timeout(&mut self, timeout: Duration) -> Result<()> {
         let timeout_constant = Self::timeout_constant(timeout);
 
+        let read_total_timeout_multiplier = if self.read_interval_timeout == u32::MAX {
+            u32::MAX
+        } else {
+            0
+        };
+
         let timeouts = COMMTIMEOUTS {
-            ReadIntervalTimeout: u32::MAX,
-            ReadTotalTimeoutMultiplier: u32::MAX,
+            ReadIntervalTimeout: self.read_interval_timeout,
+            ReadTotalTimeoutMultiplier: read_total_timeout_multiplier,
             ReadTotalTimeoutConstant: timeout_constant,
             WriteTotalTimeoutMultiplier: 0,
             WriteTotalTimeoutConstant: timeout_constant,
@@ -488,4 +525,12 @@ mod tests {
     fn timeout_constant_zero_is_zero() {
         assert_eq!(0, COMPort::timeout_constant(Duration::ZERO));
     }
+
+    #[test]
+    fn default_read_interval_timeout_is_max() {
+        let port = COMPort::open_from_raw_handle(std::ptr::null_mut());
+        assert_eq!(port.read_interval_timeout(), u32::MAX);
+    }
+
+    
 }
